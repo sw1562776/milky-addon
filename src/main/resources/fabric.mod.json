@@ -3,12 +3,12 @@
   "id": "milkymod",
   "version": "${version}",
   "name": "Milky Mod",
-  "description": "idk some mods i wanted",
+  "description": "Moo",
   "authors": [
     "Wandelion"
   ],
   "contact": {
-    "sources": "https://discord.com/users/769415977439592468"
+    "sources": "https://discord.com/users/1276450436219408406"
   },
   "icon": "assets/template/icon.png",
   "accessWidener": "jeffmod.accesswidener",
