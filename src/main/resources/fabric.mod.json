@@ -18,9 +18,6 @@
       "com.stash.hunt.Addon"
     ]
   },
-  "mixins": [
-    "milkymod.mixins.json"
-  ],
   "custom": {
     "meteor-client:color": "225,25,25"
   },
