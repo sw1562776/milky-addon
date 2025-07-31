@@ -194,7 +194,15 @@ public class AutoSnowman extends Module {
 
             waitingForBreak.remove(pos);
 
-            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
+            Item needed;
+            if (index == 0 || index == 1) {
+                needed = Items.SNOW_BLOCK;
+            } else if (index == 2) {
+                needed = Items.CARVED_PUMPKIN;
+            } else {
+                error("Invalid index when placing snowman blocks.");
+                toggle();return;
+            }
 
             boolean foundItem = false;
             for (int slot = 0; slot < 9; slot++) {
