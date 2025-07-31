@@ -1,4 +1,4 @@
-package com.stash.hunt;
+package com.milky;
 
 import com.stash.hunt.hud.Weather;
 import com.stash.hunt.modules.*;
@@ -17,8 +17,8 @@ import com.stash.hunt.modules.AutoSnowman;
 
 public class Addon extends MeteorAddon {
     public static final Logger LOG = LogUtils.getLogger();
-    public static final Category CATEGORY = new Category("Jefff Mod");
-    public static final HudGroup HUD_GROUP = new HudGroup("Jefff Mod");
+    public static final Category CATEGORY = new Category("Milky Mod");
+    public static final HudGroup HUD_GROUP = new HudGroup("Milky Mod");
 
     public final Settings settings = new Settings();
 
@@ -88,7 +88,7 @@ public class Addon extends MeteorAddon {
 
     @Override
     public String getPackage() {
-        return "com.stash.hunt";
+        return "com.milky";
     }
 
     private boolean checkModLoaded(String... modIds)
