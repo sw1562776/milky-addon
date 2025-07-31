@@ -81,8 +81,8 @@ public class AutoSnowman extends Module {
         index = 0;
         delay = 0;
         waitingForBreak.clear();
-
-        BlockPos basePos = mc.player.getBlockPos().offset(mc.player.getHorizontalFacing(), 1);
+        
+        BlockPos basePos = mc.player.getBlockPos().offset(mc.player.getHorizontalFacing(), 1).up(2);
 
         // 雪傀儡结构：底下两块雪块，上面一个雕刻南瓜
         snowmanBlocks.add(basePos);
