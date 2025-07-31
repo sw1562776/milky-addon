@@ -1,4 +1,4 @@
-package com.stash.hunt;
+package com.milky.hunt;
 
 import meteordevelopment.meteorclient.utils.misc.input.Input;
 import meteordevelopment.meteorclient.utils.player.FindItemResult;
