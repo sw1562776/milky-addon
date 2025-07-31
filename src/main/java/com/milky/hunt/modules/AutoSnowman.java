@@ -102,7 +102,16 @@ public class AutoSnowman extends Module {
         loopDelayTimer = 0;
         waitingForNextLoop = false;
 
-        BlockPos basePos = mc.player.getBlockPos().offset(mc.player.getHorizontalFacing(), 1).up(2);
+        //BlockPos basePos = mc.player.getBlockPos().offset(mc.player.getHorizontalFacing(), 1).up(2);
+        
+        // 获取玩家面朝方向的单位向量（包含 pitch/yaw，但我们只取水平分量）
+        Vec3d dir = mc.player.getRotationVec(1.0f);
+        Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);  // 水平方向欧氏距离为2
+        // 计算目标位置（偏移后的位置向上2格）
+        Vec3d target = mc.player.getPos().add(horizontal).add(0, 2, 0);  // 向上2格
+        // 转为整数方块坐标
+        BlockPos basePos = new BlockPos(target);
+        
 
         // 雪傀儡结构：两块雪块 + 一块雕刻南瓜
         snowmanBlocks.add(basePos);
