@@ -1,6 +1,5 @@
 package com.stash.hunt;
 
-import com.stash.hunt.hud.Weather;
 import com.stash.hunt.modules.*;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
