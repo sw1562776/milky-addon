@@ -8,7 +8,6 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Blocks;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
@@ -47,6 +46,15 @@ public class AutoSnowman extends Module {
         .build()
     );
 
+    private final Setting<Integer> loopDelay = sgGeneral.add(new IntSetting.Builder()
+        .name("loop-delay")
+        .description("Ticks to wait between snow golems when in continuous mode.")
+        .defaultValue(20)
+        .sliderRange(0, 200)
+        .visible(continuous::get)
+        .build()
+    );
+
     private final Setting<Boolean> render = sgGeneral.add(new BoolSetting.Builder()
         .name("render")
         .description("Render the snowman frame while placing.")
@@ -78,6 +86,9 @@ public class AutoSnowman extends Module {
     private int delay = 0;
     private int index = 0;
 
+    private boolean waitingForNextLoop = false;
+    private int loopDelayTimer = 0;
+
     public AutoSnowman() {
         super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
     }
@@ -88,16 +99,17 @@ public class AutoSnowman extends Module {
         waitingForBreak.clear();
         index = 0;
         delay = 0;
+        loopDelayTimer = 0;
+        waitingForNextLoop = false;
 
-        // 放置位置：玩家前方一格 + 上移两格
         BlockPos basePos = mc.player.getBlockPos().offset(mc.player.getHorizontalFacing(), 1).up(2);
 
-        // 雪傀儡结构：底下两块雪块，上面一个雕刻南瓜
+        // 雪傀儡结构：两块雪块 + 一块雕刻南瓜
         snowmanBlocks.add(basePos);
         snowmanBlocks.add(basePos.up());
         snowmanBlocks.add(basePos.up(2));
 
-        // 检查物品
+        // 检查材料
         int snowBlockCount = 0;
         int pumpkinCount = 0;
         for (int i = 0; i < 36; i++) {
@@ -118,7 +130,7 @@ public class AutoSnowman extends Module {
             return;
         }
 
-        // 自动切换到雪块开始放置
+        // 自动切到雪块
         for (int i = 0; i < 9; i++) {
             Item item = mc.player.getInventory().getStack(i).getItem();
             if (item == Items.SNOW_BLOCK) {
@@ -134,18 +146,32 @@ public class AutoSnowman extends Module {
         waitingForBreak.clear();
         index = 0;
         delay = 0;
+        loopDelayTimer = 0;
+        waitingForNextLoop = false;
     }
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
         if (mc.player == null || mc.world == null) return;
 
+        // 循环等待
+        if (waitingForNextLoop) {
+            loopDelayTimer++;
+            if (loopDelayTimer >= loopDelay.get()) {
+                waitingForNextLoop = false;
+                onActivate();
+            }
+            return;
+        }
+
+        // 雪傀儡完成
         if (index >= snowmanBlocks.size()) {
             info("Snowman complete.");
             if (continuous.get()) {
-                onActivate(); // 连续生成
+                waitingForNextLoop = true;
+                loopDelayTimer = 0;
             } else {
-                toggle(); // 只建一个就停
+                toggle();
             }
             return;
         }
@@ -156,23 +182,23 @@ public class AutoSnowman extends Module {
         for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++, index++) {
             BlockPos pos = snowmanBlocks.get(index);
 
-            // 如果当前位置已经有方块，就尝试破坏它
+            // 清除已有方块
             if (!mc.world.getBlockState(pos).isReplaceable()) {
                 if (!waitingForBreak.contains(pos)) {
                     mc.interactionManager.attackBlock(pos, Direction.UP);
                     mc.player.swingHand(Hand.MAIN_HAND);
                     waitingForBreak.add(pos);
                 }
-                index--; // 下一 tick 再试
+                index--;
                 return;
             }
 
             waitingForBreak.remove(pos);
 
-            // 第三块是雕刻南瓜，前两块是雪块
+            // 第三块是雕刻南瓜
             Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
 
-            // 自动切换对应方块
+            // 自动切物品
             boolean foundItem = false;
             for (int slot = 0; slot < 9; slot++) {
                 if (mc.player.getInventory().getStack(slot).getItem() == needed) {
@@ -188,7 +214,6 @@ public class AutoSnowman extends Module {
                 return;
             }
 
-            // 放置方块
             if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
                 error("Main hand item is not a block.");
                 toggle();
