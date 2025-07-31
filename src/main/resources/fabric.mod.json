@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "id": "jefffmod",
+  "id": "milkymod",
   "version": "${version}",
-  "name": "Jefff's Mods",
+  "name": "Milky Mod",
   "description": "idk some mods i wanted",
   "authors": [
-    "jefff"
+    "Wandelion"
   ],
   "contact": {
     "sources": "https://discord.com/users/769415977439592468"
@@ -15,7 +15,7 @@
   "environment": "client",
   "entrypoints": {
     "meteor": [
-      "com.stash.hunt.Addon"
+      "com.milky.hunt.Addon"
     ]
   },
   "custom": {
