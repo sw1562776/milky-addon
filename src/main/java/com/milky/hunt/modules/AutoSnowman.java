@@ -1,4 +1,4 @@
-package your.package.name;
+package com.milky.hunt.modules;
 
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
