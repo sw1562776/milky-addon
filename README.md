@@ -1,4 +1,4 @@
-# jeff mod (For minecraft 1.21.1 and 1.21.4)
+# Milky Mod (Meteor Addon For minecraft 1.21.4)
 #### Make an issue or DM me on discord `0x658` with any questions (Check the FAQ first)
 #### Pull Requests are welcome, please make them to the 1.21.1 branch.
 #### Check the [Wiki](https://github.com/miles352/meteor-stashhunting-addon/wiki) for a full list of features and options.
