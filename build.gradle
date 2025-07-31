@@ -31,7 +31,7 @@ repositories {
 }
 
 loom {
-    accessWidenerPath = file("src/main/resources/jeffmod.accesswidener")
+    accessWidenerPath = file("src/main/resources/milkymod.accesswidener")
 }
 
 dependencies {
