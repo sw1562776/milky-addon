@@ -1,6 +1,6 @@
-package com.stash.hunt;
+package com.milky.hunt;
 
-import com.stash.hunt.modules.*;
+import com.milky.hunt.modules.*;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import meteordevelopment.meteorclient.settings.Settings;
@@ -38,7 +38,7 @@ public class Addon extends MeteorAddon {
 
     @Override
     public String getPackage() {
-        return "com.stash.hunt";
+        return "com.milky.hunt";
     }
 
     private boolean checkModLoaded(String... modIds)
