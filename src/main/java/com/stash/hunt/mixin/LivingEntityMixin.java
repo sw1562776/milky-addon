@@ -1,6 +1,5 @@
 package com.stash.hunt.mixin;
 
-import com.stash.hunt.modules.ElytraFlyPlusPlus;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import net.minecraft.entity.LivingEntity;
@@ -25,7 +24,6 @@ public abstract class LivingEntityMixin
     public abstract Brain<?> getBrain();
 
     Module noJumpDelay = Modules.get().get(com.stash.hunt.modules.NoJumpDelay.class);
-    ElytraFlyPlusPlus efly = Modules.get().get(ElytraFlyPlusPlus.class);
 
     @Inject(at = @At("HEAD"), method = "Lnet/minecraft/entity/LivingEntity;tickMovement()V")
     private void tickMovement(CallbackInfo ci)
