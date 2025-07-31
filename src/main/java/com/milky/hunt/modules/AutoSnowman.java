@@ -40,6 +40,13 @@ public class AutoSnowman extends Module {
         .build()
     );
 
+    private final Setting<Boolean> continuous = sgGeneral.add(new BoolSetting.Builder()
+        .name("continuous")
+        .description("Continuously builds snow golems if materials are available.")
+        .defaultValue(false)
+        .build()
+    );
+
     private final Setting<Boolean> render = sgGeneral.add(new BoolSetting.Builder()
         .name("render")
         .description("Render the snowman frame while placing.")
@@ -67,9 +74,9 @@ public class AutoSnowman extends Module {
     );
 
     private final List<BlockPos> snowmanBlocks = new ArrayList<>();
+    private final List<BlockPos> waitingForBreak = new ArrayList<>();
     private int delay = 0;
     private int index = 0;
-    private final List<BlockPos> waitingForBreak = new ArrayList<>();
 
     public AutoSnowman() {
         super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
@@ -78,10 +85,11 @@ public class AutoSnowman extends Module {
     @Override
     public void onActivate() {
         snowmanBlocks.clear();
+        waitingForBreak.clear();
         index = 0;
         delay = 0;
-        waitingForBreak.clear();
-        
+
+        // 放置位置：玩家前方一格 + 上移两格
         BlockPos basePos = mc.player.getBlockPos().offset(mc.player.getHorizontalFacing(), 1).up(2);
 
         // 雪傀儡结构：底下两块雪块，上面一个雕刻南瓜
@@ -103,6 +111,7 @@ public class AutoSnowman extends Module {
             toggle();
             return;
         }
+
         if (pumpkinCount < 1) {
             error("Need at least 1 carved pumpkin.");
             toggle();
@@ -130,8 +139,14 @@ public class AutoSnowman extends Module {
     @EventHandler
     private void onTick(TickEvent.Post event) {
         if (mc.player == null || mc.world == null) return;
+
         if (index >= snowmanBlocks.size()) {
-            toggle();
+            info("Snowman complete.");
+            if (continuous.get()) {
+                onActivate(); // 连续生成
+            } else {
+                toggle(); // 只建一个就停
+            }
             return;
         }
 
@@ -141,27 +156,26 @@ public class AutoSnowman extends Module {
         for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++, index++) {
             BlockPos pos = snowmanBlocks.get(index);
 
-            // 如果当前位置有方块且不是我们要放的，就打掉
+            // 如果当前位置已经有方块，就尝试破坏它
             if (!mc.world.getBlockState(pos).isReplaceable()) {
                 if (!waitingForBreak.contains(pos)) {
                     mc.interactionManager.attackBlock(pos, Direction.UP);
                     mc.player.swingHand(Hand.MAIN_HAND);
                     waitingForBreak.add(pos);
                 }
-                index--; // 下次再试
+                index--; // 下一 tick 再试
                 return;
             }
 
             waitingForBreak.remove(pos);
 
-            // 第三块是 carved pumpkin，前两个是雪块
+            // 第三块是雕刻南瓜，前两块是雪块
             Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
 
-            // 找物品栏中对应物品
+            // 自动切换对应方块
             boolean foundItem = false;
             for (int slot = 0; slot < 9; slot++) {
-                Item item = mc.player.getInventory().getStack(slot).getItem();
-                if (item == needed) {
+                if (mc.player.getInventory().getStack(slot).getItem() == needed) {
                     mc.player.getInventory().selectedSlot = slot;
                     foundItem = true;
                     break;
@@ -187,11 +201,6 @@ public class AutoSnowman extends Module {
         }
 
         delay = 0;
-
-        if (index >= snowmanBlocks.size()) {
-            info("Snowman complete. AutoSnowman disabled.");
-            toggle();
-        }
     }
 
     @EventHandler
