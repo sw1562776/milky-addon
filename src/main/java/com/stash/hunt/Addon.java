@@ -13,14 +13,14 @@ import org.slf4j.Logger;
 
 public class Addon extends MeteorAddon {
     public static final Logger LOG = LogUtils.getLogger();
-    public static final Category CATEGORY = new Category("Jefff Mod");
-    public static final HudGroup HUD_GROUP = new HudGroup("Jefff Mod");
+    public static final Category CATEGORY = new Category("Milky Mod");
+    public static final HudGroup HUD_GROUP = new HudGroup("Milky Mod");
 
     public final Settings settings = new Settings();
 
     @Override
     public void onInitialize() {
-        LOG.info("Initializing Jefff Mod");
+        LOG.info("Initializing Milky Mod");
 
         Modules.get().add(new AutoSnowman());
         
