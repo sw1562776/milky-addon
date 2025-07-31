@@ -1,6 +1,6 @@
-package com.milky.modules;
+package com.stash.hunt.modules;
 
-import com.milky.Addon;
+import com.stash.hunt.Addon;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
