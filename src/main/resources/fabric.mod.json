@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "jefffmod",
+  "version": "${version}",
+  "name": "Jefff's Mods",
+  "description": "idk some mods i wanted",
+  "authors": [
+    "jefff"
+  ],
+  "contact": {
+    "sources": "https://discord.com/users/769415977439592468"
+  },
+  "icon": "assets/template/icon.png",
+  "accessWidener": "jeffmod.accesswidener",
+  "environment": "client",
+  "entrypoints": {
+    "meteor": [
+      "com.stash.hunt.Addon"
+    ]
+  },
+  "mixins": [
+    "jefff-mod.mixins.json"
+  ],
+  "custom": {
+    "meteor-client:color": "225,25,25"
+  },
+  "depends": {
+    "java": ">=21",
+    "minecraft": ">=${mc_version}",
+    "meteor-client": "*"
+  }
+}
