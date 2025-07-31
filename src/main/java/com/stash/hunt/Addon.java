@@ -1,8 +1,5 @@
 package com.milky;
 
-import com.stash.hunt.hud.Weather;
-import com.stash.hunt.modules.*;
-import com.stash.hunt.modules.searcharea.SearchArea;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import meteordevelopment.meteorclient.settings.Settings;
@@ -13,7 +10,7 @@ import meteordevelopment.meteorclient.systems.modules.Modules;
 import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 
-import com.stash.hunt.modules.AutoSnowman;
+import com.milky.modules.AutoSnowman;
 
 public class Addon extends MeteorAddon {
     public static final Logger LOG = LogUtils.getLogger();
