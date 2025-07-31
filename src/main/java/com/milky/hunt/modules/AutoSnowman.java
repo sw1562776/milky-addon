@@ -1,20 +1,15 @@
-package com.milky.hunt.modules;
+package your.package.name;
 
-import com.milky.hunt.Addon;
-import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.block.Blocks;
 import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
 import net.minecraft.item.Items;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec2f;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
@@ -23,74 +18,40 @@ import java.util.List;
 public class AutoSnowman extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private final Setting<Integer> placeDelay = sgGeneral.add(new IntSetting.Builder()
-        .name("place-delay")
-        .description("Ticks between each block placement.")
-        .defaultValue(1)
-        .sliderRange(1, 20)
-        .build()
-    );
-
-    private final Setting<Integer> blocksPerTick = sgGeneral.add(new IntSetting.Builder()
-        .name("blocks-per-tick")
-        .description("How many blocks to place each tick.")
-        .defaultValue(1)
-        .sliderRange(1, 5)
-        .build()
-    );
-
     private final Setting<Boolean> continuous = sgGeneral.add(new BoolSetting.Builder()
         .name("continuous")
-        .description("Continuously builds snow golems if materials are available.")
+        .description("Continuously build snow golems.")
         .defaultValue(false)
         .build()
     );
 
     private final Setting<Integer> loopDelay = sgGeneral.add(new IntSetting.Builder()
         .name("loop-delay")
-        .description("Ticks to wait between snow golems when in continuous mode.")
+        .description("Delay between building snow golems in continuous mode (ticks).")
         .defaultValue(20)
         .sliderRange(0, 200)
         .visible(continuous::get)
         .build()
     );
 
-    private final Setting<Boolean> render = sgGeneral.add(new BoolSetting.Builder()
-        .name("render")
-        .description("Render the snowman frame while placing.")
-        .defaultValue(true)
-        .build()
-    );
-
-    private final Setting<ShapeMode> shapeMode = sgGeneral.add(new EnumSetting.Builder<ShapeMode>()
-        .name("shape-mode")
-        .description("How the box is rendered.")
-        .defaultValue(ShapeMode.Both)
-        .build()
-    );
-
-    private final Setting<SettingColor> sideColor = sgGeneral.add(new ColorSetting.Builder()
-        .name("side-color")
-        .defaultValue(new SettingColor(255, 255, 255, 20))
-        .build()
-    );
-
-    private final Setting<SettingColor> lineColor = sgGeneral.add(new ColorSetting.Builder()
-        .name("line-color")
-        .defaultValue(new SettingColor(255, 255, 255, 200))
+    private final Setting<Integer> placeDelay = sgGeneral.add(new IntSetting.Builder()
+        .name("place-delay")
+        .description("Delay between placing each block (ticks).")
+        .defaultValue(2)
+        .sliderRange(0, 20)
         .build()
     );
 
     private final List<BlockPos> snowmanBlocks = new ArrayList<>();
     private final List<BlockPos> waitingForBreak = new ArrayList<>();
-    private int delay = 0;
-    private int index = 0;
 
+    private int index = 0;
+    private int delay = 0;
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
 
     public AutoSnowman() {
-        super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
+        super(MainAddon.CATEGORY, "auto-snowman", "Automatically builds snow golems.");
     }
 
     @Override
@@ -102,42 +63,32 @@ public class AutoSnowman extends Module {
         loopDelayTimer = 0;
         waitingForNextLoop = false;
 
-        BlockPos basePos = mc.player.getBlockPos().offset(mc.player.getHorizontalFacing(), 1).up(2);
-
-        // 雪傀儡结构：两块雪块 + 一块雕刻南瓜
-        snowmanBlocks.add(basePos);
-        snowmanBlocks.add(basePos.up());
-        snowmanBlocks.add(basePos.up(2));
-
-        // 检查材料
-        int snowBlockCount = 0;
-        int pumpkinCount = 0;
-        for (int i = 0; i < 36; i++) {
-            Item item = mc.player.getInventory().getStack(i).getItem();
-            if (item == Items.SNOW_BLOCK) snowBlockCount += mc.player.getInventory().getStack(i).getCount();
-            if (item == Items.CARVED_PUMPKIN) pumpkinCount += mc.player.getInventory().getStack(i).getCount();
-        }
-
-        if (snowBlockCount < 2) {
-            error("Not enough snow blocks (need at least 2).");
+        if (mc.player == null || mc.world == null) {
+            error("Player or world not available.");
             toggle();
             return;
         }
 
-        if (pumpkinCount < 1) {
-            error("Need at least 1 carved pumpkin.");
+        // 计算水平朝向偏移
+        Vec3d lookVec = mc.player.getRotationVec(1.0f);
+        Vec2f horizontal = new Vec2f((float) lookVec.x, (float) lookVec.z);
+        if (horizontal.lengthSquared() < 1e-5) {
+            error("Can't determine direction.");
             toggle();
             return;
         }
 
-        // 自动切到雪块
-        for (int i = 0; i < 9; i++) {
-            Item item = mc.player.getInventory().getStack(i).getItem();
-            if (item == Items.SNOW_BLOCK) {
-                mc.player.getInventory().selectedSlot = i;
-                break;
-            }
-        }
+        horizontal = horizontal.normalize().multiply(2);
+
+        BlockPos basePos = new BlockPos(
+            mc.player.getX() + horizontal.x,
+            mc.player.getY() - 1,
+            mc.player.getZ() + horizontal.y
+        );
+
+        snowmanBlocks.add(basePos);             // 雪块1
+        snowmanBlocks.add(basePos.up());        // 雪块2
+        snowmanBlocks.add(basePos.up(2));       // 南瓜头
     }
 
     @Override
@@ -152,88 +103,91 @@ public class AutoSnowman extends Module {
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
-        if (mc.player == null || mc.world == null) return;
-
-        // 循环等待
-        if (waitingForNextLoop) {
-            loopDelayTimer++;
-            if (loopDelayTimer >= loopDelay.get()) {
-                waitingForNextLoop = false;
-                onActivate();
-            }
-            return;
-        }
-
-        // 雪傀儡完成
         if (index >= snowmanBlocks.size()) {
-            info("Snowman complete.");
             if (continuous.get()) {
-                waitingForNextLoop = true;
-                loopDelayTimer = 0;
+                if (!waitingForNextLoop) {
+                    waitingForNextLoop = true;
+                    loopDelayTimer = 0;
+                    info("Snowman complete. Waiting...");
+                } else {
+                    loopDelayTimer++;
+                    if (loopDelayTimer >= loopDelay.get()) {
+                        waitingForNextLoop = false;
+                        onActivate();
+                    }
+                }
             } else {
+                info("Snowman complete. AutoSnowman disabled.");
                 toggle();
             }
             return;
         }
 
-        delay++;
-        if (delay < placeDelay.get()) return;
-
-        for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++, index++) {
-            BlockPos pos = snowmanBlocks.get(index);
-
-            // 清除已有方块
-            if (!mc.world.getBlockState(pos).isReplaceable()) {
-                if (!waitingForBreak.contains(pos)) {
-                    mc.interactionManager.attackBlock(pos, Direction.UP);
-                    mc.player.swingHand(Hand.MAIN_HAND);
-                    waitingForBreak.add(pos);
-                }
-                index--;
-                return;
-            }
-
-            waitingForBreak.remove(pos);
-
-            // 第三块是雕刻南瓜
-            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
-
-            // 自动切物品
-            boolean foundItem = false;
-            for (int slot = 0; slot < 9; slot++) {
-                if (mc.player.getInventory().getStack(slot).getItem() == needed) {
-                    mc.player.getInventory().selectedSlot = slot;
-                    foundItem = true;
-                    break;
-                }
-            }
-
-            if (!foundItem) {
-                error("Missing required block: " + needed.getName().getString());
-                toggle();
-                return;
-            }
-
-            if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
-                error("Main hand item is not a block.");
-                toggle();
-                return;
-            }
-
-            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, bhr);
-            mc.player.swingHand(Hand.MAIN_HAND);
+        if (delay > 0) {
+            delay--;
+            return;
         }
 
-        delay = 0;
+        BlockPos pos = snowmanBlocks.get(index);
+        if (!canPlace(pos)) {
+            waitingForBreak.add(pos);
+            index++;
+            return;
+        }
+
+        if (placeBlock(pos)) {
+            delay = placeDelay.get();
+            index++;
+        }
     }
 
-    @EventHandler
-    private void onRender(Render3DEvent event) {
-        if (!render.get()) return;
-        for (int i = index; i < snowmanBlocks.size(); i++) {
-            BlockPos pos = snowmanBlocks.get(i);
-            event.renderer.box(pos, sideColor.get(), lineColor.get(), shapeMode.get(), 0);
+    private boolean canPlace(BlockPos pos) {
+        return mc.world.getBlockState(pos).isReplaceable();
+    }
+
+    private boolean placeBlock(BlockPos pos) {
+        if (index == 2) {
+            // 南瓜头
+            int slot = findItemSlot(Items.CARVED_PUMPKIN);
+            if (slot == -1) {
+                warning("Missing carved pumpkin.");
+                return false;
+            }
+            return placeFromSlot(slot, pos);
+        } else {
+            // 雪块
+            int slot = findBlockSlot(Blocks.SNOW_BLOCK);
+            if (slot == -1) {
+                warning("Missing snow block.");
+                return false;
+            }
+            return placeFromSlot(slot, pos);
         }
+    }
+
+    private int findBlockSlot(Blocks block) {
+        for (int i = 0; i < 9; i++) {
+            if (mc.player.getInventory().getStack(i).getItem() instanceof BlockItem bi) {
+                if (bi.getBlock() == block) return i;
+            }
+        }
+        return -1;
+    }
+
+    private int findItemSlot(Items item) {
+        for (int i = 0; i < 9; i++) {
+            if (mc.player.getInventory().getStack(i).getItem() == item) return i;
+        }
+        return -1;
+    }
+
+    private boolean placeFromSlot(int slot, BlockPos pos) {
+        if (mc.interactionManager == null) return false;
+
+        int prevSlot = mc.player.getInventory().selectedSlot;
+        mc.player.getInventory().selectedSlot = slot;
+        mc.interactionManager.interactBlock(mc.player, mc.world, mc.player.getStackInHand(mc.player.getActiveHand()), pos, Direction.UP);
+        mc.player.getInventory().selectedSlot = prevSlot;
+        return true;
     }
 }
