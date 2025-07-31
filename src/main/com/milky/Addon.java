@@ -16,7 +16,7 @@ public class Addon extends MeteorAddon {
 
     @Override
     public void onInitialize() {
-        LOG.info("Initializing Jefff Mod");
+        LOG.info("Initializing Milky Mod");
 
         Modules.get().add(new AutoSnowman());
     }
