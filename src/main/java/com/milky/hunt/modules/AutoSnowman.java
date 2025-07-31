@@ -1,16 +1,19 @@
 package com.milky.hunt.modules;
 
 import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.settings.*;
+import meteordevelopment.meteorclient.settings.BoolSetting;
+import meteordevelopment.meteorclient.settings.IntSetting;
+import meteordevelopment.meteorclient.settings.Setting;
+import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.utils.player.PlayerUtils;
+import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Items;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.Hand;
+import net.minecraft.util.math.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,174 +23,101 @@ public class AutoSnowman extends Module {
 
     private final Setting<Boolean> continuous = sgGeneral.add(new BoolSetting.Builder()
         .name("continuous")
-        .description("Continuously build snow golems.")
+        .description("Continuously builds snow golems if materials are available.")
         .defaultValue(false)
         .build()
     );
 
-    private final Setting<Integer> loopDelay = sgGeneral.add(new IntSetting.Builder()
-        .name("loop-delay")
-        .description("Delay between building snow golems in continuous mode (ticks).")
-        .defaultValue(20)
-        .sliderRange(0, 200)
-        .visible(continuous::get)
-        .build()
-    );
-
-    private final Setting<Integer> placeDelay = sgGeneral.add(new IntSetting.Builder()
-        .name("place-delay")
-        .description("Delay between placing each block (ticks).")
-        .defaultValue(2)
-        .sliderRange(0, 20)
+    private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
+        .name("delay")
+        .description("Delay between each snowman build cycle in milliseconds.")
+        .defaultValue(1000)
+        .min(0)
+        .sliderMax(5000)
         .build()
     );
 
     private final List<BlockPos> snowmanBlocks = new ArrayList<>();
-    private final List<BlockPos> waitingForBreak = new ArrayList<>();
-
     private int index = 0;
-    private int delay = 0;
-    private boolean waitingForNextLoop = false;
-    private int loopDelayTimer = 0;
+    private long lastBuildTime = 0;
 
     public AutoSnowman() {
-        super(MainAddon.CATEGORY, "auto-snowman", "Automatically builds snow golems.");
+        super(Hunt.CATEGORY, "auto-snowman", "Automatically builds a snow golem 2 blocks ahead.");
     }
 
     @Override
     public void onActivate() {
+        if (mc.player == null) return;
+
         snowmanBlocks.clear();
-        waitingForBreak.clear();
         index = 0;
-        delay = 0;
-        loopDelayTimer = 0;
-        waitingForNextLoop = false;
+        lastBuildTime = System.currentTimeMillis();
 
-        if (mc.player == null || mc.world == null) {
-            error("Player or world not available.");
-            toggle();
-            return;
-        }
-
-        // 计算水平朝向偏移
+        // 获取玩家朝向的水平向量
         Vec3d lookVec = mc.player.getRotationVec(1.0f);
         Vec2f horizontal = new Vec2f((float) lookVec.x, (float) lookVec.z);
         if (horizontal.lengthSquared() < 1e-5) {
-            error("Can't determine direction.");
+            warning("Invalid facing direction.");
             toggle();
             return;
         }
 
-        horizontal = horizontal.normalize().multiply(2);
+        horizontal = horizontal.normalize().multiply(2); // 水平距离 2 格
 
+        // 基础位置：距离玩家 2 格远的地面方块
         BlockPos basePos = new BlockPos(
             mc.player.getX() + horizontal.x,
             mc.player.getY() - 1,
             mc.player.getZ() + horizontal.y
         );
 
-        snowmanBlocks.add(basePos);             // 雪块1
-        snowmanBlocks.add(basePos.up());        // 雪块2
-        snowmanBlocks.add(basePos.up(2));       // 南瓜头
-    }
-
-    @Override
-    public void onDeactivate() {
-        snowmanBlocks.clear();
-        waitingForBreak.clear();
-        index = 0;
-        delay = 0;
-        loopDelayTimer = 0;
-        waitingForNextLoop = false;
+        // 添加放置方块位置：两层雪 + 南瓜
+        snowmanBlocks.add(basePos);
+        snowmanBlocks.add(basePos.up());
+        snowmanBlocks.add(basePos.up(2));
     }
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
+        if (mc.player == null || mc.world == null) return;
         if (index >= snowmanBlocks.size()) {
             if (continuous.get()) {
-                if (!waitingForNextLoop) {
-                    waitingForNextLoop = true;
-                    loopDelayTimer = 0;
-                    info("Snowman complete. Waiting...");
-                } else {
-                    loopDelayTimer++;
-                    if (loopDelayTimer >= loopDelay.get()) {
-                        waitingForNextLoop = false;
-                        onActivate();
-                    }
+                long now = System.currentTimeMillis();
+                if (now - lastBuildTime >= delay.get()) {
+                    onActivate(); // 重置构建流程
                 }
             } else {
-                info("Snowman complete. AutoSnowman disabled.");
+                info("Snowman complete.");
                 toggle();
             }
             return;
         }
 
-        if (delay > 0) {
-            delay--;
-            return;
-        }
-
         BlockPos pos = snowmanBlocks.get(index);
-        if (!canPlace(pos)) {
-            waitingForBreak.add(pos);
-            index++;
+
+        // 确保对应位置可以放置
+        if (!mc.world.getBlockState(pos).isReplaceable()) {
+            error("Cannot place block at " + pos.toShortString() + ". Stopping.");
+            toggle();
             return;
         }
 
-        if (placeBlock(pos)) {
-            delay = placeDelay.get();
-            index++;
-        }
-    }
-
-    private boolean canPlace(BlockPos pos) {
-        return mc.world.getBlockState(pos).isReplaceable();
-    }
-
-    private boolean placeBlock(BlockPos pos) {
-        if (index == 2) {
-            // 南瓜头
-            int slot = findItemSlot(Items.CARVED_PUMPKIN);
-            if (slot == -1) {
-                warning("Missing carved pumpkin.");
-                return false;
+        // 确定该放置什么：前两个放雪，最后一个放南瓜
+        if (index < 2) {
+            if (!PlayerUtils.selectItemFromHotbar(item -> item.getItem() == Items.SNOW_BLOCK)) {
+                error("No snow blocks in hotbar.");
+                toggle();
+                return;
             }
-            return placeFromSlot(slot, pos);
         } else {
-            // 雪块
-            int slot = findBlockSlot(Blocks.SNOW_BLOCK);
-            if (slot == -1) {
-                warning("Missing snow block.");
-                return false;
-            }
-            return placeFromSlot(slot, pos);
-        }
-    }
-
-    private int findBlockSlot(Blocks block) {
-        for (int i = 0; i < 9; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() instanceof BlockItem bi) {
-                if (bi.getBlock() == block) return i;
+            if (!PlayerUtils.selectItemFromHotbar(item -> item.getItem() == Items.CARVED_PUMPKIN)) {
+                error("No carved pumpkin in hotbar.");
+                toggle();
+                return;
             }
         }
-        return -1;
-    }
 
-    private int findItemSlot(Items item) {
-        for (int i = 0; i < 9; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() == item) return i;
-        }
-        return -1;
-    }
-
-    private boolean placeFromSlot(int slot, BlockPos pos) {
-        if (mc.interactionManager == null) return false;
-
-        int prevSlot = mc.player.getInventory().selectedSlot;
-        mc.player.getInventory().selectedSlot = slot;
-        mc.interactionManager.interactBlock(mc.player, mc.world, mc.player.getStackInHand(mc.player.getActiveHand()), pos, Direction.UP);
-        mc.player.getInventory().selectedSlot = prevSlot;
-        return true;
+        BlockUtils.place(pos, Hand.MAIN_HAND, true);
+        index++;
     }
 }
