@@ -1,6 +1,5 @@
 package com.stash.hunt.mixin;
 
-import com.stash.hunt.modules.ElytraFlyPlusPlus;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityPose;
@@ -20,8 +19,7 @@ public class EntityMixin
 {
     @Shadow
     protected UUID uuid;
-
-    ElytraFlyPlusPlus efly = Modules.get().get(ElytraFlyPlusPlus.class);
+    
 
     @Inject(at = @At("HEAD"), method = "Lnet/minecraft/entity/Entity;getPose()Lnet/minecraft/entity/EntityPose;", cancellable = true)
     private void getPose(CallbackInfoReturnable<EntityPose> cir)
