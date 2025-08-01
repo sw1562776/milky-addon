@@ -223,13 +223,11 @@ public class AutoSnowman extends Module {
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
             // 所有方块都用副手包放置（绕过2b2t反作弊）
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+           mc.player.getInventory().offHand.set(0, mc.player.getInventory().getStack(slotToSelect).copy());
+            // 使用副手放置
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
                 Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.swingHand(Hand.MAIN_HAND);
+            mc.player.swingHand(Hand.OFF_HAND);
         }
 
         delay = 0;
