@@ -1,141 +1,118 @@
 package com.milky.hunt.modules;
 
 import com.milky.hunt.Addon;
-import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
+import meteordevelopment.meteorclient.settings.*;
+import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import meteordevelopment.meteorclient.renderer.Renderer2D;
-import net.minecraft.block.Blocks;
-import net.minecraft.block.entity.ShulkerBoxBlockEntity;
+import net.minecraft.client.item.TooltipContext;
+import net.minecraft.client.util.DefaultedList;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.block.Blocks;
 
 import java.lang.reflect.Field;
 import java.util.List;
 
 public class ShulkerPreview extends Module {
-    private final SettingGroup sg = settings.getDefaultGroup();
+    private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private final Setting<Boolean> enabled = sg.add(new BoolSetting.Builder()
-        .name("enabled")
-        .description("Enable shulker preview overlay")
-        .defaultValue(true)
-        .build()
-    );
-
-    private final Setting<DisplayItemMode> displayItemMode = sg.add(new EnumSetting.Builder<DisplayItemMode>()
-        .name("display-item-mode")
-        .description("Which item to show as icon")
-        .defaultValue(DisplayItemMode.FIRST)
-        .build()
-    );
-
-    private final Setting<Boolean> onlyOnShift = sg.add(new BoolSetting.Builder()
-        .name("only-on-shift")
-        .description("Only preview when sneaking")
-        .defaultValue(false)
-        .build()
-    );
-
-    private final Setting<Integer> offsetX = sg.add(new IntSetting.Builder()
+    private final Setting<Integer> offsetX = sgGeneral.add(new IntSetting.Builder()
         .name("offset-x")
-        .description("Icon X offset from center")
+        .description("X position offset.")
         .defaultValue(0)
-        .sliderRange(-100, 100)
+        .sliderRange(-500, 500)
         .build()
     );
 
-    private final Setting<Integer> offsetY = sg.add(new IntSetting.Builder()
+    private final Setting<Integer> offsetY = sgGeneral.add(new IntSetting.Builder()
         .name("offset-y")
-        .description("Icon Y offset from center")
+        .description("Y position offset.")
         .defaultValue(0)
-        .sliderRange(-100, 100)
+        .sliderRange(-500, 500)
         .build()
     );
 
-    private final Setting<Double> scale = sg.add(new DoubleSetting.Builder()
+    private final Setting<Double> scale = sgGeneral.add(new DoubleSetting.Builder()
         .name("scale")
-        .description("Icon scale")
+        .description("Scale of the item preview.")
         .defaultValue(1.0)
-        .sliderRange(0.5, 2.0)
+        .min(0.1)
+        .max(5.0)
         .build()
     );
 
-    private final Setting<Boolean> showCapacityBar = sg.add(new BoolSetting.Builder()
+    private final Setting<Boolean> showCapacityBar = sgGeneral.add(new BoolSetting.Builder()
         .name("show-capacity-bar")
-        .description("Show capacity bar under icon")
+        .description("Show filled bar under the preview.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<BarDirection> barDirection = sg.add(new EnumSetting.Builder<BarDirection>()
-        .name("bar-direction")
-        .description("Direction of capacity bar")
-        .defaultValue(BarDirection.DOWN)
-        .build()
-    );
-
-    private final Setting<Integer> barWidth = sg.add(new IntSetting.Builder()
+    private final Setting<Integer> barWidth = sgGeneral.add(new IntSetting.Builder()
         .name("bar-width")
-        .description("Capacity bar width")
-        .defaultValue(16)
-        .sliderRange(4, 30)
+        .description("Width of the capacity bar.")
+        .defaultValue(50)
+        .sliderRange(10, 200)
         .build()
     );
 
-    private final Setting<Integer> barHeight = sg.add(new IntSetting.Builder()
+    private final Setting<Integer> barHeight = sgGeneral.add(new IntSetting.Builder()
         .name("bar-height")
-        .description("Capacity bar height")
-        .defaultValue(3)
-        .sliderRange(1, 10)
+        .description("Height of the capacity bar.")
+        .defaultValue(6)
+        .sliderRange(1, 20)
         .build()
     );
 
-    private final Setting<Integer> barOffsetX = sg.add(new IntSetting.Builder()
+    private final Setting<Integer> barOffsetX = sgGeneral.add(new IntSetting.Builder()
         .name("bar-offset-x")
-        .description("Capacity bar X offset relative to icon")
+        .description("X offset of the capacity bar relative to item.")
         .defaultValue(0)
-        .sliderRange(-20, 20)
+        .sliderRange(-100, 100)
         .build()
     );
 
-    private final Setting<Integer> barOffsetY = sg.add(new IntSetting.Builder()
+    private final Setting<Integer> barOffsetY = sgGeneral.add(new IntSetting.Builder()
         .name("bar-offset-y")
-        .description("Capacity bar Y offset relative to icon")
-        .defaultValue(18)
-        .sliderRange(-20, 20)
-        .build()
-    );
-
-    private final Setting<Integer> minStackCount = sg.add(new IntSetting.Builder()
-        .name("min-stack-count")
-        .description("Minimum stack size to consider for display")
-        .defaultValue(1)
-        .sliderRange(1, 64)
+        .description("Y offset of the capacity bar relative to item.")
+        .defaultValue(20)
+        .sliderRange(-100, 100)
         .build()
     );
 
     public ShulkerPreview() {
-        super(Addon.CATEGORY, "shulker-preview", "Preview shulker box contents when hovering.");
+        super(Addon.CATEGORY, "shulker-preview", "Shows a preview of shulker box contents.");
     }
 
     @EventHandler
     private void onRender2D(Render2DEvent event) {
-        if (!enabled.get() || mc.player == null || mc.world == null) return;
-        if (mc.currentScreen != null) return;
-        if (onlyOnShift.get() && !mc.player.isSneaking()) return;
+        if (mc.player == null || mc.world == null) return;
+        if (mc.currentScreen != null) return; // 不在界面时显示
         if (!(mc.crosshairTarget instanceof BlockHitResult bhr)) return;
-        if (mc.world.getBlockState(bhr.getBlockPos()).getBlock() != Blocks.SHULKER_BOX) return;
 
-        ShulkerBoxBlockEntity be = (ShulkerBoxBlockEntity) mc.world.getBlockEntity(bhr.getBlockPos());
+        BlockPos pos = bhr.getBlockPos();
+        if (mc.world.getBlockState(pos).getBlock() != Blocks.SHULKER_BOX) return;
+
+        ShulkerBoxBlockEntity be = (ShulkerBoxBlockEntity) mc.world.getBlockEntity(pos);
         if (be == null) return;
 
         DefaultedList<ItemStack> contents = getInventory(be);
         if (contents == null || contents.isEmpty()) return;
 
-        ItemStack toDisplay = DisplayItemMode.pick(displayItemMode.get(), contents, minStackCount.get());
+        // 选一个展示的物品，这里简单取第一个非空物品
+        ItemStack toDisplay = ItemStack.EMPTY;
+        for (ItemStack stack : contents) {
+            if (!stack.isEmpty() && stack.getItem() != Items.AIR) {
+                toDisplay = stack;
+                break;
+            }
+        }
         if (toDisplay.isEmpty()) return;
 
         int screenWidth = mc.getWindow().getScaledWidth();
@@ -144,7 +121,7 @@ public class ShulkerPreview extends Module {
         int x = screenWidth / 2 + offsetX.get();
         int y = screenHeight / 2 + offsetY.get();
 
-        Renderer2D renderer = event.renderer;
+        meteordevelopment.meteorclient.renderer.Renderer renderer = event.renderer;
 
         renderer.item(toDisplay, x, y, scale.get().floatValue());
 
@@ -158,17 +135,16 @@ public class ShulkerPreview extends Module {
             int bx = x + barOffsetX.get();
             int by = y + barOffsetY.get();
 
-            if (barDirection.get() == BarDirection.UP) {
-                by = y - barOffsetY.get() - barH;
-            }
-
-            renderer.rectQuad(bx, by, barW, barH, 0x55000000);
+            // 画背景条
+            renderer.rect(bx, by, barW, barH, 0x55000000);
+            // 画填充条
             int filledW = (int) (barW * pct);
-            renderer.rectQuad(bx, by, filledW, barH, 0xFF55FF55);
+            renderer.rect(bx, by, filledW, barH, 0xFF55FF55);
         }
     }
 
-    private static DefaultedList<ItemStack> getInventory(ShulkerBoxBlockEntity be) {
+    @SuppressWarnings("unchecked")
+    private DefaultedList<ItemStack> getInventory(ShulkerBoxBlockEntity be) {
         try {
             Field f = ShulkerBoxBlockEntity.class.getDeclaredField("inventory");
             f.setAccessible(true);
@@ -181,30 +157,4 @@ public class ShulkerPreview extends Module {
         }
         return null;
     }
-
-    private enum DisplayItemMode {
-        FIRST, LAST, MOST, LEAST;
-
-        static ItemStack pick(DisplayItemMode mode, List<ItemStack> list, int min) {
-            return list.stream()
-                .filter(s -> s.getCount() >= min && !s.isEmpty())
-                .sorted((a, b) -> {
-                    switch (mode) {
-                        case LEAST: return Integer.compare(a.getCount(), b.getCount());
-                        case MOST: return Integer.compare(b.getCount(), a.getCount());
-                        case LAST: return 1;
-                        case FIRST:
-                        default: return -1;
-                    }
-                })
-                .findFirst()
-                .orElseGet(() -> {
-                    if (list.isEmpty()) return ItemStack.EMPTY;
-                    if (mode == LAST) return list.get(list.size() - 1);
-                    return list.get(0);
-                });
-        }
-    }
-
-    private enum BarDirection { DOWN, UP }
 }
