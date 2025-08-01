@@ -3,16 +3,16 @@ package com.milky.hunt.modules;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.utils.render.RenderUtils;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.collection.DefaultedList;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 import static com.milky.hunt.Addon.CATEGORY;
@@ -66,7 +66,7 @@ public class ShulkerPreview extends Module {
         BlockEntity be = mc.world.getBlockEntity(pos);
         if (!(be instanceof ShulkerBoxBlockEntity shulker)) return;
 
-        DefaultedList<ItemStack> items = shulker.getItems();
+        DefaultedList<ItemStack> items = shulker.getInventory();
 
         int cols = 9;
         int rows = 3;
@@ -78,7 +78,6 @@ public class ShulkerPreview extends Module {
         int startY = (int) (mc.getWindow().getScaledHeight() * 0.8 - boxHeight);
 
         DrawContext dc = event.drawContext;
-        MatrixStack ms = dc.getMatrices();
 
         if (drawBackground.get()) {
             dc.fill(startX - 2, startY - 2, startX + boxWidth + 2, startY + boxHeight + 2, 0x90000000);
@@ -91,7 +90,8 @@ public class ShulkerPreview extends Module {
             dc.drawVerticalLine(startX + boxWidth + 2, startY - 2, startY + boxHeight + 2, 0xFFFFFFFF);
         }
 
-        ItemRenderer ir = mc.getItemRenderer();
+        MatrixStack ms = dc.getMatrices();
+
         for (int i = 0; i < items.size(); i++) {
             int x = i % cols;
             int y = i / cols;
@@ -102,8 +102,7 @@ public class ShulkerPreview extends Module {
             ms.push();
             ms.translate(itemX, itemY, 0);
             ms.scale(scale.get().floatValue(), scale.get().floatValue(), 1);
-            ir.renderInGui(stack, 0, 0);
-            ir.renderGuiItemOverlay(mc.textRenderer, stack, 0, 0, null);
+            RenderUtils.drawItem(stack, 0, 0);
             ms.pop();
         }
     }
