@@ -1,4 +1,3 @@
-
 package com.milky.hunt.modules;
 
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
