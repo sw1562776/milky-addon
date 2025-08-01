@@ -91,9 +91,6 @@ public class AutoSnowman extends Module {
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
 
-    // 记录当前副手持有方块，避免频繁切换
-    private Item currentOffhandItem = null;
-
     public AutoSnowman() {
         super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
     }
@@ -106,7 +103,6 @@ public class AutoSnowman extends Module {
         delay = 0;
         loopDelayTimer = 0;
         waitingForNextLoop = false;
-        currentOffhandItem = null;
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
@@ -137,6 +133,7 @@ public class AutoSnowman extends Module {
             return;
         }
 
+        // 预先选主手雪块槽
         for (int i = 0; i < 9; i++) {
             Item item = mc.player.getInventory().getStack(i).getItem();
             if (item == Items.SNOW_BLOCK) {
@@ -154,7 +151,6 @@ public class AutoSnowman extends Module {
         delay = 0;
         loopDelayTimer = 0;
         waitingForNextLoop = false;
-        currentOffhandItem = null;
     }
 
     @EventHandler
@@ -199,39 +195,56 @@ public class AutoSnowman extends Module {
 
             waitingForBreak.remove(pos);
 
-            // 这里根据index决定放什么方块
-            Item needed = (index == 2) ? Items.CARVED_PUMPKIN : Items.SNOW_BLOCK;
+            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
 
-            // 找对应方块在快捷栏的槽
-            int neededSlot = -1;
+            // 找副手槽位：副手必须持当前需要放的方块
+            int offhandSlot = -1;
             for (int slot = 0; slot < 9; slot++) {
                 if (mc.player.getInventory().getStack(slot).getItem() == needed) {
-                    neededSlot = slot;
+                    offhandSlot = slot;
                     break;
                 }
             }
 
-            if (neededSlot == -1) {
+            if (offhandSlot == -1) {
                 error("Missing required block: " + needed.getName().getString());
                 toggle();
                 return;
             }
 
-            // 切换主手槽
-            mc.player.getInventory().selectedSlot = neededSlot;
+            // 找主手槽位
+            int mainHandSlot = -1;
+            if (index < 2) {
+                // 放雪块，主手选雪块槽，和副手同槽
+                mainHandSlot = offhandSlot;
+            } else {
+                // 放南瓜，主手选一个非南瓜方块槽避免冲突
+                for (int slot = 0; slot < 9; slot++) {
+                    Item item = mc.player.getInventory().getStack(slot).getItem();
+                    if (item instanceof BlockItem && item != Items.CARVED_PUMPKIN) {
+                        mainHandSlot = slot;
+                        break;
+                    }
+                }
+                if (mainHandSlot == -1) mainHandSlot = 0; // 找不到则默认0槽
+            }
 
-            // 副手不是当前需要的方块，交换主副手物品
-            if (currentOffhandItem != needed) {
+            mc.player.getInventory().selectedSlot = mainHandSlot;
+
+            // 副手切换：交换主副手物品
+            if (mc.player.getInventory().selectedSlot != offhandSlot) {
                 mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                     PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-                currentOffhandItem = needed;
             }
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-
-            // 用副手放置
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
                 Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+
+            // 再交换回主副手物品，保持原状
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+
             mc.player.swingHand(Hand.MAIN_HAND);
         }
 
