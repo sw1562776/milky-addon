@@ -5,6 +5,7 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.orbit.EventHandler;
+import meteordevelopment.meteorclient.renderer.Renderer2D;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.item.ItemStack;
@@ -121,51 +122,47 @@ public class ShulkerPreview extends Module {
     @EventHandler
     private void onRender2D(Render2DEvent event) {
         if (!enabled.get() || mc.player == null || mc.world == null) return;
-        if (mc.currentScreen != null) return; // 不在 GUI 里
+        if (mc.currentScreen != null) return;
         if (onlyOnShift.get() && !mc.player.isSneaking()) return;
-        if (!(mc.crosshairTarget instanceof BlockHitResult)) return;
-
-        BlockHitResult bhr = (BlockHitResult) mc.crosshairTarget;
+        if (!(mc.crosshairTarget instanceof BlockHitResult bhr)) return;
         if (mc.world.getBlockState(bhr.getBlockPos()).getBlock() != Blocks.SHULKER_BOX) return;
 
-        if (!(mc.world.getBlockEntity(bhr.getBlockPos()) instanceof ShulkerBoxBlockEntity be)) return;
+        ShulkerBoxBlockEntity be = (ShulkerBoxBlockEntity) mc.world.getBlockEntity(bhr.getBlockPos());
+        if (be == null) return;
 
-        List<ItemStack> contents;
-        try {
-            // Yarn 映射下 ShulkerBoxBlockEntity 通常有 getItems()
-            contents = be.getItems();
-        } catch (NoSuchMethodError | NoClassDefFoundError e) {
-            // 保险 fallback: 直接空 list
-            return;
-        }
-
+        List<ItemStack> contents = be.getInvStackList();
         if (contents == null || contents.isEmpty()) return;
 
         ItemStack toDisplay = DisplayItemMode.pick(displayItemMode.get(), contents, minStackCount.get());
         if (toDisplay.isEmpty()) return;
 
-        int x = event.scaledWidth / 2 + offsetX.get();
-        int y = event.scaledHeight / 2 + offsetY.get();
+        int screenWidth = mc.getWindow().getScaledWidth();
+        int screenHeight = mc.getWindow().getScaledHeight();
 
-        event.renderer.item(toDisplay, x, y, (float) (scale.get()));
+        int x = screenWidth / 2 + offsetX.get();
+        int y = screenHeight / 2 + offsetY.get();
+
+        Renderer2D renderer = event.renderer();
+
+        renderer.item(toDisplay, x, y, (float) scale.get());
 
         if (showCapacityBar.get()) {
             int filled = contents.stream().mapToInt(ItemStack::getCount).sum();
-            int capacity = contents.size() * 64; // 假设每格最大 64
+            int capacity = contents.size() * 64;
             double pct = Math.min(1.0, (double) filled / capacity);
+
             int barW = barWidth.get();
             int barH = barHeight.get();
             int bx = x + barOffsetX.get();
             int by = y + barOffsetY.get();
+
             if (barDirection.get() == BarDirection.UP) {
                 by = y - barOffsetY.get() - barH;
             }
 
-            // 背景
-            event.renderer.rect(bx, by, bx + barW, by + barH, 0x55000000);
+            renderer.rect(bx, by, bx + barW, by + barH, 0x55000000);
             int filledW = (int) (barW * pct);
-            // 进度
-            event.renderer.rect(bx, by, bx + filledW, by + barH, 0xFF55FF55);
+            renderer.rect(bx, by, bx + filledW, by + barH, 0xFF55FF55);
         }
     }
 
