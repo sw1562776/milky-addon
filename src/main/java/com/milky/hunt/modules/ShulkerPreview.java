@@ -66,7 +66,7 @@ public class ShulkerPreview extends Module {
         BlockEntity be = mc.world.getBlockEntity(pos);
         if (!(be instanceof ShulkerBoxBlockEntity shulker)) return;
 
-        DefaultedList<ItemStack> items = shulker.getInvStackList();
+        DefaultedList<ItemStack> items = shulker.getItems();
 
         int cols = 9;
         int rows = 3;
@@ -102,7 +102,7 @@ public class ShulkerPreview extends Module {
             ms.push();
             ms.translate(itemX, itemY, 0);
             ms.scale(scale.get().floatValue(), scale.get().floatValue(), 1);
-            ir.renderGuiItem(stack, 0, 0);
+            ir.renderInGui(stack, 0, 0);
             ir.renderGuiItemOverlay(mc.textRenderer, stack, 0, 0, null);
             ms.pop();
         }
