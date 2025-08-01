@@ -23,6 +23,7 @@ public class Addon extends MeteorAddon {
         LOG.info("Initializing Milky Mod");
 
         Modules.get().add(new AutoSnowman());
+        Modules.get().add(new ShulkerPreview());
         
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
