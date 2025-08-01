@@ -6,7 +6,7 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
-import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.item.ItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
@@ -60,50 +60,48 @@ public class ShulkerPreview extends Module {
         if (mc.crosshairTarget == null || mc.player == null || mc.world == null) return;
         if (onlyOnSneak.get() && !mc.player.isSneaking()) return;
 
-        BlockPos blockPos = mc.crosshairTarget.getBlockPos();
-        if (blockPos == null) return;
+        BlockPos pos = mc.crosshairTarget.getBlockPos();
+        if (pos == null) return;
 
-        BlockEntity blockEntity = mc.world.getBlockEntity(blockPos);
-        if (!(blockEntity instanceof ShulkerBoxBlockEntity shulker)) return;
+        BlockEntity be = mc.world.getBlockEntity(pos);
+        if (!(be instanceof ShulkerBoxBlockEntity shulker)) return;
 
         List<ItemStack> items = shulker.getInventory();
 
-        int columns = 9;
-        int rows = 3;
+        int cols = 9, rows = 3;
+        int boxW = (int) (18 * cols * scale.get());
+        int boxH = (int) (18 * rows * scale.get());
 
-        int boxWidth = (int) (18 * columns * scale.get());
-        int boxHeight = (int) (18 * rows * scale.get());
+        int startX = (mc.getWindow().getScaledWidth() - boxW) / 2;
+        int startY = (int) (mc.getWindow().getScaledHeight() * 0.8 - boxH);
 
-        int startX = (mc.getWindow().getScaledWidth() - boxWidth) / 2;
-        int startY = (int) (mc.getWindow().getScaledHeight() * 0.8 - boxHeight);
-
-        MatrixStack matrices = event.matrices;
+        DrawContext dc = event.drawContext;
+        MatrixStack ms = dc.getMatrices();
 
         if (drawBackground.get()) {
-            DrawableHelper.fill(matrices, startX - 2, startY - 2, startX + boxWidth + 2, startY + boxHeight + 2, 0x90000000);
+            dc.fill(startX - 2, startY - 2, startX + boxW + 2, startY + boxH + 2, 0x90000000);
         }
 
         if (drawBorder.get()) {
-            DrawableHelper.drawHorizontalLine(matrices, startX - 2, startX + boxWidth + 2, startY - 2, 0xFFFFFFFF);
-            DrawableHelper.drawHorizontalLine(matrices, startX - 2, startX + boxWidth + 2, startY + boxHeight + 2, 0xFFFFFFFF);
-            DrawableHelper.drawVerticalLine(matrices, startX - 2, startY - 2, startY + boxHeight + 2, 0xFFFFFFFF);
-            DrawableHelper.drawVerticalLine(matrices, startX + boxWidth + 2, startY - 2, startY + boxHeight + 2, 0xFFFFFFFF);
+            dc.drawHorizontalLine(startX - 2, startX + boxW + 2, startY - 2, 0xFFFFFFFF);
+            dc.drawHorizontalLine(startX - 2, startX + boxW + 2, startY + boxH + 2, 0xFFFFFFFF);
+            dc.drawVerticalLine(startX - 2, startY - 2, startY + boxH + 2, 0xFFFFFFFF);
+            dc.drawVerticalLine(startX + boxW + 2, startY - 2, startY + boxH + 2, 0xFFFFFFFF);
         }
 
-        ItemRenderer itemRenderer = mc.getItemRenderer();
+        ItemRenderer ir = mc.getItemRenderer();
         for (int i = 0; i < items.size(); i++) {
-            int x = i % columns;
-            int y = i / columns;
+            int x = i % cols, y = i / cols;
             int itemX = startX + (int) (x * 18 * scale.get());
             int itemY = startY + (int) (y * 18 * scale.get());
 
-            ItemStack itemStack = items.get(i);
-            matrices.push();
-            matrices.translate(itemX, itemY, 0);
-            matrices.scale(scale.get().floatValue(), scale.get().floatValue(), 1);
-            itemRenderer.renderInGuiWithOverrides(itemStack, 0, 0);
-            itemRenderer.renderGuiItemOverlay(mc.textRenderer, itemStack, 0, 0, null);
-            matrices.pop();
+            ItemStack stack = items.get(i);
+            ms.push();
+            ms.translate(itemX, itemY, 0);
+            ms.scale(scale.get().floatValue(), scale.get().floatValue(), 1);
+            ir.renderInGuiWithOverrides(stack, 0, 0);
+            ir.renderGuiItemOverlay(mc.textRenderer, stack, 0, 0, null);
+            ms.pop();
         }
     }
 }
