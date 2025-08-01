@@ -90,7 +90,9 @@ public class AutoSnowman extends Module {
 
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
-    private boolean justSwitchedSlot = false;
+
+    // 新增变量，等待物品槽同步一帧
+    private boolean waitingForSlotSync = false;
 
     public AutoSnowman() {
         super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
@@ -104,7 +106,7 @@ public class AutoSnowman extends Module {
         delay = 0;
         loopDelayTimer = 0;
         waitingForNextLoop = false;
-        justSwitchedSlot = false;
+        waitingForSlotSync = false;
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
@@ -152,7 +154,7 @@ public class AutoSnowman extends Module {
         delay = 0;
         loopDelayTimer = 0;
         waitingForNextLoop = false;
-        justSwitchedSlot = false;
+        waitingForSlotSync = false;
     }
 
     @EventHandler
@@ -165,6 +167,12 @@ public class AutoSnowman extends Module {
                 waitingForNextLoop = false;
                 onActivate();
             }
+            return;
+        }
+
+        // 等待物品槽切换同步一帧，避免放错方块
+        if (waitingForSlotSync) {
+            waitingForSlotSync = false;
             return;
         }
 
@@ -181,11 +189,6 @@ public class AutoSnowman extends Module {
 
         delay++;
         if (delay < placeDelay.get()) return;
-
-        if (justSwitchedSlot) {
-            justSwitchedSlot = false;
-            return;
-        }
 
         for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++, index++) {
             BlockPos pos = snowmanBlocks.get(index);
@@ -220,10 +223,11 @@ public class AutoSnowman extends Module {
                 return;
             }
 
+            // 如果当前选中不是需要的槽，切换并等待一帧
             if (mc.player.getInventory().selectedSlot != slotToSelect) {
                 mc.player.getInventory().selectedSlot = slotToSelect;
-                justSwitchedSlot = true;
-                index--;
+                waitingForSlotSync = true;
+                index--; // 保持当前块不变，下一帧再尝试放
                 return;
             }
 
@@ -235,7 +239,7 @@ public class AutoSnowman extends Module {
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
-            // 副手放置，绕过反作弊
+            // 使用副手切换物品绕过反作弊
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                 PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
