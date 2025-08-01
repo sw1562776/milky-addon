@@ -194,15 +194,7 @@ public class AutoSnowman extends Module {
 
             waitingForBreak.remove(pos);
 
-            Item needed;
-            if (index == 0 || index == 1) {
-                needed = Items.SNOW_BLOCK;
-            } else if (index == 2) {
-                needed = Items.CARVED_PUMPKIN;
-            } else {
-                error("Invalid index when placing snowman blocks.");
-                toggle();return;
-            }
+            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
 
             boolean foundItem = false;
             for (int slot = 0; slot < 9; slot++) {
@@ -225,15 +217,9 @@ public class AutoSnowman extends Module {
                 return;
             }
 
-            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-
-            // === 替换放置逻辑为 Packet 方法 ===
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
-                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+           BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+            // 使用主手放置方块
+            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, bhr);
             mc.player.swingHand(Hand.MAIN_HAND);
         }
 
