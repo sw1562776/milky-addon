@@ -2,7 +2,7 @@
 
 - AutoSnowman
   - Do you want to build a snowman~
-- WisperCoord (coming soon)
+- WhisperCoord (coming soon)
   - Send /w [someone] coordX coordY coordZ with a single click.
 - AutoInvertedT (coming soon)
   - Automatically constructs your favorite, uh... iconic shape — using any block you choose. Ideal for establishing a proudly ridiculous *rocket garden*.
