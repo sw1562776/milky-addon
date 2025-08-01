@@ -182,109 +182,81 @@ public class AutoSnowman extends Module {
 
         int blocksLeft = blocksPerTick.get();
 
-        // 放置前两个雪块，全部用副手包放置，绕过2b2t反作弊
-        while (index < 2 && blocksLeft > 0) {
+        while (blocksLeft > 0 && index < snowmanBlocks.size()) {
             BlockPos pos = snowmanBlocks.get(index);
 
+            // 如果该位置方块不可替换，且还没在等待破坏，则发起破坏，等待下tick检测破坏完毕
             if (!mc.world.getBlockState(pos).isReplaceable()) {
                 if (!waitingForBreak.contains(pos)) {
                     mc.interactionManager.attackBlock(pos, Direction.UP);
                     mc.player.swingHand(Hand.MAIN_HAND);
                     waitingForBreak.add(pos);
+                    delay = 0;
+                    return; // 先破坏方块，等待破坏完成，下tick继续
+                } else {
+                    // 等待破坏完成，检测该方块是否已被破坏
+                    if (!mc.world.getBlockState(pos).isAir()) {
+                        delay = 0;
+                        return; // 还没破坏完，等待下tick
+                    } else {
+                        waitingForBreak.remove(pos);
+                    }
                 }
-                delay = 0;
-                return; // 等待破坏完成，下个tick再继续
             }
 
-            waitingForBreak.remove(pos);
+            // 准备放置
+            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
 
-            // 找到雪块槽位
-            int snowSlot = -1;
+            int slotToSelect = -1;
             for (int slot = 0; slot < 9; slot++) {
-                if (mc.player.getInventory().getStack(slot).getItem() == Items.SNOW_BLOCK) {
-                    snowSlot = slot;
+                if (mc.player.getInventory().getStack(slot).getItem() == needed) {
+                    slotToSelect = slot;
                     break;
                 }
             }
-            if (snowSlot == -1) {
-                error("Missing required block: snow block");
+            if (slotToSelect == -1) {
+                error("Missing required block: " + needed.getName().getString());
                 toggle();
                 return;
             }
 
-            mc.player.getInventory().selectedSlot = snowSlot;
+            mc.player.getInventory().selectedSlot = slotToSelect;
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
-            // 副手放置雪块
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
-                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.swingHand(Hand.MAIN_HAND);
-
-            index++;
-            blocksLeft--;
-        }
-
-        // 放置顶层 carved pumpkin，用副手包放置，确保绕过反作弊
-        if (index == 2 && blocksLeft > 0) {
-            BlockPos pos = snowmanBlocks.get(index);
-
-            if (!mc.world.getBlockState(pos).isReplaceable()) {
-                if (!waitingForBreak.contains(pos)) {
-                    mc.interactionManager.attackBlock(pos, Direction.UP);
-                    mc.player.swingHand(Hand.MAIN_HAND);
-                    waitingForBreak.add(pos);
+            if (index < 2) {
+                // 前两个雪块用副手包放置，绕过反作弊
+                mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+                mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                    Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+                mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            } else {
+                // 最上面 carved pumpkin 也用副手包放置
+                // 确保主手不拿南瓜，避免包位冲突
+                if (mc.player.getInventory().selectedSlot == slotToSelect) {
+                    // 找个非南瓜方块的槽位切换主手，防止替换副手南瓜
+                    int mainHandSlot = -1;
+                    for (int slot = 0; slot < 9; slot++) {
+                        Item item = mc.player.getInventory().getStack(slot).getItem();
+                        if (item instanceof BlockItem && item != Items.CARVED_PUMPKIN) {
+                            mainHandSlot = slot;
+                            break;
+                        }
+                    }
+                    if (mainHandSlot == -1) mainHandSlot = 0;
+                    mc.player.getInventory().selectedSlot = mainHandSlot;
                 }
-                delay = 0;
-                return; // 等待破坏完成，下个tick再继续
-            }
 
-            waitingForBreak.remove(pos);
-
-            // 找 carved pumpkin 槽位
-            int pumpkinSlot = -1;
-            for (int slot = 0; slot < 9; slot++) {
-                if (mc.player.getInventory().getStack(slot).getItem() == Items.CARVED_PUMPKIN) {
-                    pumpkinSlot = slot;
-                    break;
-                }
-            }
-            if (pumpkinSlot == -1) {
-                error("Missing required block: carved pumpkin");
-                toggle();
-                return;
-            }
-
-            // 主手槽位不能是南瓜，避免副手南瓜被替换（找一个非南瓜方块槽位）
-            int mainHandSlot = -1;
-            for (int slot = 0; slot < 9; slot++) {
-                Item item = mc.player.getInventory().getStack(slot).getItem();
-                if (item instanceof BlockItem && item != Items.CARVED_PUMPKIN) {
-                    mainHandSlot = slot;
-                    break;
-                }
-            }
-            if (mainHandSlot == -1) mainHandSlot = 0;
-
-            mc.player.getInventory().selectedSlot = mainHandSlot;
-
-            // 确保副手南瓜
-            if (pumpkinSlot != mc.player.getInventory().selectedSlot) {
+                mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+                mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                    Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
                 mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                     PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             }
 
-            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-
-            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
-                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             mc.player.swingHand(Hand.MAIN_HAND);
 
             index++;
