@@ -133,7 +133,7 @@ public class AutoSnowman extends Module {
             return;
         }
 
-        // 预选雪块槽放主手（便于先放雪块）
+        // 默认选中雪块槽位
         for (int i = 0; i < 9; i++) {
             Item item = mc.player.getInventory().getStack(i).getItem();
             if (item == Items.SNOW_BLOCK) {
@@ -180,8 +180,10 @@ public class AutoSnowman extends Module {
         delay++;
         if (delay < placeDelay.get()) return;
 
-        // 放雪块部分，0 和 1
-        while (index < 2 && blocksPerTick.get() > 0) {
+        int blocksLeft = blocksPerTick.get();
+
+        // 放置前两个雪块，全部用副手包放置，绕过2b2t反作弊
+        while (index < 2 && blocksLeft > 0) {
             BlockPos pos = snowmanBlocks.get(index);
 
             if (!mc.world.getBlockState(pos).isReplaceable()) {
@@ -190,14 +192,13 @@ public class AutoSnowman extends Module {
                     mc.player.swingHand(Hand.MAIN_HAND);
                     waitingForBreak.add(pos);
                 }
-                // 不移动 index，等待下一 tick
                 delay = 0;
-                return;
+                return; // 等待破坏完成，下个tick再继续
             }
 
             waitingForBreak.remove(pos);
 
-            // 找雪块槽
+            // 找到雪块槽位
             int snowSlot = -1;
             for (int slot = 0; slot < 9; slot++) {
                 if (mc.player.getInventory().getStack(slot).getItem() == Items.SNOW_BLOCK) {
@@ -205,7 +206,6 @@ public class AutoSnowman extends Module {
                     break;
                 }
             }
-
             if (snowSlot == -1) {
                 error("Missing required block: snow block");
                 toggle();
@@ -214,28 +214,23 @@ public class AutoSnowman extends Module {
 
             mc.player.getInventory().selectedSlot = snowSlot;
 
-            // 副手也放雪块
-            // 交换主副手物品保证副手持雪块
+            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+
+            // 副手放置雪块
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                 PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-
-            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
                 Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-
-            // 再交换回主副手物品，保持主手持雪块
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                 PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-
             mc.player.swingHand(Hand.MAIN_HAND);
 
             index++;
-            blocksPerTick.set(blocksPerTick.get() - 1); // 消耗一个放置次数
+            blocksLeft--;
         }
 
-        if (index == 2 && blocksPerTick.get() > 0) {
-            // 放南瓜部分（顶层）
-
+        // 放置顶层 carved pumpkin，用副手包放置，确保绕过反作弊
+        if (index == 2 && blocksLeft > 0) {
             BlockPos pos = snowmanBlocks.get(index);
 
             if (!mc.world.getBlockState(pos).isReplaceable()) {
@@ -245,12 +240,12 @@ public class AutoSnowman extends Module {
                     waitingForBreak.add(pos);
                 }
                 delay = 0;
-                return;
+                return; // 等待破坏完成，下个tick再继续
             }
 
             waitingForBreak.remove(pos);
 
-            // 找南瓜槽副手
+            // 找 carved pumpkin 槽位
             int pumpkinSlot = -1;
             for (int slot = 0; slot < 9; slot++) {
                 if (mc.player.getInventory().getStack(slot).getItem() == Items.CARVED_PUMPKIN) {
@@ -258,14 +253,13 @@ public class AutoSnowman extends Module {
                     break;
                 }
             }
-
             if (pumpkinSlot == -1) {
                 error("Missing required block: carved pumpkin");
                 toggle();
                 return;
             }
 
-            // 找主手槽，避免南瓜（随便找非南瓜方块）
+            // 主手槽位不能是南瓜，避免副手南瓜被替换（找一个非南瓜方块槽位）
             int mainHandSlot = -1;
             for (int slot = 0; slot < 9; slot++) {
                 Item item = mc.player.getInventory().getStack(slot).getItem();
@@ -278,24 +272,23 @@ public class AutoSnowman extends Module {
 
             mc.player.getInventory().selectedSlot = mainHandSlot;
 
-            // 确保副手持南瓜，交换主副手物品
-            if (mc.player.getInventory().selectedSlot != pumpkinSlot) {
+            // 确保副手南瓜
+            if (pumpkinSlot != mc.player.getInventory().selectedSlot) {
                 mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                     PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             }
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
                 Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
 
-            // 再交换回主副手物品，保持主手不变
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                 PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-
             mc.player.swingHand(Hand.MAIN_HAND);
 
             index++;
-            blocksPerTick.set(blocksPerTick.get() - 1);
+            blocksLeft--;
         }
 
         delay = 0;
