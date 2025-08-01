@@ -90,6 +90,7 @@ public class AutoSnowman extends Module {
 
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
+    private boolean justSwitchedSlot = false;
 
     public AutoSnowman() {
         super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
@@ -103,6 +104,7 @@ public class AutoSnowman extends Module {
         delay = 0;
         loopDelayTimer = 0;
         waitingForNextLoop = false;
+        justSwitchedSlot = false;
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
@@ -150,6 +152,7 @@ public class AutoSnowman extends Module {
         delay = 0;
         loopDelayTimer = 0;
         waitingForNextLoop = false;
+        justSwitchedSlot = false;
     }
 
     @EventHandler
@@ -178,6 +181,11 @@ public class AutoSnowman extends Module {
 
         delay++;
         if (delay < placeDelay.get()) return;
+
+        if (justSwitchedSlot) {
+            justSwitchedSlot = false;
+            return;
+        }
 
         for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++, index++) {
             BlockPos pos = snowmanBlocks.get(index);
@@ -212,7 +220,12 @@ public class AutoSnowman extends Module {
                 return;
             }
 
-            mc.player.getInventory().selectedSlot = slotToSelect;
+            if (mc.player.getInventory().selectedSlot != slotToSelect) {
+                mc.player.getInventory().selectedSlot = slotToSelect;
+                justSwitchedSlot = true;
+                index--;
+                return;
+            }
 
             if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
                 error("Main hand item is not a block.");
@@ -222,12 +235,14 @@ public class AutoSnowman extends Module {
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
-            // 所有方块都用副手包放置（绕过2b2t反作弊）
-           mc.player.getInventory().offHand.set(0, mc.player.getInventory().getStack(slotToSelect).copy());
-            // 使用副手放置
+            // 副手放置，绕过反作弊
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
                 Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-            mc.player.swingHand(Hand.OFF_HAND);
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.swingHand(Hand.MAIN_HAND);
         }
 
         delay = 0;
