@@ -179,7 +179,9 @@ public class AutoSnowman extends Module {
         delay++;
         if (delay < placeDelay.get()) return;
 
-        for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++, index++) {
+        int blocksLeft = blocksPerTick.get();
+
+        while (blocksLeft > 0 && index < snowmanBlocks.size()) {
             BlockPos pos = snowmanBlocks.get(index);
 
             if (!mc.world.getBlockState(pos).isReplaceable()) {
@@ -187,26 +189,37 @@ public class AutoSnowman extends Module {
                     mc.interactionManager.attackBlock(pos, Direction.UP);
                     mc.player.swingHand(Hand.MAIN_HAND);
                     waitingForBreak.add(pos);
+                    delay = 0;
+                    return;
+                } else {
+                    if (!mc.world.getBlockState(pos).isAir()) {
+                        delay = 0;
+                        return;
+                    } else {
+                        waitingForBreak.remove(pos);
+                    }
                 }
-                index--;
+            }
+
+            Item needed;
+            if (index == 0 || index == 1) {
+                needed = Items.SNOW_BLOCK;
+            } else if (index == 2) {
+                needed = Items.CARVED_PUMPKIN;
+            } else {
+                toggle();
                 return;
             }
 
-            waitingForBreak.remove(pos);
-
-            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
-
-            boolean foundItem = false;
             int slotToSelect = -1;
             for (int slot = 0; slot < 9; slot++) {
                 if (mc.player.getInventory().getStack(slot).getItem() == needed) {
                     slotToSelect = slot;
-                    foundItem = true;
                     break;
                 }
             }
 
-            if (!foundItem) {
+            if (slotToSelect == -1) {
                 error("Missing required block: " + needed.getName().getString());
                 toggle();
                 return;
@@ -214,22 +227,41 @@ public class AutoSnowman extends Module {
 
             mc.player.getInventory().selectedSlot = slotToSelect;
 
-            if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
-                error("Main hand item is not a block.");
-                toggle();
-                return;
-            }
-
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
-            // 所有方块都用副手包放置（绕过2b2t反作弊）
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
-                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            if (index == 0 || index == 1) {
+                mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+                mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                    Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+                mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            } else if (index == 2) {
+                if (mc.player.getInventory().selectedSlot == slotToSelect) {
+                    int mainHandSlot = -1;
+                    for (int slot = 0; slot < 9; slot++) {
+                        Item item = mc.player.getInventory().getStack(slot).getItem();
+                        if (item instanceof BlockItem && item != Items.CARVED_PUMPKIN) {
+                            mainHandSlot = slot;
+                            break;
+                        }
+                    }
+                    if (mainHandSlot == -1) mainHandSlot = 0;
+                    mc.player.getInventory().selectedSlot = mainHandSlot;
+                }
+
+                mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+                mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                    Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+                mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                    PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            }
+
             mc.player.swingHand(Hand.MAIN_HAND);
+
+            index++;
+            blocksLeft--;
         }
 
         delay = 0;
