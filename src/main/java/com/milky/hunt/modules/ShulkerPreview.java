@@ -10,7 +10,9 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.collection.DefaultedList;
 
+import java.lang.reflect.Field;
 import java.util.List;
 
 public class ShulkerPreview extends Module {
@@ -116,7 +118,7 @@ public class ShulkerPreview extends Module {
     );
 
     public ShulkerPreview() {
-        super(Addon.CATEGORY, "ShulkerPreview", "Preview shulker box contents when hovering.");
+        super(Addon.CATEGORY, "shulker-preview", "Preview shulker box contents when hovering.");
     }
 
     @EventHandler
@@ -130,7 +132,7 @@ public class ShulkerPreview extends Module {
         ShulkerBoxBlockEntity be = (ShulkerBoxBlockEntity) mc.world.getBlockEntity(bhr.getBlockPos());
         if (be == null) return;
 
-        List<ItemStack> contents = be.getInvStackList();
+        DefaultedList<ItemStack> contents = getInventory(be);
         if (contents == null || contents.isEmpty()) return;
 
         ItemStack toDisplay = DisplayItemMode.pick(displayItemMode.get(), contents, minStackCount.get());
@@ -142,9 +144,9 @@ public class ShulkerPreview extends Module {
         int x = screenWidth / 2 + offsetX.get();
         int y = screenHeight / 2 + offsetY.get();
 
-        Renderer2D renderer = event.renderer();
+        Renderer2D renderer = event.renderer;
 
-        renderer.item(toDisplay, x, y, (float) scale.get());
+        renderer.item(toDisplay, x, y, scale.get().floatValue());
 
         if (showCapacityBar.get()) {
             int filled = contents.stream().mapToInt(ItemStack::getCount).sum();
@@ -160,35 +162,45 @@ public class ShulkerPreview extends Module {
                 by = y - barOffsetY.get() - barH;
             }
 
-            renderer.rect(bx, by, bx + barW, by + barH, 0x55000000);
+            renderer.rectQuad(bx, by, barW, barH, 0x55000000);
             int filledW = (int) (barW * pct);
-            renderer.rect(bx, by, bx + filledW, by + barH, 0xFF55FF55);
+            renderer.rectQuad(bx, by, filledW, barH, 0xFF55FF55);
         }
+    }
+
+    private static DefaultedList<ItemStack> getInventory(ShulkerBoxBlockEntity be) {
+        try {
+            Field f = ShulkerBoxBlockEntity.class.getDeclaredField("inventory");
+            f.setAccessible(true);
+            Object obj = f.get(be);
+            if (obj instanceof DefaultedList) {
+                return (DefaultedList<ItemStack>) obj;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private enum DisplayItemMode {
         FIRST, LAST, MOST, LEAST;
 
-        static ItemStack pick(DisplayItemMode m, List<ItemStack> list, int min) {
+        static ItemStack pick(DisplayItemMode mode, List<ItemStack> list, int min) {
             return list.stream()
                 .filter(s -> s.getCount() >= min && !s.isEmpty())
                 .sorted((a, b) -> {
-                    switch (m) {
-                        case LEAST:
-                            return Integer.compare(a.getCount(), b.getCount());
-                        case MOST:
-                            return Integer.compare(b.getCount(), a.getCount());
-                        case LAST:
-                            return 1; // 保持原顺序，后面会取最后
+                    switch (mode) {
+                        case LEAST: return Integer.compare(a.getCount(), b.getCount());
+                        case MOST: return Integer.compare(b.getCount(), a.getCount());
+                        case LAST: return 1;
                         case FIRST:
-                        default:
-                            return -1;
+                        default: return -1;
                     }
                 })
                 .findFirst()
                 .orElseGet(() -> {
                     if (list.isEmpty()) return ItemStack.EMPTY;
-                    if (m == LAST) return list.get(list.size() - 1);
+                    if (mode == LAST) return list.get(list.size() - 1);
                     return list.get(0);
                 });
         }
