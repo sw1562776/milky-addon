@@ -132,14 +132,6 @@ public class AutoSnowman extends Module {
             toggle();
             return;
         }
-
-        for (int i = 0; i < 9; i++) {
-            Item item = mc.player.getInventory().getStack(i).getItem();
-            if (item == Items.SNOW_BLOCK) {
-                mc.player.getInventory().selectedSlot = i;
-                break;
-            }
-        }
     }
 
     @Override
@@ -194,12 +186,22 @@ public class AutoSnowman extends Module {
 
             waitingForBreak.remove(pos);
 
-            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
+            Item needed;
+            if (index == 0 || index == 1) {
+                needed = Items.SNOW_BLOCK;
+            } else if (index == 2) {
+                needed = Items.CARVED_PUMPKIN;
+            } else {
+                error("Invalid index.");
+                toggle();
+                return;
+            }
 
             boolean foundItem = false;
             for (int slot = 0; slot < 9; slot++) {
                 if (mc.player.getInventory().getStack(slot).getItem() == needed) {
                     mc.player.getInventory().selectedSlot = slot;
+                    mc.interactionManager.swapItem(); // move to offhand for packet placement
                     foundItem = true;
                     break;
                 }
@@ -211,15 +213,15 @@ public class AutoSnowman extends Module {
                 return;
             }
 
-            if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
-                error("Main hand item is not a block.");
-                toggle();
-                return;
-            }
+            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
-           BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-            // 使用主手放置方块
-            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, bhr);
+            // 发送与 AutoPortal 一致的副手放置包
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             mc.player.swingHand(Hand.MAIN_HAND);
         }
 
