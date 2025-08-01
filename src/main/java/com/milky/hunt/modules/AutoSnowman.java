@@ -158,99 +158,100 @@ public class AutoSnowman extends Module {
     }
 
     @EventHandler
-    private void onTick(TickEvent.Post event) {
-        if (mc.player == null || mc.world == null) return;
+private void onTick(TickEvent.Post event) {
+    if (mc.player == null || mc.world == null) return;
 
-        if (waitingForNextLoop) {
-            loopDelayTimer++;
-            if (loopDelayTimer >= loopDelay.get()) {
-                waitingForNextLoop = false;
-                onActivate();
-            }
-            return;
+    if (waitingForNextLoop) {
+        loopDelayTimer++;
+        if (loopDelayTimer >= loopDelay.get()) {
+            waitingForNextLoop = false;
+            onActivate();
         }
-
-        // 等待物品槽切换同步一帧，避免放错方块
-        if (waitingForSlotSync) {
-            waitingForSlotSync = false;
-            return;
-        }
-
-        if (index >= snowmanBlocks.size()) {
-            info("Snowman complete.");
-            if (continuous.get()) {
-                waitingForNextLoop = true;
-                loopDelayTimer = 0;
-            } else {
-                toggle();
-            }
-            return;
-        }
-
-        delay++;
-        if (delay < placeDelay.get()) return;
-
-        for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++, index++) {
-            BlockPos pos = snowmanBlocks.get(index);
-
-            if (!mc.world.getBlockState(pos).isReplaceable()) {
-                if (!waitingForBreak.contains(pos)) {
-                    mc.interactionManager.attackBlock(pos, Direction.UP);
-                    mc.player.swingHand(Hand.MAIN_HAND);
-                    waitingForBreak.add(pos);
-                }
-                index--;
-                return;
-            }
-
-            waitingForBreak.remove(pos);
-
-            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
-
-            boolean foundItem = false;
-            int slotToSelect = -1;
-            for (int slot = 0; slot < 9; slot++) {
-                if (mc.player.getInventory().getStack(slot).getItem() == needed) {
-                    slotToSelect = slot;
-                    foundItem = true;
-                    break;
-                }
-            }
-
-            if (!foundItem) {
-                error("Missing required block: " + needed.getName().getString());
-                toggle();
-                return;
-            }
-
-            // 如果当前选中不是需要的槽，切换并等待一帧
-            if (mc.player.getInventory().selectedSlot != slotToSelect) {
-                mc.player.getInventory().selectedSlot = slotToSelect;
-                waitingForSlotSync = true;
-                index--; // 保持当前块不变，下一帧再尝试放
-                return;
-            }
-
-            if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
-                error("Main hand item is not a block.");
-                toggle();
-                return;
-            }
-
-            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-
-            // 使用副手切换物品绕过反作弊
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
-                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.swingHand(Hand.MAIN_HAND);
-        }
-
-        delay = 0;
+        return;
     }
+
+    if (waitingForSlotSync) {
+        // 等待一帧让主手切换生效，跳过放置
+        waitingForSlotSync = false;
+        return;
+    }
+
+    if (index >= snowmanBlocks.size()) {
+        info("Snowman complete.");
+        if (continuous.get()) {
+            waitingForNextLoop = true;
+            loopDelayTimer = 0;
+        } else {
+            toggle();
+        }
+        return;
+    }
+
+    delay++;
+    if (delay < placeDelay.get()) return;
+
+    for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++) {
+        BlockPos pos = snowmanBlocks.get(index);
+
+        if (!mc.world.getBlockState(pos).isReplaceable()) {
+            if (!waitingForBreak.contains(pos)) {
+                mc.interactionManager.attackBlock(pos, Direction.UP);
+                mc.player.swingHand(Hand.MAIN_HAND);
+                waitingForBreak.add(pos);
+            }
+            return; // 这里不要index--，等下tick再检查
+        }
+
+        waitingForBreak.remove(pos);
+
+        Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
+
+        int slotToSelect = -1;
+        boolean foundItem = false;
+        for (int slot = 0; slot < 9; slot++) {
+            if (mc.player.getInventory().getStack(slot).getItem() == needed) {
+                slotToSelect = slot;
+                foundItem = true;
+                break;
+            }
+        }
+
+        if (!foundItem) {
+            error("Missing required block: " + needed.getName().getString());
+            toggle();
+            return;
+        }
+
+        // 如果当前选中的槽不是需要的，切换并等待一帧，不增加index，下一帧再尝试
+        if (mc.player.getInventory().selectedSlot != slotToSelect) {
+            mc.player.getInventory().selectedSlot = slotToSelect;
+            waitingForSlotSync = true;
+            return;
+        }
+
+        if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
+            error("Main hand item is not a block.");
+            toggle();
+            return;
+        }
+
+        BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+
+        // 副手绕过反作弊放置
+        mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+            PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+        mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+            Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+        mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+            PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+        mc.player.swingHand(Hand.MAIN_HAND);
+
+        index++; // 放成功，递增index
+    }
+
+    delay = 0;
+}
+
 
     @EventHandler
     private void onRender(Render3DEvent event) {
