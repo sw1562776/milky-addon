@@ -133,7 +133,7 @@ public class AutoSnowman extends Module {
             return;
         }
 
-        // 预先选主手雪块槽
+        // 预选雪块槽放主手（便于先放雪块）
         for (int i = 0; i < 9; i++) {
             Item item = mc.player.getInventory().getStack(i).getItem();
             if (item == Items.SNOW_BLOCK) {
@@ -180,7 +180,8 @@ public class AutoSnowman extends Module {
         delay++;
         if (delay < placeDelay.get()) return;
 
-        for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++, index++) {
+        // 放雪块部分，0 和 1
+        while (index < 2 && blocksPerTick.get() > 0) {
             BlockPos pos = snowmanBlocks.get(index);
 
             if (!mc.world.getBlockState(pos).isReplaceable()) {
@@ -189,50 +190,96 @@ public class AutoSnowman extends Module {
                     mc.player.swingHand(Hand.MAIN_HAND);
                     waitingForBreak.add(pos);
                 }
-                index--;
+                // 不移动 index，等待下一 tick
+                delay = 0;
                 return;
             }
 
             waitingForBreak.remove(pos);
 
-            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
-
-            // 找副手槽位：副手必须持当前需要放的方块
-            int offhandSlot = -1;
+            // 找雪块槽
+            int snowSlot = -1;
             for (int slot = 0; slot < 9; slot++) {
-                if (mc.player.getInventory().getStack(slot).getItem() == needed) {
-                    offhandSlot = slot;
+                if (mc.player.getInventory().getStack(slot).getItem() == Items.SNOW_BLOCK) {
+                    snowSlot = slot;
                     break;
                 }
             }
 
-            if (offhandSlot == -1) {
-                error("Missing required block: " + needed.getName().getString());
+            if (snowSlot == -1) {
+                error("Missing required block: snow block");
                 toggle();
                 return;
             }
 
-            // 找主手槽位
-            int mainHandSlot = -1;
-            if (index < 2) {
-                // 放雪块，主手选雪块槽，和副手同槽
-                mainHandSlot = offhandSlot;
-            } else {
-                // 放南瓜，主手选一个非南瓜方块槽避免冲突
-                for (int slot = 0; slot < 9; slot++) {
-                    Item item = mc.player.getInventory().getStack(slot).getItem();
-                    if (item instanceof BlockItem && item != Items.CARVED_PUMPKIN) {
-                        mainHandSlot = slot;
-                        break;
-                    }
+            mc.player.getInventory().selectedSlot = snowSlot;
+
+            // 副手也放雪块
+            // 交换主副手物品保证副手持雪块
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+
+            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+
+            // 再交换回主副手物品，保持主手持雪块
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+
+            mc.player.swingHand(Hand.MAIN_HAND);
+
+            index++;
+            blocksPerTick.set(blocksPerTick.get() - 1); // 消耗一个放置次数
+        }
+
+        if (index == 2 && blocksPerTick.get() > 0) {
+            // 放南瓜部分（顶层）
+
+            BlockPos pos = snowmanBlocks.get(index);
+
+            if (!mc.world.getBlockState(pos).isReplaceable()) {
+                if (!waitingForBreak.contains(pos)) {
+                    mc.interactionManager.attackBlock(pos, Direction.UP);
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                    waitingForBreak.add(pos);
                 }
-                if (mainHandSlot == -1) mainHandSlot = 0; // 找不到则默认0槽
+                delay = 0;
+                return;
             }
+
+            waitingForBreak.remove(pos);
+
+            // 找南瓜槽副手
+            int pumpkinSlot = -1;
+            for (int slot = 0; slot < 9; slot++) {
+                if (mc.player.getInventory().getStack(slot).getItem() == Items.CARVED_PUMPKIN) {
+                    pumpkinSlot = slot;
+                    break;
+                }
+            }
+
+            if (pumpkinSlot == -1) {
+                error("Missing required block: carved pumpkin");
+                toggle();
+                return;
+            }
+
+            // 找主手槽，避免南瓜（随便找非南瓜方块）
+            int mainHandSlot = -1;
+            for (int slot = 0; slot < 9; slot++) {
+                Item item = mc.player.getInventory().getStack(slot).getItem();
+                if (item instanceof BlockItem && item != Items.CARVED_PUMPKIN) {
+                    mainHandSlot = slot;
+                    break;
+                }
+            }
+            if (mainHandSlot == -1) mainHandSlot = 0;
 
             mc.player.getInventory().selectedSlot = mainHandSlot;
 
-            // 副手切换：交换主副手物品
-            if (mc.player.getInventory().selectedSlot != offhandSlot) {
+            // 确保副手持南瓜，交换主副手物品
+            if (mc.player.getInventory().selectedSlot != pumpkinSlot) {
                 mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                     PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             }
@@ -241,11 +288,14 @@ public class AutoSnowman extends Module {
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
                 Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
 
-            // 再交换回主副手物品，保持原状
+            // 再交换回主副手物品，保持主手不变
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                 PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
 
             mc.player.swingHand(Hand.MAIN_HAND);
+
+            index++;
+            blocksPerTick.set(blocksPerTick.get() - 1);
         }
 
         delay = 0;
