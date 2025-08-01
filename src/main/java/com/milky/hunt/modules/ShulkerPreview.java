@@ -1,7 +1,7 @@
 package com.milky.hunt.modules;
 
-import com.milky.hunt.Addon;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
+import meteordevelopment.meteorclient.renderer.Renderer2D;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
@@ -9,10 +9,9 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.ShulkerBoxBlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
-
-import java.util.List;
 
 public class ShulkerPreview extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -82,7 +81,7 @@ public class ShulkerPreview extends Module {
     );
 
     public ShulkerPreview() {
-        super(Addon.CATEGORY, "shulker-preview", "Shows preview of shulker box contents.");
+        super(null, "shulker-preview", "Shows preview of shulker box contents.");
     }
 
     @EventHandler
@@ -96,13 +95,12 @@ public class ShulkerPreview extends Module {
         BlockPos pos = bhr.getBlockPos();
         if (mc.world.getBlockState(pos).getBlock() != Blocks.SHULKER_BOX) return;
 
-        if (!(mc.world.getBlockEntity(pos) instanceof ShulkerBoxBlockEntity be)) return;
+        var beRaw = mc.world.getBlockEntity(pos);
+        if (!(beRaw instanceof ShulkerBoxBlockEntity be)) return;
 
-        List<ItemStack> contents = be.getInvStackList();
-
+        DefaultedList<ItemStack> contents = be.inventory;
         if (contents == null || contents.isEmpty()) return;
 
-        // 选第一个非空物品显示
         ItemStack toDisplay = ItemStack.EMPTY;
         for (ItemStack stack : contents) {
             if (!stack.isEmpty()) {
@@ -118,8 +116,7 @@ public class ShulkerPreview extends Module {
         int x = screenWidth / 2 + offsetX.get();
         int y = screenHeight / 2 + offsetY.get();
 
-        // event.renderer 是 Renderer2D 类型字段
-        var renderer = event.renderer;
+        Renderer2D renderer = event.renderer;
 
         renderer.item(toDisplay, x, y, scale.get().floatValue());
 
@@ -133,9 +130,7 @@ public class ShulkerPreview extends Module {
             int bx = x + barOffsetX.get();
             int by = y + barOffsetY.get();
 
-            // 画背景条（矩形）
             renderer.rectQuad(bx, by, barW, barH, 0x55000000);
-            // 画填充条
             int filledW = (int) (barW * pct);
             renderer.rectQuad(bx, by, filledW, barH, 0xFF55FF55);
         }
