@@ -15,7 +15,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -186,73 +185,44 @@ public class AutoSnowman extends Module {
             return;
         }
 
-       if (waitingToShear) {
-    shearTimer++;
-    if (shearTimer < 1) return; // 尽快执行，避免雪傀儡跌落
+        if (waitingToShear) {
+            shearTimer++;
+            if (shearTimer < 5) return;
 
-    // 寻找剪刀槽位
-    int shearSlot = -1;
-    for (int i = 0; i < 9; i++) {
-        if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
-            shearSlot = i;
-            break;
-        }
-    }
-
-    if (shearSlot == -1) {
-        error("No shears found.");
-        toggle();
-        return;
-    }
-
-    // 确保剪刀已经选中并同步
-    if (mc.player.getInventory().selectedSlot != shearSlot) {
-        mc.player.getInventory().selectedSlot = shearSlot;
-        waitingForSlotSync = true;
-        return;
-    }
-
-    // 确保主手当前持有剪刀
-    if (mc.player.getMainHandStack().getItem() != Items.SHEARS) return;
-
-    // 用放置南瓜块的位置为中心锁定目标
-    Vec3d center = Vec3d.ofCenter(snowmanBlocks.get(2));
-    Entity target = null;
-    for (Entity entity : mc.world.getEntities()) {
-        if (entity.getType() == EntityType.SNOW_GOLEM && entity.isAlive()) {
-            if (entity.getBoundingBox().intersects(
-                    center.x - 1, center.y - 1.5, center.z - 1,
-                    center.x + 1, center.y + 1.5, center.z + 1
-                )) {
-                target = entity;
-                break;
+            int shearSlot = -1;
+            for (int i = 0; i < 9; i++) {
+                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
+                    shearSlot = i;
+                    break;
+                }
             }
+
+            if (shearSlot == -1) {
+                error("No shears found.");
+                toggle();
+                return;
+            }
+
+            mc.player.getInventory().selectedSlot = shearSlot;
+
+            for (Entity entity : mc.world.getEntities()) {
+                if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
+                    mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                }
+            }
+
+            waitingToShear = false;
+
+            if (continuous.get()) {
+                waitingForNextLoop = true;
+                loopDelayTimer = 0;
+            } else {
+                toggle();
+            }
+
+            return;
         }
-    }
-
-    if (target == null) {
-        error("No snow golem found to shear.");
-        toggle();
-        return;
-    }
-
-    // ✅ 正确构造新版交互封包
-    mc.player.networkHandler.sendPacket(
-        new PlayerInteractEntityC2SPacket.Interact(target, false, Hand.MAIN_HAND)
-    );
-    mc.player.swingHand(Hand.MAIN_HAND);
-
-    waitingToShear = false;
-    if (continuous.get()) {
-        waitingForNextLoop = true;
-        loopDelayTimer = 0;
-    } else {
-        toggle();
-    }
-    return;
-}
-
-
 
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
