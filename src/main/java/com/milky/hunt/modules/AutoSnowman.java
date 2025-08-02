@@ -187,66 +187,66 @@ public class AutoSnowman extends Module {
         }
 
         if (waitingToShear) {
-            shearTimer++;
-            if (shearTimer < 1) return; // 尽快执行，避免雪傀儡跌落
+    shearTimer++;
+    if (shearTimer < 1) return; // 尽快执行，避免雪傀儡跌落
 
-            int shearSlot = -1;
-            for (int i = 0; i < 9; i++) {
-                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
-                    shearSlot = i;
-                    break;
-                }
-            }
-
-            if (shearSlot == -1) {
-                error("No shears found.");
-                toggle();
-                return;
-            }
-
-            if (mc.player.getInventory().selectedSlot != shearSlot) {
-                mc.player.getInventory().selectedSlot = shearSlot;
-                waitingForSlotSync = true;
-                return;
-            }
-
-            if (mc.player.getMainHandStack().getItem() != Items.SHEARS) return;
-
-            Vec3d center = Vec3d.ofCenter(snowmanBlocks.get(2));
-            Entity target = null;
-            for (Entity entity : mc.world.getEntities()) {
-                if (entity.getType() == EntityType.SNOW_GOLEM && entity.isAlive()) {
-                    if (entity.getBoundingBox().intersects(
-                            center.x - 1, center.y - 1.5, center.z - 1,
-                            center.x + 1, center.y + 1.5, center.z + 1
-                        )) {
-                        target = entity;
-                        break;
-                    }
-                }
-            }
-
-            if (target == null) {
-                error("No snow golem found to shear.");
-                toggle();
-                return;
-            }
-
-            // 这里用正确的参数调用剪刀实体交互包
-            mc.player.networkHandler.sendPacket(
-                PlayerInteractEntityC2SPacket.interact(target, Hand.MAIN_HAND, target.getPos(), false)
-            );
-            mc.player.swingHand(Hand.MAIN_HAND);
-
-            waitingToShear = false;
-            if (continuous.get()) {
-                waitingForNextLoop = true;
-                loopDelayTimer = 0;
-            } else {
-                toggle();
-            }
-            return;
+    int shearSlot = -1;
+    for (int i = 0; i < 9; i++) {
+        if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
+            shearSlot = i;
+            break;
         }
+    }
+
+    if (shearSlot == -1) {
+        error("No shears found.");
+        toggle();
+        return;
+    }
+
+    if (mc.player.getInventory().selectedSlot != shearSlot) {
+        mc.player.getInventory().selectedSlot = shearSlot;
+        waitingForSlotSync = true;
+        return;
+    }
+
+    if (mc.player.getMainHandStack().getItem() != Items.SHEARS) return;
+
+    Vec3d center = Vec3d.ofCenter(snowmanBlocks.get(2));
+    Entity target = null;
+    for (Entity entity : mc.world.getEntities()) {
+        if (entity.getType() == EntityType.SNOW_GOLEM && entity.isAlive()) {
+            if (entity.getBoundingBox().intersects(
+                    center.x - 1, center.y - 1.5, center.z - 1,
+                    center.x + 1, center.y + 1.5, center.z + 1
+                )) {
+                target = entity;
+                break;
+            }
+        }
+    }
+
+    if (target == null) {
+        error("No snow golem found to shear.");
+        toggle();
+        return;
+    }
+
+    mc.player.networkHandler.sendPacket(
+        new PlayerInteractEntityC2SPacket(target, false, Hand.MAIN_HAND)
+    );
+    mc.player.swingHand(Hand.MAIN_HAND);
+
+    waitingToShear = false;
+    if (continuous.get()) {
+        waitingForNextLoop = true;
+        loopDelayTimer = 0;
+    } else {
+        toggle();
+    }
+    return;
+}
+
 
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
