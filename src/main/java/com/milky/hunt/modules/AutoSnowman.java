@@ -21,6 +21,11 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -206,32 +211,55 @@ public class AutoSnowman extends Module {
 
     mc.player.getInventory().selectedSlot = shearSlot;
 
-    boolean shearedAny = false;
+    Entity closest = null;
+    double closestDistance = Double.MAX_VALUE;
+
     for (Entity entity : mc.world.getEntities()) {
         if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
-            mc.player.networkHandler.sendPacket(
-                PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND)
-            );
-            mc.player.swingHand(Hand.MAIN_HAND);
-            shearedAny = true;
+            double dist = mc.player.squaredDistanceTo(entity);
+            if (dist < closestDistance) {
+                closest = entity;
+                closestDistance = dist;
+            }
         }
     }
 
-    waitingToShear = false;
+    if (closest != null) {
+        // 自动朝向雪傀儡头部
+        Vec3d targetPos = closest.getPos().add(0, closest.getHeight() * 0.8, 0);
+        Vec3d playerEye = mc.player.getCameraPosVec(1.0F);
 
-    if (!shearedAny) {
-        warning("No snow golems found nearby.");
-    }
+        Vec3d diff = targetPos.subtract(playerEye);
+        double distXZ = Math.sqrt(diff.x * diff.x + diff.z * diff.z);
 
-    if (continuous.get()) {
-        waitingForNextLoop = true;
-        loopDelayTimer = 0;
+        float yaw = (float) Math.toDegrees(Math.atan2(diff.z, diff.x)) - 90F;
+        float pitch = (float) -Math.toDegrees(Math.atan2(diff.y, distXZ));
+
+        mc.player.setYaw(yaw);
+        mc.player.setPitch(pitch);
+
+        // 剪
+        mc.player.networkHandler.sendPacket(
+            PlayerInteractEntityC2SPacket.interact(closest, false, Hand.MAIN_HAND)
+        );
+        mc.player.swingHand(Hand.MAIN_HAND);
+
+        waitingToShear = false;
+
+        if (continuous.get()) {
+            waitingForNextLoop = true;
+            loopDelayTimer = 0;
+        } else {
+            toggle();
+        }
     } else {
+        warning("No snow golems nearby.");
         toggle();
     }
 
     return;
 }
+
 
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
