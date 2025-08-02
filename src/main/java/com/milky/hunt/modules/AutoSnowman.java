@@ -252,20 +252,6 @@ public class AutoSnowman extends Module {
     return;
 }
 
-    waitingToShear = false;
-
-    if (continuous.get()) {
-        waitingForNextLoop = true;
-        loopDelayTimer = 0;
-    } else {
-        toggle();
-    }
-
-    return;
-}
-
-
-
 
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
