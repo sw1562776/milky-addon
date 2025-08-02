@@ -186,10 +186,11 @@ public class AutoSnowman extends Module {
             return;
         }
 
-        if (waitingToShear) {
+       if (waitingToShear) {
     shearTimer++;
     if (shearTimer < 1) return; // 尽快执行，避免雪傀儡跌落
 
+    // 寻找剪刀槽位
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
         if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
@@ -204,14 +205,17 @@ public class AutoSnowman extends Module {
         return;
     }
 
+    // 确保剪刀已经选中并同步
     if (mc.player.getInventory().selectedSlot != shearSlot) {
         mc.player.getInventory().selectedSlot = shearSlot;
         waitingForSlotSync = true;
         return;
     }
 
+    // 确保主手当前持有剪刀
     if (mc.player.getMainHandStack().getItem() != Items.SHEARS) return;
 
+    // 用放置南瓜块的位置为中心锁定目标
     Vec3d center = Vec3d.ofCenter(snowmanBlocks.get(2));
     Entity target = null;
     for (Entity entity : mc.world.getEntities()) {
@@ -232,8 +236,9 @@ public class AutoSnowman extends Module {
         return;
     }
 
+    // ✅ 正确构造新版交互封包
     mc.player.networkHandler.sendPacket(
-        new PlayerInteractEntityC2SPacket(target.getId(), false, Hand.MAIN_HAND)
+        new PlayerInteractEntityC2SPacket.Interact(target, false, Hand.MAIN_HAND)
     );
     mc.player.swingHand(Hand.MAIN_HAND);
 
@@ -246,6 +251,7 @@ public class AutoSnowman extends Module {
     }
     return;
 }
+
 
 
         if (waitingForSlotSync) {
