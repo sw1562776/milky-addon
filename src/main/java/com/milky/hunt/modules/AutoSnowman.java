@@ -189,13 +189,16 @@ public class AutoSnowman extends Module {
         if (waitingToShear) {
     shearTimer++;
     if (shearTimer < 5) return;
+
     int shearSlot = findSlot(Items.SHEARS);
     if (shearSlot == -1) {
         error("No shears found.");
         toggle();
         return;
     }
+
     mc.player.getInventory().selectedSlot = shearSlot;
+
     for (Entity entity : mc.world.getEntities()) {
         if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 3) {
             faceEntity(entity);
@@ -207,15 +210,19 @@ public class AutoSnowman extends Module {
             mc.player.swingHand(Hand.MAIN_HAND);
         }
     }
+
     waitingToShear = false;
+
     if (continuous.get()) {
         waitingForNextLoop = true;
         loopDelayTimer = 0;
     } else {
         toggle();
     }
+
     return;
 }
+
 
         delay++;
         if (delay < placeDelay.get()) return;
