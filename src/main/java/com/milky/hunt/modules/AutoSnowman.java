@@ -1,3 +1,4 @@
+
 package com.milky.hunt.modules;
 
 import com.milky.hunt.Addon;
@@ -210,7 +211,6 @@ public class AutoSnowman extends Module {
                 return;
             }
 
-            // 核心修改：剪南瓜操作调用，参数正确
             for (Entity entity : mc.world.getEntities()) {
                 if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
                     mc.getNetworkHandler().sendPacket(
