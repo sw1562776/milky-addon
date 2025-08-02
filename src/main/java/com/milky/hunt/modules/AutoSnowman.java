@@ -21,10 +21,8 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 
 
 import java.util.ArrayList;
@@ -193,7 +191,7 @@ public class AutoSnowman extends Module {
 
         if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 2) return;
+    if (shearTimer < 3) return; // 可根据你测试结果再调
 
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
@@ -211,52 +209,55 @@ public class AutoSnowman extends Module {
 
     mc.player.getInventory().selectedSlot = shearSlot;
 
-    Entity closest = null;
+    // 定位离放置位置最近的雪傀儡
+    BlockPos spawnBase = snowmanBlocks.get(0);
+    Entity targetSnowman = null;
     double closestDistance = Double.MAX_VALUE;
 
     for (Entity entity : mc.world.getEntities()) {
-        if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
-            double dist = mc.player.squaredDistanceTo(entity);
-            if (dist < closestDistance) {
-                closest = entity;
-                closestDistance = dist;
+        if (entity.getType() == EntityType.SNOW_GOLEM) {
+            double distance = entity.squaredDistanceTo(Vec3d.ofCenter(spawnBase));
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                targetSnowman = entity;
             }
         }
     }
 
-    if (closest != null) {
-        Vec3d baseBlockPos = snowmanBlocks.get(0).toCenterPos().add(0, 0.5, 0);
+    if (targetSnowman != null) {
+        // 计算朝向实体中部
+        Vec3d targetPos = targetSnowman.getPos().add(0, targetSnowman.getHeight() * 0.5, 0);
         Vec3d playerEye = mc.player.getCameraPosVec(1.0F);
-        Vec3d diff = baseBlockPos.subtract(playerEye);
+        Vec3d diff = targetPos.subtract(playerEye);
         double distXZ = Math.sqrt(diff.x * diff.x + diff.z * diff.z);
-
         float yaw = (float) Math.toDegrees(Math.atan2(diff.z, diff.x)) - 90F;
         float pitch = (float) -Math.toDegrees(Math.atan2(diff.y, distXZ));
 
         mc.player.setYaw(yaw);
         mc.player.setPitch(pitch);
 
-        // 剪
+        // 发起剪刀交互
         mc.player.networkHandler.sendPacket(
-            PlayerInteractEntityC2SPacket.interact(closest, false, Hand.MAIN_HAND)
+            PlayerInteractEntityC2SPacket.interact(targetSnowman, false, Hand.MAIN_HAND)
         );
         mc.player.swingHand(Hand.MAIN_HAND);
 
-        waitingToShear = false;
-
-        if (continuous.get()) {
-            waitingForNextLoop = true;
-            loopDelayTimer = 0;
-        } else {
-            toggle();
-        }
     } else {
-        warning("No snow golems nearby.");
+        warning("No snow golem found near placement.");
+    }
+
+    waitingToShear = false;
+
+    if (continuous.get()) {
+        waitingForNextLoop = true;
+        loopDelayTimer = 0;
+    } else {
         toggle();
     }
 
     return;
 }
+
 
 
         if (waitingForSlotSync) {
