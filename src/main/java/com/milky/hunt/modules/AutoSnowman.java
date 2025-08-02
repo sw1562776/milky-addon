@@ -15,7 +15,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -97,9 +96,12 @@ public class AutoSnowman extends Module {
     private final List<BlockPos> waitingForBreak = new ArrayList<>();
     private int delay = 0;
     private int index = 0;
+
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
+    
     private boolean waitingForSlotSync = false;
+
     private boolean waitingToShear = false;
     private int shearTimer = 0;
 
@@ -187,7 +189,14 @@ public class AutoSnowman extends Module {
             shearTimer++;
             if (shearTimer < 5) return;
 
-            int shearSlot = findSlot(Items.SHEARS);
+            int shearSlot = -1;
+            for (int i = 0; i < 9; i++) {
+                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
+                    shearSlot = i;
+                    break;
+                }
+            }
+
             if (shearSlot == -1) {
                 error("No shears found.");
                 toggle();
@@ -196,16 +205,12 @@ public class AutoSnowman extends Module {
 
             mc.player.getInventory().selectedSlot = shearSlot;
 
-
             for (Entity entity : mc.world.getEntities()) {
-    if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 3) {
-        faceEntity(entity);
-        mc.player.networkHandler.sendPacket(
-            PlayerInteractEntityC2SPacket.interact(entity, Hand.MAIN_HAND, false)
-        );
-        mc.player.swingHand(Hand.MAIN_HAND);
-    }
-}
+                if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
+                    mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                }
+            }
 
             waitingToShear = false;
 
@@ -216,6 +221,28 @@ public class AutoSnowman extends Module {
                 toggle();
             }
 
+            return;
+        }
+
+        if (waitingForSlotSync) {
+            waitingForSlotSync = false;
+            return;
+        }
+
+        if (index >= snowmanBlocks.size()) {
+            if (autoShear.get() && !waitingToShear) {
+                waitingToShear = true;
+                shearTimer = 0;
+                return;
+            }
+
+            info("Snowman complete.");
+            if (continuous.get()) {
+                waitingForNextLoop = true;
+                loopDelayTimer = 0;
+            } else {
+                toggle();
+            }
             return;
         }
 
@@ -287,28 +314,5 @@ public class AutoSnowman extends Module {
             BlockPos pos = snowmanBlocks.get(i);
             event.renderer.box(pos, sideColor.get(), lineColor.get(), shapeMode.get(), 0);
         }
-    }
-
-    private int findSlot(Item item) {
-        for (int i = 0; i < 9; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() == item) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private void faceEntity(Entity entity) {
-        Vec3d delta = entity.getPos().subtract(mc.player.getPos());
-        double dx = delta.x;
-        double dy = delta.y + entity.getStandingEyeHeight() - mc.player.getEyeY();
-        double dz = delta.z;
-        double dist = Math.sqrt(dx * dx + dz * dz);
-
-        float yaw = (float)(Math.toDegrees(Math.atan2(dz, dx)) - 90);
-        float pitch = (float)(-Math.toDegrees(Math.atan2(dy, dist)));
-
-        mc.player.setYaw(yaw);
-        mc.player.setPitch(pitch);
     }
 }
