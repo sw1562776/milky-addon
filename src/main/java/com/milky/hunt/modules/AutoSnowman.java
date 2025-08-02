@@ -186,65 +186,35 @@ public class AutoSnowman extends Module {
         }
 
         if (waitingToShear) {
-            shearTimer++;
-            if (shearTimer < 5) return;
-
-            int shearSlot = -1;
-            for (int i = 0; i < 9; i++) {
-                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
-                    shearSlot = i;
-                    break;
-                }
-            }
-
-            if (shearSlot == -1) {
-                error("No shears found.");
-                toggle();
-                return;
-            }
-
-            mc.player.getInventory().selectedSlot = shearSlot;
-
-            for (Entity entity : mc.world.getEntities()) {
-                if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
-                    mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
-                    mc.player.swingHand(Hand.MAIN_HAND);
-                }
-            }
-
-            waitingToShear = false;
-
-            if (continuous.get()) {
-                waitingForNextLoop = true;
-                loopDelayTimer = 0;
-            } else {
-                toggle();
-            }
-
-            return;
+    shearTimer++;
+    if (shearTimer < 5) return;
+    int shearSlot = findSlot(Items.SHEARS);
+    if (shearSlot == -1) {
+        error("No shears found.");
+        toggle();
+        return;
+    }
+    mc.player.getInventory().selectedSlot = shearSlot;
+    for (Entity entity : mc.world.getEntities()) {
+        if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 3) {
+            faceEntity(entity);
+            mc.player.networkHandler.sendPacket(new PlayerInteractEntityC2SPacket(
+                entity.getId(),
+                false,
+                Hand.MAIN_HAND
+            ));
+            mc.player.swingHand(Hand.MAIN_HAND);
         }
-
-        if (waitingForSlotSync) {
-            waitingForSlotSync = false;
-            return;
-        }
-
-        if (index >= snowmanBlocks.size()) {
-            if (autoShear.get() && !waitingToShear) {
-                waitingToShear = true;
-                shearTimer = 0;
-                return;
-            }
-
-            info("Snowman complete.");
-            if (continuous.get()) {
-                waitingForNextLoop = true;
-                loopDelayTimer = 0;
-            } else {
-                toggle();
-            }
-            return;
-        }
+    }
+    waitingToShear = false;
+    if (continuous.get()) {
+        waitingForNextLoop = true;
+        loopDelayTimer = 0;
+    } else {
+        toggle();
+    }
+    return;
+}
 
         delay++;
         if (delay < placeDelay.get()) return;
