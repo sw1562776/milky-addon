@@ -6,17 +6,15 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
-import meteordevelopment.meteorclient.utils.entity.Target;
-import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.passive.SnowGolemEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -104,6 +102,7 @@ public class AutoSnowman extends Module {
     private int loopDelayTimer = 0;
 
     private boolean waitingForSlotSync = false;
+
     private boolean waitingToShear = false;
     private int shearTimer = 0;
 
@@ -205,17 +204,21 @@ public class AutoSnowman extends Module {
                 return;
             }
 
-            InvUtils.swap(shearSlot, false);
+            if (mc.player.getInventory().selectedSlot != shearSlot) {
+                mc.player.getInventory().selectedSlot = shearSlot;
+                waitingForSlotSync = true;
+                return;
+            }
 
+            // 核心修改：剪南瓜操作调用，参数正确
             for (Entity entity : mc.world.getEntities()) {
-    if (entity instanceof SnowGolemEntity && mc.player.distanceTo(entity) < 5) {
-        Rotations.rotate(Rotations.getYaw(entity), Rotations.getPitch(entity, Target.Head));
-        mc.getNetworkHandler().sendPacket(
-            PlayerInteractEntityC2SPacket.interact(entity, Hand.MAIN_HAND)
-        );
-        mc.player.swingHand(Hand.MAIN_HAND);
-    }
-}
+                if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
+                    mc.getNetworkHandler().sendPacket(
+                        PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND)
+                    );
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                }
+            }
 
             waitingToShear = false;
 
@@ -297,7 +300,13 @@ public class AutoSnowman extends Module {
             }
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, bhr);
+
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             mc.player.swingHand(Hand.MAIN_HAND);
 
             index++;
