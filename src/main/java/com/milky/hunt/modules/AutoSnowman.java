@@ -15,12 +15,14 @@ import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import meteordevelopment.meteorclient.utils.player.RotationUtils;
+import meteordevelopment.meteorclient.utils.player.Rotations;
+import net.minecraft.entity.mob.SnowGolemEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,7 +102,7 @@ public class AutoSnowman extends Module {
 
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
-
+    
     private boolean waitingForSlotSync = false;
 
     private boolean waitingToShear = false;
@@ -186,60 +188,38 @@ public class AutoSnowman extends Module {
             return;
         }
 
-        if (waitingToShear) {
-            shearTimer++;
-            if (shearTimer < 5) return;
+        // shearing logic start
+if (waitingToShear && shearTimer >= 5) {
+    for (Entity entity : mc.world.getEntities()) {
+        if (!(entity instanceof SnowGolemEntity)) continue;
+        if (entity.distanceTo(mc.player) > 4.5) continue;
 
-            int shearSlot = -1;
-            for (int i = 0; i < 9; i++) {
-                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
-                    shearSlot = i;
-                    break;
-                }
+        SnowGolemEntity sg = (SnowGolemEntity) entity;
+        if (!((SnowGolemEntityAccessor) sg).getHasPumpkin()) continue;
+
+        if (mc.player.getMainHandStack().getItem() != Items.SHEARS) {
+            int slot = findShearsSlot();
+            if (slot != -1) {
+                mc.player.getInventory().selectedSlot = slot;
             }
-
-            if (shearSlot == -1) {
-                error("No shears found.");
-                toggle();
-                return;
-            }
-
-            mc.player.getInventory().selectedSlot = shearSlot;
-
-            for (Entity entity : mc.world.getEntities()) {
-                if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
-                    Vec3d entityPos = entity.getPos().add(0, entity.getStandingEyeHeight() / 2, 0);
-                    Vec3d playerPos = mc.player.getCameraPosVec(1.0F);
-                    Vec3d lookVec = entityPos.subtract(playerPos).normalize();
-
-                    float yaw = (float) Math.toDegrees(Math.atan2(lookVec.z, lookVec.x)) - 90f;
-                    float pitch = (float) -Math.toDegrees(Math.atan2(lookVec.y, Math.sqrt(lookVec.x * lookVec.x + lookVec.z * lookVec.z)));
-
-                    mc.player.setYaw(yaw);
-                    mc.player.setPitch(pitch);
-
-                    mc.player.networkHandler.sendPacket(PlayerInteractEntityC2SPacket.interact(
-                        entity,
-                        mc.player.isSneaking(),
-                        Hand.MAIN_HAND
-                    ));
-                    mc.player.swingHand(Hand.MAIN_HAND);
-                    break;
-                }
-            }
-
-            waitingToShear = false;
-
-            if (continuous.get()) {
-                waitingForNextLoop = true;
-                loopDelayTimer = 0;
-            } else {
-                toggle();
-            }
-
             return;
         }
 
+        // Look at the snow golem's head
+        Rotations rotations = RotationUtils.getRotations(entity.getEyePos());
+        RotationUtils.rotate(rotations, true); // true = immediate
+
+        // Send interaction (like attack)
+        mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
+
+        shearTimer = 0;
+        waitingToShear = false;
+        break;
+    }
+}
+// shearing logic end
+
+       
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
             return;
