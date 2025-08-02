@@ -191,7 +191,7 @@ public class AutoSnowman extends Module {
 
      if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 1) return; // 最短等待（下一 tick）
+    if (shearTimer < 1) return; // 尽早剪
 
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
@@ -215,19 +215,42 @@ public class AutoSnowman extends Module {
 
     if (mc.player.getMainHandStack().getItem() != Items.SHEARS) return;
 
-    // 使用顶部南瓜方块位置锁定雪傀儡生成点
     Vec3d center = Vec3d.ofCenter(snowmanBlocks.get(2));
+    Entity target = null;
 
     for (Entity entity : mc.world.getEntities()) {
         if (entity.getType() == EntityType.SNOW_GOLEM && entity.isAlive()) {
-            if (entity.getBoundingBox().intersects(center.x - 0.75, center.y - 1, center.z - 0.75,
-                                                   center.x + 0.75, center.y + 1, center.z + 0.75)) {
-                mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
-                mc.player.swingHand(Hand.MAIN_HAND);
+            if (entity.getBoundingBox().intersects(center.x - 1, center.y - 1.5, center.z - 1,
+                                                   center.x + 1, center.y + 1.5, center.z + 1)) {
+                target = entity;
                 break;
             }
         }
     }
+
+    if (target != null) {
+        // 向服务端手动发送交互包，而不是用 Meteor 的 interactEntity
+        mc.player.networkHandler.sendPacket(new InteractEntityC2SPacket(
+            target, Hand.MAIN_HAND, true
+        ));
+        mc.player.swingHand(Hand.MAIN_HAND);
+    } else {
+        error("No snow golem found to shear.");
+        toggle();
+        return;
+    }
+
+    waitingToShear = false;
+
+    if (continuous.get()) {
+        waitingForNextLoop = true;
+        loopDelayTimer = 0;
+    } else {
+        toggle();
+    }
+
+    return;
+}
 
     waitingToShear = false;
 
