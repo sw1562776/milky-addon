@@ -233,7 +233,7 @@ public class AutoSnowman extends Module {
     }
 
     mc.player.networkHandler.sendPacket(
-        new PlayerInteractEntityC2SPacket(target, false, Hand.MAIN_HAND)
+        new PlayerInteractEntityC2SPacket(target.getId(), false, Hand.MAIN_HAND)
     );
     mc.player.swingHand(Hand.MAIN_HAND);
 
