@@ -197,7 +197,7 @@ private void onTick(TickEvent.Post event) {
                 mc.player.swingHand(Hand.MAIN_HAND);
                 waitingForBreak.add(pos);
             }
-            return; // 这里不要index--，等下tick再检查
+            return;
         }
 
         waitingForBreak.remove(pos);
