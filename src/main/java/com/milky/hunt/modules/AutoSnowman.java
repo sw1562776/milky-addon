@@ -188,8 +188,6 @@ public class AutoSnowman extends Module {
             }
             return;
         }
-
-     import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 //...
 
 if (waitingToShear) {
