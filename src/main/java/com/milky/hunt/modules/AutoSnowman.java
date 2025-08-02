@@ -15,6 +15,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
+import net.minecraft.network.packet.c2s.play.InteractEntityC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -186,43 +187,45 @@ public class AutoSnowman extends Module {
         }
 
         if (waitingToShear) {
-            shearTimer++;
-            if (shearTimer < 5) return;
+    shearTimer++;
+    if (shearTimer < 15) return; // 原来是5，这里加大了延迟以应对高ping
 
-            int shearSlot = -1;
-            for (int i = 0; i < 9; i++) {
-                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
-                    shearSlot = i;
-                    break;
-                }
-            }
-
-            if (shearSlot == -1) {
-                error("No shears found.");
-                toggle();
-                return;
-            }
-
-            mc.player.getInventory().selectedSlot = shearSlot;
-
-            for (Entity entity : mc.world.getEntities()) {
-                if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
-                    mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
-                    mc.player.swingHand(Hand.MAIN_HAND);
-                }
-            }
-
-            waitingToShear = false;
-
-            if (continuous.get()) {
-                waitingForNextLoop = true;
-                loopDelayTimer = 0;
-            } else {
-                toggle();
-            }
-
-            return;
+    int shearSlot = -1;
+    for (int i = 0; i < 9; i++) {
+        if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
+            shearSlot = i;
+            break;
         }
+    }
+
+    if (shearSlot == -1) {
+        error("No shears found.");
+        toggle();
+        return;
+    }
+
+    mc.player.getInventory().selectedSlot = shearSlot;
+
+    for (Entity entity : mc.world.getEntities()) {
+        if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
+            mc.player.networkHandler.sendPacket(
+                new InteractEntityC2SPacket(entity, Hand.MAIN_HAND, true)
+            );
+            mc.player.swingHand(Hand.MAIN_HAND);
+        }
+    }
+
+    waitingToShear = false;
+
+    if (continuous.get()) {
+        waitingForNextLoop = true;
+        loopDelayTimer = 0;
+    } else {
+        toggle();
+    }
+
+    return;
+}
 
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
