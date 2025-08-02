@@ -193,7 +193,7 @@ public class AutoSnowman extends Module {
 
         if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 6) return;
+    if (shearTimer < 2) return;
 
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
