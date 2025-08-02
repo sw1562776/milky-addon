@@ -10,7 +10,6 @@ import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
-import net.minecraft.entity.mob.SnowGolemEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
@@ -190,10 +189,11 @@ public class AutoSnowman extends Module {
             return;
         }
 
-       if (waitingToShear) {
+      if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 3) return; // 等几 tick 等实体生成稳定
+    if (shearTimer < 3) return; // 等几 tick 让雪傀儡生成稳定
 
+    // 找剪刀槽
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
         if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
@@ -208,24 +208,30 @@ public class AutoSnowman extends Module {
         return;
     }
 
+    // 选剪刀
     mc.player.getInventory().selectedSlot = shearSlot;
 
     Vec3d cameraPos = mc.player.getCameraPosVec(1.0F);
     Vec3d rotation = mc.player.getRotationVec(1.0F);
     Vec3d rayEnd = cameraPos.add(rotation.multiply(5));
 
+    // 射线检测实体（找活的、带南瓜的雪傀儡）
     EntityHitResult hit = ProjectileUtil.getEntityCollision(
-        mc.world, mc.player, cameraPos, rayEnd,
+        mc.world,
+        mc.player,
+        cameraPos,
+        rayEnd,
         mc.player.getBoundingBox().stretch(rotation.multiply(5)).expand(1.0),
-        e -> e.getType() == EntityType.SNOW_GOLEM && e.isAlive() && ((SnowGolemEntity)e).hasPumpkin()
+        e -> e.getType() == EntityType.SNOW_GOLEM && e.isAlive()
     );
 
     if (hit != null) {
         Entity entity = hit.getEntity();
 
-        // 让玩家自然看向目标，防止反作弊怀疑
+        // 让玩家自然看向实体（防反作弊）
         mc.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, entity.getPos());
 
+        // 发剪刀右键交互包
         mc.player.networkHandler.sendPacket(
             PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND)
         );
