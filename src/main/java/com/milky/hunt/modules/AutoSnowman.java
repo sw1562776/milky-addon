@@ -188,7 +188,7 @@ public class AutoSnowman extends Module {
 
         if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 15) return;
+    if (shearTimer < 6) return;
 
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
@@ -206,16 +206,23 @@ public class AutoSnowman extends Module {
 
     mc.player.getInventory().selectedSlot = shearSlot;
 
+    boolean shearedAny = false;
     for (Entity entity : mc.world.getEntities()) {
         if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
             mc.player.networkHandler.sendPacket(
                 PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND)
             );
             mc.player.swingHand(Hand.MAIN_HAND);
+            shearedAny = true;
         }
     }
 
     waitingToShear = false;
+
+    if (!shearedAny) {
+        warning("No snow golems found nearby.");
+    }
+
     if (continuous.get()) {
         waitingForNextLoop = true;
         loopDelayTimer = 0;
