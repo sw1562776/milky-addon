@@ -219,10 +219,10 @@ public class AutoSnowman extends Module {
                     mc.player.setPitch(pitch);
 
                     mc.player.networkHandler.sendPacket(PlayerInteractEntityC2SPacket.interact(
-    entity,
-    Hand.MAIN_HAND,
-    mc.player.isSneaking()
-));
+                        entity,
+                        mc.player.isSneaking(),
+                        Hand.MAIN_HAND
+                    ));
                     mc.player.swingHand(Hand.MAIN_HAND);
                     break;
                 }
