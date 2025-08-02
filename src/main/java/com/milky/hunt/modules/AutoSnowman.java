@@ -189,7 +189,7 @@ public class AutoSnowman extends Module {
             return;
         }
 
-      if (waitingToShear) {
+     if (waitingToShear) {
     shearTimer++;
     if (shearTimer < 5) return;  // 等几tick确保雪傀儡实体稳定生成
 
@@ -211,12 +211,12 @@ public class AutoSnowman extends Module {
     // 切换剪刀到主手
     mc.player.getInventory().selectedSlot = shearSlot;
 
-    // 找离玩家最近的带南瓜的雪傀儡（范围5格）
+    // 找距离玩家最近的雪傀儡（活着且5格内）
     Entity target = mc.world.getEntitiesByType(EntityType.SNOW_GOLEM, 
-        e -> e.isAlive(), 
-        e -> e.squaredDistanceTo(mc.player) < 25).stream()
-        .min((a, b) -> Double.compare(a.squaredDistanceTo(mc.player), b.squaredDistanceTo(mc.player)))
-        .orElse(null);
+        e -> e.isAlive() && e.squaredDistanceTo(mc.player) < 25
+    ).stream()
+     .min((a, b) -> Double.compare(a.squaredDistanceTo(mc.player), b.squaredDistanceTo(mc.player)))
+     .orElse(null);
 
     if (target == null) {
         error("No snow golem found to shear.");
