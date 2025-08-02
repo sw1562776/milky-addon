@@ -21,9 +21,6 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.entity.projectile.ProjectileUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -188,73 +185,68 @@ public class AutoSnowman extends Module {
             }
             return;
         }
-//...
 
-if (waitingToShear) {
-    shearTimer++;
-    if (shearTimer < 1) return; // 尽快执行，避免雪傀儡跌落
+        if (waitingToShear) {
+            shearTimer++;
+            if (shearTimer < 1) return; // 尽快执行，避免雪傀儡跌落
 
-    // 寻找剪刀槽位
-    int shearSlot = -1;
-    for (int i = 0; i < 9; i++) {
-        if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
-            shearSlot = i;
-            break;
-        }
-    }
-
-    if (shearSlot == -1) {
-        error("No shears found.");
-        toggle();
-        return;
-    }
-
-    // 确保剪刀已经选中并同步
-    if (mc.player.getInventory().selectedSlot != shearSlot) {
-        mc.player.getInventory().selectedSlot = shearSlot;
-        waitingForSlotSync = true;
-        return;
-    }
-
-    // 确保主手当前持有剪刀
-    if (mc.player.getMainHandStack().getItem() != Items.SHEARS) return;
-
-    // 用放置南瓜块的位置为中心锁定目标
-    Vec3d center = Vec3d.ofCenter(snowmanBlocks.get(2));
-    Entity target = null;
-    for (Entity entity : mc.world.getEntities()) {
-        if (entity.getType() == EntityType.SNOW_GOLEM && entity.isAlive()) {
-            if (entity.getBoundingBox().intersects(
-                    center.x - 1, center.y - 1.5, center.z - 1,
-                    center.x + 1, center.y + 1.5, center.z + 1
-                )) {
-                target = entity;
-                break;
+            int shearSlot = -1;
+            for (int i = 0; i < 9; i++) {
+                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
+                    shearSlot = i;
+                    break;
+                }
             }
+
+            if (shearSlot == -1) {
+                error("No shears found.");
+                toggle();
+                return;
+            }
+
+            if (mc.player.getInventory().selectedSlot != shearSlot) {
+                mc.player.getInventory().selectedSlot = shearSlot;
+                waitingForSlotSync = true;
+                return;
+            }
+
+            if (mc.player.getMainHandStack().getItem() != Items.SHEARS) return;
+
+            Vec3d center = Vec3d.ofCenter(snowmanBlocks.get(2));
+            Entity target = null;
+            for (Entity entity : mc.world.getEntities()) {
+                if (entity.getType() == EntityType.SNOW_GOLEM && entity.isAlive()) {
+                    if (entity.getBoundingBox().intersects(
+                            center.x - 1, center.y - 1.5, center.z - 1,
+                            center.x + 1, center.y + 1.5, center.z + 1
+                        )) {
+                        target = entity;
+                        break;
+                    }
+                }
+            }
+
+            if (target == null) {
+                error("No snow golem found to shear.");
+                toggle();
+                return;
+            }
+
+            // 这里用正确的参数调用剪刀实体交互包
+            mc.player.networkHandler.sendPacket(
+                PlayerInteractEntityC2SPacket.interact(target, Hand.MAIN_HAND, target.getPos(), false)
+            );
+            mc.player.swingHand(Hand.MAIN_HAND);
+
+            waitingToShear = false;
+            if (continuous.get()) {
+                waitingForNextLoop = true;
+                loopDelayTimer = 0;
+            } else {
+                toggle();
+            }
+            return;
         }
-    }
-
-    if (target == null) {
-        error("No snow golem found to shear.");
-        toggle();
-        return;
-    }
-
-    // 发送真实的“右键实体”包，让服务端识别剪刀交互
-    mc.player.networkHandler.sendPacket(
-        PlayerInteractEntityC2SPacket.interact(target, Hand.MAIN_HAND, false)
-    );
-    mc.player.swingHand(Hand.MAIN_HAND);
-
-    waitingToShear = false;
-    if (continuous.get()) {
-        waitingForNextLoop = true;
-        loopDelayTimer = 0;
-    } else {
-        toggle();
-    }
-    return;
-}
 
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
