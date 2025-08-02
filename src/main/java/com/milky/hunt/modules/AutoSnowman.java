@@ -191,9 +191,8 @@ public class AutoSnowman extends Module {
 
      if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 5) return;  // 等几tick确保雪傀儡实体稳定生成
+    if (shearTimer < 1) return; // 最短等待（下一 tick）
 
-    // 找剪刀所在热键槽
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
         if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
@@ -203,37 +202,34 @@ public class AutoSnowman extends Module {
     }
 
     if (shearSlot == -1) {
-        error("No shears in hotbar.");
+        error("No shears found.");
         toggle();
         return;
     }
 
-    // 切换剪刀到主手
-    mc.player.getInventory().selectedSlot = shearSlot;
-
-    // 找距离玩家最近的雪傀儡（活着且5格内）
-    Entity target = mc.world.getEntitiesByType(EntityType.SNOW_GOLEM, 
-        e -> e.isAlive() && e.squaredDistanceTo(mc.player) < 25
-    ).stream()
-     .min((a, b) -> Double.compare(a.squaredDistanceTo(mc.player), b.squaredDistanceTo(mc.player)))
-     .orElse(null);
-
-    if (target == null) {
-        error("No snow golem found to shear.");
+    if (mc.player.getInventory().selectedSlot != shearSlot) {
+        mc.player.getInventory().selectedSlot = shearSlot;
+        waitingForSlotSync = true;
         return;
     }
 
-    // 让玩家视角自然看向雪傀儡头部（实体眼睛位置稍上）
-    Vec3d lookPos = target.getPos().add(0, target.getHeight() * 0.75, 0);
-    mc.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, lookPos);
+    if (mc.player.getMainHandStack().getItem() != Items.SHEARS) return;
 
-    // 真实右键交互剪刀剪南瓜头
-    mc.interactionManager.interactEntity(mc.player, target, Hand.MAIN_HAND);
-    mc.player.swingHand(Hand.MAIN_HAND);
+    // 使用顶部南瓜方块位置锁定雪傀儡生成点
+    Vec3d center = Vec3d.ofCenter(snowmanBlocks.get(2));
 
-    // 重置状态
+    for (Entity entity : mc.world.getEntities()) {
+        if (entity.getType() == EntityType.SNOW_GOLEM && entity.isAlive()) {
+            if (entity.getBoundingBox().intersects(center.x - 0.75, center.y - 1, center.z - 0.75,
+                                                   center.x + 0.75, center.y + 1, center.z + 0.75)) {
+                mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
+                mc.player.swingHand(Hand.MAIN_HAND);
+                break;
+            }
+        }
+    }
+
     waitingToShear = false;
-    shearTimer = 0;
 
     if (continuous.get()) {
         waitingForNextLoop = true;
@@ -241,7 +237,10 @@ public class AutoSnowman extends Module {
     } else {
         toggle();
     }
+
+    return;
 }
+
 
 
 
