@@ -208,14 +208,14 @@ public class AutoSnowman extends Module {
             InvUtils.swap(shearSlot, false);
 
             for (Entity entity : mc.world.getEntities()) {
-                if (entity instanceof SnowGolemEntity && mc.player.distanceTo(entity) < 5) {
-                    Rotations.rotate(Rotations.getYaw(entity), Rotations.getPitch(entity, Target.Head));
-                    mc.getNetworkHandler().sendPacket(
-                        PlayerInteractEntityC2SPacket.interact(entity, Hand.MAIN_HAND, false)
-                    );
-                    mc.player.swingHand(Hand.MAIN_HAND);
-                }
-            }
+    if (entity instanceof SnowGolemEntity && mc.player.distanceTo(entity) < 5) {
+        Rotations.rotate(Rotations.getYaw(entity), Rotations.getPitch(entity, Target.Head));
+        mc.getNetworkHandler().sendPacket(
+            PlayerInteractEntityC2SPacket.interact(entity, Hand.MAIN_HAND)
+        );
+        mc.player.swingHand(Hand.MAIN_HAND);
+    }
+}
 
             waitingToShear = false;
 
