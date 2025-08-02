@@ -35,7 +35,7 @@ public class AutoSnowman extends Module {
     private int delayTicks = 0;
 
     public AutoSnowman() {
-        super(new ModuleCategory("Hunt"), "AutoSnowman", "Automatically places a snowman (2 snow blocks + carved pumpkin).");
+        super(Addon.CATEGORY, "AutoSnowman", "Automatically places a snowman (2 snow blocks + carved pumpkin).");
     }
 
     @Override
