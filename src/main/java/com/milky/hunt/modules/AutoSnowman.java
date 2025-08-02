@@ -90,8 +90,7 @@ public class AutoSnowman extends Module {
 
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
-
-    // 新增变量，等待物品槽同步一帧
+    
     private boolean waitingForSlotSync = false;
 
     public AutoSnowman() {
