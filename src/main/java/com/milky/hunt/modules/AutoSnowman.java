@@ -191,9 +191,9 @@ public class AutoSnowman extends Module {
 
       if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 3) return; // 等几 tick 让雪傀儡生成稳定
+    if (shearTimer < 5) return;  // 等几tick确保雪傀儡实体稳定生成
 
-    // 找剪刀槽
+    // 找剪刀所在热键槽
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
         if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
@@ -208,46 +208,38 @@ public class AutoSnowman extends Module {
         return;
     }
 
-    // 选剪刀
+    // 切换剪刀到主手
     mc.player.getInventory().selectedSlot = shearSlot;
 
-    Vec3d cameraPos = mc.player.getCameraPosVec(1.0F);
-    Vec3d rotation = mc.player.getRotationVec(1.0F);
-    Vec3d rayEnd = cameraPos.add(rotation.multiply(5));
+    // 找离玩家最近的带南瓜的雪傀儡（范围5格）
+    Entity target = mc.world.getEntitiesByType(EntityType.SNOW_GOLEM, 
+        e -> e.isAlive(), 
+        e -> e.squaredDistanceTo(mc.player) < 25).stream()
+        .min((a, b) -> Double.compare(a.squaredDistanceTo(mc.player), b.squaredDistanceTo(mc.player)))
+        .orElse(null);
 
-    // 射线检测实体（找活的、带南瓜的雪傀儡）
-    EntityHitResult hit = ProjectileUtil.getEntityCollision(
-        mc.world,
-        mc.player,
-        cameraPos,
-        rayEnd,
-        mc.player.getBoundingBox().stretch(rotation.multiply(5)).expand(1.0),
-        e -> e.getType() == EntityType.SNOW_GOLEM && e.isAlive()
-    );
-
-    if (hit != null) {
-        Entity entity = hit.getEntity();
-
-        // 让玩家自然看向实体（防反作弊）
-        mc.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, entity.getPos());
-
-        // 发剪刀右键交互包
-        mc.player.networkHandler.sendPacket(
-            PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND)
-        );
-        mc.player.swingHand(Hand.MAIN_HAND);
-
-        waitingToShear = false;
-        shearTimer = 0;
-
-        if (continuous.get()) {
-            waitingForNextLoop = true;
-            loopDelayTimer = 0;
-        } else {
-            toggle();
-        }
-    } else {
+    if (target == null) {
         error("No snow golem found to shear.");
+        return;
+    }
+
+    // 让玩家视角自然看向雪傀儡头部（实体眼睛位置稍上）
+    Vec3d lookPos = target.getPos().add(0, target.getHeight() * 0.75, 0);
+    mc.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, lookPos);
+
+    // 真实右键交互剪刀剪南瓜头
+    mc.interactionManager.interactEntity(mc.player, target, Hand.MAIN_HAND);
+    mc.player.swingHand(Hand.MAIN_HAND);
+
+    // 重置状态
+    waitingToShear = false;
+    shearTimer = 0;
+
+    if (continuous.get()) {
+        waitingForNextLoop = true;
+        loopDelayTimer = 0;
+    } else {
+        toggle();
     }
 }
 
