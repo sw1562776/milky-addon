@@ -192,7 +192,7 @@ public class AutoSnowman extends Module {
 
         if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 2) return; // 可以调成 2–3 tick 试试稳定性
+    if (shearTimer < 2) return;
 
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
@@ -203,13 +203,14 @@ public class AutoSnowman extends Module {
     }
 
     if (shearSlot == -1) {
-        toggle(); // 没剪刀就退出
+        error("No shears in hotbar.");
+        toggle();
         return;
     }
 
     mc.player.getInventory().selectedSlot = shearSlot;
 
-    // 真实进行一次实体 raycast，命中才剪
+    // 实体射线检测
     Vec3d cameraPos = mc.player.getCameraPosVec(1.0F);
     Vec3d rotation = mc.player.getRotationVec(1.0F);
     Vec3d rayEnd = cameraPos.add(rotation.multiply(5));
@@ -222,10 +223,24 @@ public class AutoSnowman extends Module {
 
     if (hit != null) {
         Entity entity = hit.getEntity();
+        Vec3d hitPos = hit.getPos();
+
+        // 使用 interactAt 替代 interact，并传入实体相对坐标
         mc.player.networkHandler.sendPacket(
-            PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND)
+            PlayerInteractEntityC2SPacket.interactAt(
+                entity,
+                new net.minecraft.util.math.Vec3f(
+                    (float)(hitPos.x - entity.getX()),
+                    (float)(hitPos.y - entity.getY()),
+                    (float)(hitPos.z - entity.getZ())
+                ),
+                Hand.MAIN_HAND
+            )
         );
+
         mc.player.swingHand(Hand.MAIN_HAND);
+    } else {
+        error("No snow golem found to shear.");
     }
 
     waitingToShear = false;
@@ -239,7 +254,6 @@ public class AutoSnowman extends Module {
 
     return;
 }
-
 
 
         if (waitingForSlotSync) {
