@@ -225,10 +225,11 @@ public class AutoSnowman extends Module {
     }
 
     if (closest != null) {
-        Vec3d targetPos = snowmanBlocks.get(2).toCenterPos().add(0, -0.3, 0); // 瞄准雪傀儡底部中心
+        Vec3d baseBlockPos = snowmanBlocks.get(0).toCenterPos().add(0, 0.5, 0);
         Vec3d playerEye = mc.player.getCameraPosVec(1.0F);
-        Vec3d diff = targetPos.subtract(playerEye);
+        Vec3d diff = baseBlockPos.subtract(playerEye);
         double distXZ = Math.sqrt(diff.x * diff.x + diff.z * diff.z);
+
         float yaw = (float) Math.toDegrees(Math.atan2(diff.z, diff.x)) - 90F;
         float pitch = (float) -Math.toDegrees(Math.atan2(diff.y, distXZ));
 
