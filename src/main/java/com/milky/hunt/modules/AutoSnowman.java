@@ -8,6 +8,8 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
@@ -57,6 +59,13 @@ public class AutoSnowman extends Module {
         .build()
     );
 
+    private final Setting<Boolean> autoShear = sgGeneral.add(new BoolSetting.Builder()
+        .name("auto-shear")
+        .description("Automatically shear the pumpkin off snow golems after placing.")
+        .defaultValue(false)
+        .build()
+    );
+
     private final Setting<Boolean> render = sgGeneral.add(new BoolSetting.Builder()
         .name("render")
         .description("Render the snowman frame while placing.")
@@ -93,6 +102,9 @@ public class AutoSnowman extends Module {
     
     private boolean waitingForSlotSync = false;
 
+    private boolean waitingToShear = false;
+    private int shearTimer = 0;
+
     public AutoSnowman() {
         super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
     }
@@ -106,6 +118,8 @@ public class AutoSnowman extends Module {
         loopDelayTimer = 0;
         waitingForNextLoop = false;
         waitingForSlotSync = false;
+        waitingToShear = false;
+        shearTimer = 0;
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
@@ -154,102 +168,144 @@ public class AutoSnowman extends Module {
         loopDelayTimer = 0;
         waitingForNextLoop = false;
         waitingForSlotSync = false;
+        waitingToShear = false;
+        shearTimer = 0;
     }
 
     @EventHandler
-private void onTick(TickEvent.Post event) {
-    if (mc.player == null || mc.world == null) return;
+    private void onTick(TickEvent.Post event) {
+        if (mc.player == null || mc.world == null) return;
 
-    if (waitingForNextLoop) {
-        loopDelayTimer++;
-        if (loopDelayTimer >= loopDelay.get()) {
-            waitingForNextLoop = false;
-            onActivate();
-        }
-        return;
-    }
-
-    if (waitingForSlotSync) {
-        waitingForSlotSync = false;
-        return;
-    }
-
-    if (index >= snowmanBlocks.size()) {
-        info("Snowman complete.");
-        if (continuous.get()) {
-            waitingForNextLoop = true;
-            loopDelayTimer = 0;
-        } else {
-            toggle();
-        }
-        return;
-    }
-
-    delay++;
-    if (delay < placeDelay.get()) return;
-
-    for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++) {
-        BlockPos pos = snowmanBlocks.get(index);
-
-        if (!mc.world.getBlockState(pos).isReplaceable()) {
-            if (!waitingForBreak.contains(pos)) {
-                mc.interactionManager.attackBlock(pos, Direction.UP);
-                mc.player.swingHand(Hand.MAIN_HAND);
-                waitingForBreak.add(pos);
+        if (waitingForNextLoop) {
+            loopDelayTimer++;
+            if (loopDelayTimer >= loopDelay.get()) {
+                waitingForNextLoop = false;
+                onActivate();
             }
             return;
         }
 
-        waitingForBreak.remove(pos);
+        if (waitingToShear) {
+            shearTimer++;
+            if (shearTimer < 5) return;
 
-        Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
-
-        int slotToSelect = -1;
-        boolean foundItem = false;
-        for (int slot = 0; slot < 9; slot++) {
-            if (mc.player.getInventory().getStack(slot).getItem() == needed) {
-                slotToSelect = slot;
-                foundItem = true;
-                break;
+            int shearSlot = -1;
+            for (int i = 0; i < 9; i++) {
+                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
+                    shearSlot = i;
+                    break;
+                }
             }
-        }
 
-        if (!foundItem) {
-            error("Missing required block: " + needed.getName().getString());
-            toggle();
+            if (shearSlot == -1) {
+                error("No shears found.");
+                toggle();
+                return;
+            }
+
+            mc.player.getInventory().selectedSlot = shearSlot;
+
+            for (Entity entity : mc.world.getEntities()) {
+                if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
+                    mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                }
+            }
+
+            waitingToShear = false;
+
+            if (continuous.get()) {
+                waitingForNextLoop = true;
+                loopDelayTimer = 0;
+            } else {
+                toggle();
+            }
+
             return;
         }
 
-        // 如果当前选中的槽不是需要的，切换并等待一帧，不增加index，下一帧再尝试
-        if (mc.player.getInventory().selectedSlot != slotToSelect) {
-            mc.player.getInventory().selectedSlot = slotToSelect;
-            waitingForSlotSync = true;
+        if (waitingForSlotSync) {
+            waitingForSlotSync = false;
             return;
         }
 
-        if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
-            error("Main hand item is not a block.");
-            toggle();
+        if (index >= snowmanBlocks.size()) {
+            if (autoShear.get() && !waitingToShear) {
+                waitingToShear = true;
+                shearTimer = 0;
+                return;
+            }
+
+            info("Snowman complete.");
+            if (continuous.get()) {
+                waitingForNextLoop = true;
+                loopDelayTimer = 0;
+            } else {
+                toggle();
+            }
             return;
         }
 
-        BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+        delay++;
+        if (delay < placeDelay.get()) return;
 
-        // 副手绕过反作弊放置
-        mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-            PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-        mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
-            Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-        mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-            PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-        mc.player.swingHand(Hand.MAIN_HAND);
+        for (int i = 0; i < blocksPerTick.get() && index < snowmanBlocks.size(); i++) {
+            BlockPos pos = snowmanBlocks.get(index);
 
-        index++; // 放成功，递增index
+            if (!mc.world.getBlockState(pos).isReplaceable()) {
+                if (!waitingForBreak.contains(pos)) {
+                    mc.interactionManager.attackBlock(pos, Direction.UP);
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                    waitingForBreak.add(pos);
+                }
+                return;
+            }
+
+            waitingForBreak.remove(pos);
+
+            Item needed = (index < 2) ? Items.SNOW_BLOCK : Items.CARVED_PUMPKIN;
+
+            int slotToSelect = -1;
+            for (int slot = 0; slot < 9; slot++) {
+                if (mc.player.getInventory().getStack(slot).getItem() == needed) {
+                    slotToSelect = slot;
+                    break;
+                }
+            }
+
+            if (slotToSelect == -1) {
+                error("Missing required block: " + needed.getName().getString());
+                toggle();
+                return;
+            }
+
+            if (mc.player.getInventory().selectedSlot != slotToSelect) {
+                mc.player.getInventory().selectedSlot = slotToSelect;
+                waitingForSlotSync = true;
+                return;
+            }
+
+            if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
+                error("Main hand item is not a block.");
+                toggle();
+                return;
+            }
+
+            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.swingHand(Hand.MAIN_HAND);
+
+            index++;
+        }
+
+        delay = 0;
     }
-
-    delay = 0;
-}
-
 
     @EventHandler
     private void onRender(Render3DEvent event) {
