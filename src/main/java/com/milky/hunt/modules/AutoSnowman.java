@@ -13,6 +13,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
+import net.minecraft.network.packet.c2s.play.InteractEntityC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
 import net.minecraft.util.Hand;
@@ -99,11 +100,12 @@ public class AutoSnowman extends Module {
 
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
-    
+
     private boolean waitingForSlotSync = false;
 
     private boolean waitingToShear = false;
     private int shearTimer = 0;
+    private final int shearDelay = 5;
 
     public AutoSnowman() {
         super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
@@ -187,7 +189,7 @@ public class AutoSnowman extends Module {
 
         if (waitingToShear) {
             shearTimer++;
-            if (shearTimer < 5) return;
+            if (shearTimer < shearDelay) return;
 
             int shearSlot = -1;
             for (int i = 0; i < 9; i++) {
@@ -207,7 +209,9 @@ public class AutoSnowman extends Module {
 
             for (Entity entity : mc.world.getEntities()) {
                 if (entity.getType() == EntityType.SNOW_GOLEM && mc.player.distanceTo(entity) < 5) {
-                    mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
+                    mc.getNetworkHandler().sendPacket(
+                        InteractEntityC2SPacket.interact(entity, Hand.MAIN_HAND, false)
+                    );
                     mc.player.swingHand(Hand.MAIN_HAND);
                 }
             }
