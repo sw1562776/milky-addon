@@ -6,23 +6,23 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
+import meteordevelopment.meteorclient.utils.entity.Target;
+import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.passive.SnowGolemEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
-import meteordevelopment.meteorclient.utils.player.RotationUtils;
-import meteordevelopment.meteorclient.utils.player.Rotations;
-import net.minecraft.entity.mob.SnowGolemEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,9 +102,8 @@ public class AutoSnowman extends Module {
 
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
-    
-    private boolean waitingForSlotSync = false;
 
+    private boolean waitingForSlotSync = false;
     private boolean waitingToShear = false;
     private int shearTimer = 0;
 
@@ -188,38 +187,48 @@ public class AutoSnowman extends Module {
             return;
         }
 
-        // shearing logic start
-if (waitingToShear && shearTimer >= 5) {
-    for (Entity entity : mc.world.getEntities()) {
-        if (!(entity instanceof SnowGolemEntity)) continue;
-        if (entity.distanceTo(mc.player) > 4.5) continue;
+        if (waitingToShear) {
+            shearTimer++;
+            if (shearTimer < 5) return;
 
-        SnowGolemEntity sg = (SnowGolemEntity) entity;
-        if (!((SnowGolemEntityAccessor) sg).getHasPumpkin()) continue;
-
-        if (mc.player.getMainHandStack().getItem() != Items.SHEARS) {
-            int slot = findShearsSlot();
-            if (slot != -1) {
-                mc.player.getInventory().selectedSlot = slot;
+            int shearSlot = -1;
+            for (int i = 0; i < 9; i++) {
+                if (mc.player.getInventory().getStack(i).getItem() == Items.SHEARS) {
+                    shearSlot = i;
+                    break;
+                }
             }
+
+            if (shearSlot == -1) {
+                error("No shears found.");
+                toggle();
+                return;
+            }
+
+            InvUtils.swap(shearSlot, false);
+
+            for (Entity entity : mc.world.getEntities()) {
+                if (entity instanceof SnowGolemEntity && mc.player.distanceTo(entity) < 5) {
+                    Rotations.rotate(Rotations.getYaw(entity), Rotations.getPitch(entity, Target.Head));
+                    mc.getNetworkHandler().sendPacket(
+                        PlayerInteractEntityC2SPacket.interact(entity, Hand.MAIN_HAND, false)
+                    );
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                }
+            }
+
+            waitingToShear = false;
+
+            if (continuous.get()) {
+                waitingForNextLoop = true;
+                loopDelayTimer = 0;
+            } else {
+                toggle();
+            }
+
             return;
         }
 
-        // Look at the snow golem's head
-        Rotations rotations = RotationUtils.getRotations(entity.getEyePos());
-        RotationUtils.rotate(rotations, true); // true = immediate
-
-        // Send interaction (like attack)
-        mc.interactionManager.interactEntity(mc.player, entity, Hand.MAIN_HAND);
-
-        shearTimer = 0;
-        waitingToShear = false;
-        break;
-    }
-}
-// shearing logic end
-
-       
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
             return;
@@ -288,13 +297,7 @@ if (waitingToShear && shearTimer >= 5) {
             }
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
-                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, bhr);
             mc.player.swingHand(Hand.MAIN_HAND);
 
             index++;
