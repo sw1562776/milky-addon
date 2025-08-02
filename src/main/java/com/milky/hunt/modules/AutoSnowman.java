@@ -24,6 +24,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.entity.projectile.ProjectileUtil;
+import com.mojang.math.Vec3f;
 
 
 import java.util.ArrayList;
@@ -190,7 +191,7 @@ public class AutoSnowman extends Module {
             return;
         }
 
-        if (waitingToShear) {
+       if (waitingToShear) {
     shearTimer++;
     if (shearTimer < 2) return;
 
@@ -210,7 +211,6 @@ public class AutoSnowman extends Module {
 
     mc.player.getInventory().selectedSlot = shearSlot;
 
-    // 实体射线检测
     Vec3d cameraPos = mc.player.getCameraPosVec(1.0F);
     Vec3d rotation = mc.player.getRotationVec(1.0F);
     Vec3d rayEnd = cameraPos.add(rotation.multiply(5));
@@ -225,15 +225,20 @@ public class AutoSnowman extends Module {
         Entity entity = hit.getEntity();
         Vec3d hitPos = hit.getPos();
 
-        // 使用 interactAt 替代 interact，并传入实体相对坐标
+        // 计算相对坐标
+        Vec3d relative = hitPos.subtract(entity.getX(), entity.getY(), entity.getZ());
+
+        // 使用 Mojang 的 Vec3f 构造
+        Vec3f interactAtPos = new Vec3f(
+            (float) relative.x,
+            (float) relative.y,
+            (float) relative.z
+        );
+
         mc.player.networkHandler.sendPacket(
             PlayerInteractEntityC2SPacket.interactAt(
                 entity,
-                new net.minecraft.util.math.Vec3f(
-                    (float)(hitPos.x - entity.getX()),
-                    (float)(hitPos.y - entity.getY()),
-                    (float)(hitPos.z - entity.getZ())
-                ),
+                interactAtPos,
                 Hand.MAIN_HAND
             )
         );
@@ -254,7 +259,6 @@ public class AutoSnowman extends Module {
 
     return;
 }
-
 
         if (waitingForSlotSync) {
             waitingForSlotSync = false;
