@@ -191,7 +191,7 @@ public class AutoSnowman extends Module {
 
        if (waitingToShear) {
     shearTimer++;
-    if (shearTimer < 2) return;
+    if (shearTimer < 3) return; // 等几 tick 等实体生成稳定
 
     int shearSlot = -1;
     for (int i = 0; i < 9; i++) {
@@ -209,7 +209,6 @@ public class AutoSnowman extends Module {
 
     mc.player.getInventory().selectedSlot = shearSlot;
 
-    // 射线找最近的雪傀儡
     Vec3d cameraPos = mc.player.getCameraPosVec(1.0F);
     Vec3d rotation = mc.player.getRotationVec(1.0F);
     Vec3d rayEnd = cameraPos.add(rotation.multiply(5));
@@ -217,35 +216,34 @@ public class AutoSnowman extends Module {
     EntityHitResult hit = ProjectileUtil.getEntityCollision(
         mc.world, mc.player, cameraPos, rayEnd,
         mc.player.getBoundingBox().stretch(rotation.multiply(5)).expand(1.0),
-        e -> e.getType() == EntityType.SNOW_GOLEM && e.isAlive()
+        e -> e.getType() == EntityType.SNOW_GOLEM && e.isAlive() && ((SnowGolemEntity)e).hasPumpkin()
     );
 
     if (hit != null) {
         Entity entity = hit.getEntity();
 
-        // 确保玩家正对着实体，否则 interact 可能无效
+        // 让玩家自然看向目标，防止反作弊怀疑
         mc.player.lookAt(net.minecraft.command.argument.EntityAnchorArgumentType.EntityAnchor.EYES, entity.getPos());
 
         mc.player.networkHandler.sendPacket(
             PlayerInteractEntityC2SPacket.interact(entity, false, Hand.MAIN_HAND)
         );
-
         mc.player.swingHand(Hand.MAIN_HAND);
+
+        waitingToShear = false;
+        shearTimer = 0;
+
+        if (continuous.get()) {
+            waitingForNextLoop = true;
+            loopDelayTimer = 0;
+        } else {
+            toggle();
+        }
     } else {
         error("No snow golem found to shear.");
     }
-
-    waitingToShear = false;
-
-    if (continuous.get()) {
-        waitingForNextLoop = true;
-        loopDelayTimer = 0;
-    } else {
-        toggle();
-    }
-
-    return;
 }
+
 
 
         if (waitingForSlotSync) {
