@@ -562,10 +562,8 @@ public class AutoGolem extends Module {
             Direction direction = Direction.UP;
 
             if (needed == Items.WITHER_SKELETON_SKULL) {
-                if (index == witherBlocks.size() - 1) {
                 placeOn = pos.down();
                 direction = Direction.UP;
-                }
             }
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(placeOn), direction, placeOn, false);
