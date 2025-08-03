@@ -24,6 +24,7 @@ public class Addon extends MeteorAddon {
 
         Modules.get().add(new AutoSnowman());
         Modules.get().add(new AutoIronman());
+        Modules.get().add(new AutoWither());
         
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
