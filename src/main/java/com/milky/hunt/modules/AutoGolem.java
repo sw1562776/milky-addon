@@ -22,7 +22,7 @@ import net.minecraft.util.math.Vec3d;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AutoSnowman extends Module {
+public class AutoGolem extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
     public enum GolemType {
@@ -109,7 +109,7 @@ public class AutoSnowman extends Module {
     private boolean waitingForSlotSync = false;
 
     public AutoSnowman() {
-        super(Addon.CATEGORY, "AutoSnowman", "Automatically builds a snow golem.");
+        super(Addon.CATEGORY, "AutoGolem", "Automatically builds a snow golem, iron golem, or wither.");
     }
 
     @Override
