@@ -200,14 +200,14 @@ public class AutoWither extends Module {
                 return;
             }
 
-BlockPos placeOn = pos;
-Direction direction = Direction.UP;
+            BlockPos placeOn = pos;
+            Direction direction = Direction.UP;
 
-if (needed == Items.WITHER_SKELETON_SKULL) {
-    // 头颅必须对准下面的灵魂沙顶部
-    placeOn = pos.down();
-    direction = Direction.UP;
-}
+            if (needed == Items.WITHER_SKELETON_SKULL) {
+                 // 头颅必须对准下面的灵魂沙顶部
+                 placeOn = pos.down();
+                direction = Direction.UP;
+            }
 
 BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(placeOn), direction, placeOn, false);
 
