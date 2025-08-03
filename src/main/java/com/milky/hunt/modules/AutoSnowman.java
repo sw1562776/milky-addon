@@ -27,7 +27,7 @@ public class AutoSnowman extends Module {
 
     public enum GolemType {
     Snowman,
-    IronGolem,
+    Ironman,
     Wither
 }
     private final Setting<GolemType> type = sgGeneral.add(new EnumSetting.Builder<GolemType>()
@@ -113,6 +113,14 @@ public class AutoSnowman extends Module {
 
     @Override
     public void onActivate() {
+        switch (type.get()) {
+            case Snowman -> onActivateSnowman();
+            case Ironman -> onActivateIronman();
+            case Wither -> onActivateWither();
+        }
+    }
+
+    public void onActivateSnowman() {
         snowmanBlocks.clear();
         waitingForBreak.clear();
         index = 0;
