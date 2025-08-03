@@ -25,6 +25,11 @@ import java.util.List;
 public class AutoSnowman extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
+    public enum GolemType {
+    Snowman,
+    IronGolem,
+    Wither
+}
     private final Setting<GolemType> type = sgGeneral.add(new EnumSetting.Builder<GolemType>()
         .name("type")
         .description("The type of golem to build.")
