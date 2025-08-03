@@ -57,6 +57,7 @@ public class AutoSnowman extends Module {
         .name("continuous")
         .description("Continuously builds snow golems if materials are available.")
         .defaultValue(false)
+        .visible(() -> type.get() != GolemType.Wither)
         .build()
     );
 
