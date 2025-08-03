@@ -108,7 +108,7 @@ public class AutoGolem extends Module {
     private int loopDelayTimer = 0;
     private boolean waitingForSlotSync = false;
 
-    public AutoSnowman() {
+    public AutoGolem() {
         super(Addon.CATEGORY, "AutoGolem", "Automatically builds a snow golem, iron golem, or wither.");
     }
 
