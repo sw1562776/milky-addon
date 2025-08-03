@@ -22,15 +22,15 @@ import net.minecraft.util.math.Vec3d;
 import java.util.ArrayList;
 import java.util.List;
 
-private final Setting<GolemType> type = sgGeneral.add(new EnumSetting.Builder<GolemType>()
+public class AutoSnowman extends Module {
+    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+
+    private final Setting<GolemType> type = sgGeneral.add(new EnumSetting.Builder<GolemType>()
         .name("type")
         .description("The type of golem to build.")
         .defaultValue(GolemType.Snowman)
         .build()
     );
-
-public class AutoSnowman extends Module {
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
     private final Setting<Integer> placeDelay = sgGeneral.add(new IntSetting.Builder()
         .name("place-delay")
