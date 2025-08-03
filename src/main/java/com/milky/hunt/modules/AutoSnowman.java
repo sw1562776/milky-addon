@@ -97,14 +97,15 @@ public class AutoSnowman extends Module {
     );
 
     private final List<BlockPos> snowmanBlocks = new ArrayList<>();
+    private final List<BlockPos> ironGolemBlocks = new ArrayList<>();
+    private final List<BlockPos> witherBlocks = new ArrayList<>();
+    
     private final List<BlockPos> waitingForBreak = new ArrayList<>();
     private int delay = 0;
     private int index = 0;
 
     private boolean waitingForNextLoop = false;
     private int loopDelayTimer = 0;
-
-    // 新增变量，等待物品槽同步一帧
     private boolean waitingForSlotSync = false;
 
     public AutoSnowman() {
@@ -167,10 +168,103 @@ public class AutoSnowman extends Module {
         }
     }
     public void onActivateIronman() {
-        
+        ironGolemBlocks.clear();
+        waitingForBreak.clear();
+        index = 0;
+        delay = 0;
+        loopDelayTimer = 0;
+        waitingForNextLoop = false;
+        waitingForSlotSync = false;
+
+        Vec3d dir = mc.player.getRotationVec(1.0f);
+        Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
+        Vec3d target = mc.player.getPos().add(horizontal).add(0, 3, 0);
+        BlockPos basePos = BlockPos.ofFloored(target);
+
+        // Iron Golem body structure
+        ironGolemBlocks.add(basePos);                     // center iron block
+        ironGolemBlocks.add(basePos.south());                // upper iron block
+        ironGolemBlocks.add(basePos.west());              // left arm
+        ironGolemBlocks.add(basePos.east());              // right arm
+        ironGolemBlocks.add(basePos.north());               // pumpkin head
+
+        int ironCount = 0;
+        int pumpkinCount = 0;
+        for (int i = 0; i < 36; i++) {
+            Item item = mc.player.getInventory().getStack(i).getItem();
+            if (item == Items.IRON_BLOCK) ironCount += mc.player.getInventory().getStack(i).getCount();
+            if (item == Items.CARVED_PUMPKIN) pumpkinCount += mc.player.getInventory().getStack(i).getCount();
+        }
+
+        if (ironCount < 4) {
+            error("Not enough iron blocks (need at least 4).");
+            toggle();
+            return;
+        }
+
+        if (pumpkinCount < 1) {
+            error("Need at least 1 carved pumpkin.");
+            toggle();
+            return;
+        }
+
+        for (int i = 0; i < 9; i++) {
+            Item item = mc.player.getInventory().getStack(i).getItem();
+            if (item == Items.IRON_BLOCK) {
+                mc.player.getInventory().selectedSlot = i;
+                break;
+            }
+        }
     }
     public void onActivateWither() {
         
+        witherBlocks.clear();
+        waitingForBreak.clear();
+        index = 0;
+        delay = 0;
+        waitingForSlotSync = false;
+
+        Vec3d dir = mc.player.getRotationVec(1.0f);
+        Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
+        Vec3d target = mc.player.getPos().add(horizontal).add(0, 2, 0);
+        BlockPos basePos = BlockPos.ofFloored(target);
+
+        // Wither body structure
+        witherBlocks.add(basePos);
+        witherBlocks.add(basePos.west());
+        witherBlocks.add(basePos.east());
+        witherBlocks.add(basePos.down());
+        witherBlocks.add(basePos.up().west());
+        witherBlocks.add(basePos.up());
+        witherBlocks.add(basePos.up().east());
+
+        int soulCount = 0;
+        int skullCount = 0;
+        for (int i = 0; i < 36; i++) {
+            Item item = mc.player.getInventory().getStack(i).getItem();
+            if (item == Items.SOUL_SAND) soulCount += mc.player.getInventory().getStack(i).getCount();
+            if (item == Items.WITHER_SKELETON_SKULL) skullCount += mc.player.getInventory().getStack(i).getCount();
+        }
+
+        if (soulCount < 4) {
+            error("Not enough soul sand (need at least 4).");
+            toggle();
+            return;
+        }
+
+        if (skullCount < 3) {
+            error("Need at least 3 Wither Skeleton Skulls.");
+            toggle();
+            return;
+        }
+
+        for (int i = 0; i < 9; i++) {
+            Item item = mc.player.getInventory().getStack(i).getItem();
+            if (item == Items.SOUL_SAND) {
+                mc.player.getInventory().selectedSlot = i;
+                break;
+            }
+        }
     }
 
     @Override
