@@ -22,7 +22,7 @@ import net.minecraft.util.math.Vec3d;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AutoIronGolem extends Module {
+public class AutoIronman extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
     private final Setting<Integer> placeDelay = sgGeneral.add(new IntSetting.Builder()
@@ -93,7 +93,7 @@ public class AutoIronGolem extends Module {
 
     private boolean waitingForSlotSync = false;
 
-    public AutoIronGolem() {
+    public AutoIronman() {
         super(Addon.CATEGORY, "AutoIronman", "Automatically builds an iron golem.");
     }
 
