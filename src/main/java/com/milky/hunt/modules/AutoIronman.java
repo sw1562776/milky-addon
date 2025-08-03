@@ -94,7 +94,7 @@ public class AutoIronGolem extends Module {
     private boolean waitingForSlotSync = false;
 
     public AutoIronGolem() {
-        super(Addon.CATEGORY, "AutoIronGolem", "Automatically builds an iron golem.");
+        super(Addon.CATEGORY, "AutoIronman", "Automatically builds an iron golem.");
     }
 
     @Override
