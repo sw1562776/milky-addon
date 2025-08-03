@@ -558,7 +558,18 @@ public class AutoGolem extends Module {
                 return;
             }
 
-            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+            BlockPos placeOn = pos;
+            Direction direction = Direction.UP;
+
+            if (needed == Items.WITHER_SKELETON_SKULL) {
+                if (index == witherBlocks.size() - 1) {
+                placeOn = pos.down();
+                direction = Direction.UP;
+                }
+            }
+
+            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(placeOn), direction, placeOn, false);
+
 
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                 PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
