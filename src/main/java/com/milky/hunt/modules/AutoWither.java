@@ -204,12 +204,13 @@ public class AutoWither extends Module {
             Direction direction = Direction.UP;
 
             if (needed == Items.WITHER_SKELETON_SKULL) {
-                 // 头颅必须对准下面的灵魂沙顶部
-                 placeOn = pos.down();
+                if (index == witherBlocks.size() - 1) {
+                placeOn = pos.down();
                 direction = Direction.UP;
+                }
             }
 
-BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(placeOn), direction, placeOn, false);
+            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(placeOn), direction, placeOn, false);
 
 
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
