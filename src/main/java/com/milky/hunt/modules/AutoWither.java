@@ -88,17 +88,17 @@ public class AutoWither extends Module {
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
-        Vec3d target = mc.player.getPos().add(horizontal).add(0, 1, 0);
+        Vec3d target = mc.player.getPos().add(horizontal).add(0, 2, 0);
         BlockPos basePos = BlockPos.ofFloored(target);
 
         // Wither body structure
-        witherBlocks.add(basePos);                           // center soul sand
-        witherBlocks.add(basePos.west());                    // left soul sand
-        witherBlocks.add(basePos.east());                    // right soul sand
-        witherBlocks.add(basePos.up());                      // top soul sand
-        witherBlocks.add(basePos.up().west());               // left skull
-        witherBlocks.add(basePos.up());                      // center skull
-        witherBlocks.add(basePos.up().east());               // right skull
+        witherBlocks.add(basePos);
+        witherBlocks.add(basePos.west());
+        witherBlocks.add(basePos.east());
+        witherBlocks.add(basePos.down());
+        witherBlocks.add(basePos.up().west());
+        witherBlocks.add(basePos.up());
+        witherBlocks.add(basePos.up().east());
 
         int soulCount = 0;
         int skullCount = 0;
