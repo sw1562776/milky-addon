@@ -1,7 +1,7 @@
 # Milky Mod (Meteor Addon For minecraft 1.21.4)
 
-- AutoSnowman
-  - Do you want to build a snowman~
+- AutoGolem
+  - Do you want to build a snowman? ♪♪♪ Maybe an iron one... or even a dark one.
 - WhisperCoord (coming soon)
   - Send /w [someone] coordX coordY coordZ with a single click.
 - AutoInvertedT (coming soon)
