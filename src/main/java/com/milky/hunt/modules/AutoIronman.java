@@ -110,7 +110,7 @@ public class AutoIronman extends Module {
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
         Vec3d target = mc.player.getPos().add(horizontal).add(0, 2, 0);
-        BlockPos basePos = BlockPos.ofFloored(target.down()); // golem base is lower
+        BlockPos basePos = BlockPos.ofFloored(target);
 
         // Iron Golem body structure
         ironGolemBlocks.add(basePos);                     // center iron block
