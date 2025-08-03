@@ -97,7 +97,7 @@ public class AutoSnowman extends Module {
     );
 
     private final List<BlockPos> snowmanBlocks = new ArrayList<>();
-    private final List<BlockPos> ironGolemBlocks = new ArrayList<>();
+    private final List<BlockPos> ironmanBlocks = new ArrayList<>();
     private final List<BlockPos> witherBlocks = new ArrayList<>();
     
     private final List<BlockPos> waitingForBreak = new ArrayList<>();
@@ -168,7 +168,7 @@ public class AutoSnowman extends Module {
         }
     }
     public void onActivateIronman() {
-        ironGolemBlocks.clear();
+        ironmanBlocks.clear();
         waitingForBreak.clear();
         index = 0;
         delay = 0;
@@ -182,11 +182,11 @@ public class AutoSnowman extends Module {
         BlockPos basePos = BlockPos.ofFloored(target);
 
         // Iron Golem body structure
-        ironGolemBlocks.add(basePos);                     // center iron block
-        ironGolemBlocks.add(basePos.south());                // upper iron block
-        ironGolemBlocks.add(basePos.west());              // left arm
-        ironGolemBlocks.add(basePos.east());              // right arm
-        ironGolemBlocks.add(basePos.north());               // pumpkin head
+        ironmanBlocks.add(basePos);                     // center iron block
+        ironmanBlocks.add(basePos.south());                // upper iron block
+        ironmanBlocks.add(basePos.west());              // left arm
+        ironmanBlocks.add(basePos.east());              // right arm
+        ironmanBlocks.add(basePos.north());               // pumpkin head
 
         int ironCount = 0;
         int pumpkinCount = 0;
@@ -266,9 +266,15 @@ public class AutoSnowman extends Module {
             }
         }
     }
-
     @Override
     public void onDeactivate() {
+        switch (type.get()) {
+            case Snowman -> onDeactivateSnowman();
+            case Ironman -> onDeactivateIronman();
+            case Wither -> onDeactivateWither();
+        }
+    }
+    public void onDeactivateSnowman() {
         snowmanBlocks.clear();
         waitingForBreak.clear();
         index = 0;
@@ -277,9 +283,35 @@ public class AutoSnowman extends Module {
         waitingForNextLoop = false;
         waitingForSlotSync = false;
     }
+    
+    public void onDeactivateIronman() {
+        ironmanBlocks.clear();
+        waitingForBreak.clear();
+        index = 0;
+        delay = 0;
+        loopDelayTimer = 0;
+        waitingForNextLoop = false;
+        waitingForSlotSync = false;
+    }
+    
+    public void onDeactivateWither() {
+        witherBlocks.clear();
+        waitingForBreak.clear();
+        index = 0;
+        delay = 0;
+        waitingForSlotSync = false;
+    }
 
     @EventHandler
-private void onTick(TickEvent.Post event) {
+    private void onTick(TickEvent.Post event) {
+    switch (type.get()) {
+        case Snowman -> onTickSnowman(event);
+        case Ironman -> onTickIronman(event);
+        case Wither -> onTickWither(event);
+    }
+}
+    
+     private void onTickSnowman(TickEvent.Post event) {
     if (mc.player == null || mc.world == null) return;
 
     if (waitingForNextLoop) {
@@ -373,12 +405,206 @@ private void onTick(TickEvent.Post event) {
     delay = 0;
 }
 
+    private void onTickIronman(TickEvent.Post event) {
+        
+        if (mc.player == null || mc.world == null) return;
+
+        if (waitingForNextLoop) {
+            loopDelayTimer++;
+            if (loopDelayTimer >= loopDelay.get()) {
+                waitingForNextLoop = false;
+                onActivate();
+            }
+            return;
+        }
+
+        if (waitingForSlotSync) {
+            waitingForSlotSync = false;
+            return;
+        }
+
+        if (index >= ironmanBlocks.size()) {
+            info("Iron Golem complete.");
+            if (continuous.get()) {
+                waitingForNextLoop = true;
+                loopDelayTimer = 0;
+            } else {
+                toggle();
+            }
+            return;
+        }
+
+        delay++;
+        if (delay < placeDelay.get()) return;
+
+        for (int i = 0; i < blocksPerTick.get() && index < ironmanBlocks.size(); i++) {
+            BlockPos pos = ironmanBlocks.get(index);
+
+            if (!mc.world.getBlockState(pos).isReplaceable()) {
+                if (!waitingForBreak.contains(pos)) {
+                    mc.interactionManager.attackBlock(pos, Direction.UP);
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                    waitingForBreak.add(pos);
+                }
+                return;
+            }
+
+            waitingForBreak.remove(pos);
+
+            Item needed = (index < 4) ? Items.IRON_BLOCK : Items.CARVED_PUMPKIN;
+
+            int slotToSelect = -1;
+            boolean foundItem = false;
+            for (int slot = 0; slot < 9; slot++) {
+                if (mc.player.getInventory().getStack(slot).getItem() == needed) {
+                    slotToSelect = slot;
+                    foundItem = true;
+                    break;
+                }
+            }
+
+            if (!foundItem) {
+                error("Missing required block: " + needed.getName().getString());
+                toggle();
+                return;
+            }
+
+            if (mc.player.getInventory().selectedSlot != slotToSelect) {
+                mc.player.getInventory().selectedSlot = slotToSelect;
+                waitingForSlotSync = true;
+                return;
+            }
+
+            if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
+                error("Main hand item is not a block.");
+                toggle();
+                return;
+            }
+
+            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.swingHand(Hand.MAIN_HAND);
+
+            index++;
+        }
+
+        delay = 0;
+}
+    private void onTickWither(TickEvent.Post event) {
+        
+        if (mc.player == null || mc.world == null) return;
+
+        if (waitingForSlotSync) {
+            waitingForSlotSync = false;
+            return;
+        }
+
+        if (index >= witherBlocks.size()) {
+            info("Wither complete.");
+            toggle();
+            return;
+        }
+
+        delay++;
+        if (delay < placeDelay.get()) return;
+
+        for (int i = 0; i < blocksPerTick.get() && index < witherBlocks.size(); i++) {
+            BlockPos pos = witherBlocks.get(index);
+
+            if (!mc.world.getBlockState(pos).isReplaceable()) {
+                if (!waitingForBreak.contains(pos)) {
+                    mc.interactionManager.attackBlock(pos, Direction.UP);
+                    mc.player.swingHand(Hand.MAIN_HAND);
+                    waitingForBreak.add(pos);
+                }
+                return;
+            }
+
+            waitingForBreak.remove(pos);
+
+            Item needed = (index < 4) ? Items.SOUL_SAND : Items.WITHER_SKELETON_SKULL;
+
+            int slotToSelect = -1;
+            boolean foundItem = false;
+            for (int slot = 0; slot < 9; slot++) {
+                if (mc.player.getInventory().getStack(slot).getItem() == needed) {
+                    slotToSelect = slot;
+                    foundItem = true;
+                    break;
+                }
+            }
+
+            if (!foundItem) {
+                error("Missing required block: " + needed.getName().getString());
+                toggle();
+                return;
+            }
+
+            if (mc.player.getInventory().selectedSlot != slotToSelect) {
+                mc.player.getInventory().selectedSlot = slotToSelect;
+                waitingForSlotSync = true;
+                return;
+            }
+
+            if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
+                error("Main hand item is not a block.");
+                toggle();
+                return;
+            }
+
+            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
+
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
+                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
+            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
+                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
+            mc.player.swingHand(Hand.MAIN_HAND);
+
+            index++;
+        }
+
+        delay = 0;
+}
 
     @EventHandler
     private void onRender(Render3DEvent event) {
+         if (!render.get()) return;
+        
+        switch (type.get()) {
+        case Snowman -> onRenderSnowman(event);
+        case Ironman -> onRenderIronman(event);
+        case Wither  -> onRenderWither(event);
+    }
+}
+
+    private void onRenderSnowman(Render3DEvent event) {
         if (!render.get()) return;
         for (int i = index; i < snowmanBlocks.size(); i++) {
             BlockPos pos = snowmanBlocks.get(i);
+            event.renderer.box(pos, sideColor.get(), lineColor.get(), shapeMode.get(), 0);
+        }
+    }
+    
+    private void onRenderIronman(Render3DEvent event) {
+        if (!render.get()) return;
+        for (int i = index; i < ironmanBlocks.size(); i++) {
+            BlockPos pos = ironmanBlocks.get(i);
+            event.renderer.box(pos, sideColor.get(), lineColor.get(), shapeMode.get(), 0);
+        }
+    }
+    
+    private void onRenderWither(Render3DEvent event) {
+        if (!render.get()) return;
+        for (int i = index; i < witherBlocks.size(); i++) {
+            BlockPos pos = witherBlocks.get(i);
             event.renderer.box(pos, sideColor.get(), lineColor.get(), shapeMode.get(), 0);
         }
     }
