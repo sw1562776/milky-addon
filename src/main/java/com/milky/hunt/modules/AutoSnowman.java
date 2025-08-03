@@ -166,6 +166,12 @@ public class AutoSnowman extends Module {
             }
         }
     }
+    public void onActivateIronman() {
+        
+    }
+    public void onActivateWither() {
+        
+    }
 
     @Override
     public void onDeactivate() {
