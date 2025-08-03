@@ -115,8 +115,8 @@ public class AutoIronman extends Module {
         // Iron Golem body structure
         ironGolemBlocks.add(basePos);                     // center iron block
         ironGolemBlocks.add(basePos.up());                // upper iron block
-        ironGolemBlocks.add(basePos.west());              // left arm
-        ironGolemBlocks.add(basePos.east());              // right arm
+        ironGolemBlocks.add(basePos.up().west());              // left arm
+        ironGolemBlocks.add(basePos.up().east());              // right arm
         ironGolemBlocks.add(basePos.up(2));               // pumpkin head
 
         int ironCount = 0;
