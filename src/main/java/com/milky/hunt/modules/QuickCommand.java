@@ -40,7 +40,6 @@ public class QuickCommand extends Module {
         hasSent = false;
     }
 
-    // 注意：你必须包含这个方法，否则会报错找不到 symbol
     private String parseCommand(String raw) {
         return raw.replace("{x}", String.valueOf((int) mc.player.getX()))
                   .replace("{y}", String.valueOf((int) mc.player.getY()))
