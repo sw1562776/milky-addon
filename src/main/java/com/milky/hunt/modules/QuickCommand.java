@@ -6,40 +6,48 @@ import meteordevelopment.meteorclient.settings.StringSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
+
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
+import net.minecraft.network.message.MessageSignatureData;
+import net.minecraft.network.message.LastSeenMessageList;
+
+import java.time.Instant;
 
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
-        .description("Command or message to send. Use {CoordX}, {CoordY}, {CoordZ} for player position.")
-        .defaultValue("/w tifmaid Hello at {CoordX} {CoordY} {CoordZ}")
+        .description("Send a command or chat message, supports {CoordX}, {CoordY}, {CoordZ}.")
+        .defaultValue("/w tifmaid Hello at {CoordX}, {CoordY}, {CoordZ}")
         .build()
     );
 
-    private boolean hasSent = false;
+    private boolean hasSent;
 
     public QuickCommand() {
-        super(Addon.CATEGORY, "quick-command", "Sends a command or message (even on 2b2t) when toggled.");
+        super(Addon.CATEGORY, "quick-command", "Send command or message (works even on signed‑chat servers like 2b2t).");
     }
 
-    @Override
-    public void onActivate() {
-        hasSent = false;
-    }
+    @Override public void onActivate() { hasSent = false; }
 
-    @EventHandler
-    private void onTick(TickEvent.Post event) {
+    @EventHandler private void onTick(TickEvent.Post event) {
         if (mc.player == null || mc.world == null || mc.getNetworkHandler() == null) return;
         if (hasSent) return;
 
-        String raw = command.get();
-        String parsed = parseCommand(raw);
+        String parsed = parseCommand(command.get());
 
         if (parsed.startsWith("/")) {
+            // Send command packet
             mc.getNetworkHandler().sendPacket(new CommandExecutionC2SPacket(parsed.substring(1)));
         } else {
-            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(parsed));
+            // Send signed chat packet
+            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(
+                parsed,
+                Instant.now(),
+                0L,                              // salt
+                MessageSignatureData.NONE,       // no signature
+                LastSeenMessageList.Acknowledgment.NONE
+            ));
         }
 
         hasSent = true;
@@ -47,13 +55,9 @@ public class QuickCommand extends Module {
     }
 
     private String parseCommand(String input) {
-        double x = mc.player.getX();
-        double y = mc.player.getY();
-        double z = mc.player.getZ();
-
-        return input
-            .replace("{CoordX}", String.format("%.1f", x))
-            .replace("{CoordY}", String.format("%.1f", y))
-            .replace("{CoordZ}", String.format("%.1f", z));
+        double x = mc.player.getX(), y = mc.player.getY(), z = mc.player.getZ();
+        return input.replace("{CoordX}", String.format("%.1f", x))
+                    .replace("{CoordY}", String.format("%.1f", y))
+                    .replace("{CoordZ}", String.format("%.1f", z));
     }
 }
