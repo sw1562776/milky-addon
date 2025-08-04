@@ -9,7 +9,7 @@
   - The default one is /w Wandelion {CoordX} {CoordY} {CoordZ} {Dimension}
   - {CoordX} {CoordY} {CoordZ} {Dimension} {Player} {UUID} {IP} {ServerName} {Time} {Timestamp}
   - {Health} {MaxHealth} {Hunger} {XP} {Facing} {Sneaking} {Sprinting} {OnGround} {Air} {FireTicks}
-  - {SelectedSlot} {BlockUnder} {Biome} {LightLevel} {MainHand} {MainHandRaw} {OffHand} {OffHandRaw}
+  - {SelectedSlot} {BlockUnder} {Biome} {LightLevel} {MainHand} {MainHandRaw} {OffHand} {OffHandRaw}
   - {Helmet} {HelmetRaw} {Chestplate} {ChestplateRaw} {Leggings} {LeggingsRaw} {Boots} {BootsRaw}
   - {Inventory0} ... {Inventory26}
 
