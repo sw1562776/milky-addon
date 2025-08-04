@@ -35,7 +35,7 @@ public class AutoInvertedY extends Module {
     private final Setting<Block> block = sgGeneral.add(new BlockSetting.Builder()
     .name("block")
     .description("The block to use when placing the inverted Y.")
-    .defaultValue(Blocks.OBSIDIAN)
+    .defaultValue(Blocks.)
     .build()
     );
 
@@ -64,7 +64,7 @@ public class AutoInvertedY extends Module {
 
     private final Setting<Boolean> render = sgGeneral.add(new BoolSetting.Builder()
         .name("render")
-        .description("Render the T shape while placing.")
+        .description("Render the Y shape while placing.")
         .defaultValue(true)
         .build()
     );
@@ -142,7 +142,7 @@ public class AutoInvertedY extends Module {
         }
 
         if (count < tBlocks.size()) {
-            error("Not enough obsidian (need " + tBlocks.size() + ").");
+            error("Not enough " + block.get().asItem().getName().getString() + " (need " + tBlocks.size() + ").");
             toggle();
             return;
         }
@@ -168,7 +168,7 @@ public class AutoInvertedY extends Module {
         if (mc.player == null || mc.world == null) return;
 
         if (index >= tBlocks.size()) {
-            info("T shape complete.");
+            info("Y shape complete.");
             toggle();
             return;
         }
@@ -191,7 +191,7 @@ public class AutoInvertedY extends Module {
             }
 
             if (slotToUse == -1) {
-                error("No obsidian in hotbar.");
+                error("No "+ block.get().asItem().getName().getString() + " in hotbar.");
                 toggle();
                 return;
             }
