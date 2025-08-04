@@ -8,9 +8,6 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
-import net.minecraft.network.message.Acknowledgment;
-
-import java.time.Instant;
 
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
@@ -42,13 +39,7 @@ public class QuickCommand extends Module {
         if (parsed.startsWith("/")) {
             mc.getNetworkHandler().sendPacket(new CommandExecutionC2SPacket(parsed.substring(1)));
         } else {
-            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(
-                parsed,
-                Instant.now(),
-                0L,
-                null,
-                new Acknowledgment()
-            ));
+            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(parsed));
         }
 
         hasSent = true;
