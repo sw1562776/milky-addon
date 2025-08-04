@@ -27,16 +27,6 @@ public class QuickCommand extends Module {
         .build()
     );
 
-    settings.getDefaultGroup().add(new StringSetting.Builder()
-    .name("placeholder-info")
-    .description("Available placeholders:\n" +
-                 "{CoordX}, {CoordY}, {CoordZ}\n" +
-                 "{Player}, {UUID}, {Health}\n" +
-                 "{MainHand}, {Helmet}, {Biome}")
-    .defaultValue("")
-    .visible(false)
-    .build());
-
     private boolean hasSent;
 
     public QuickCommand() {
