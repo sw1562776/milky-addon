@@ -126,8 +126,6 @@ public class QuickCommand extends Module {
             .replace("{Time}", time)
             .replace("{Timestamp}", timestamp)
             
-            .replace("{NearbyPlayers}", nearbyPlayers)
-            
             .replace("{Health}", String.format("%.1f", health))
             .replace("{MaxHealth}", String.format("%.1f", maxHealth))
             .replace("{Hunger}", String.valueOf(hunger))
@@ -162,7 +160,7 @@ public class QuickCommand extends Module {
                 result = result.replace("{Inventory" + i + "}", name);
                 result = result.replace("{Inventory" + i + "Raw}", raw);
             }
-        ;
+            .replace("{NearbyPlayers}", nearbyPlayers);
 
         return result;
     }
