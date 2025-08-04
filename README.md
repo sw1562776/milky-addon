@@ -2,10 +2,8 @@
 
 - AutoGolem
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
- 
 - AutoInvertedY
   - Automatically constructs your favorite, uh... iconic shape — using any block you choose. Ideal for establishing a proudly ridiculous *rocket garden*.
-
 - WhisperCoord (coming soon)
   - Send /w [someone] coordX coordY coordZ with a single click.
 
