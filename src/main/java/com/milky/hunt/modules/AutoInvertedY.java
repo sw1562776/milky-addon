@@ -20,6 +20,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import meteordevelopment.meteorclient.settings.BlockSetting;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +35,7 @@ public class AutoInvertedY extends Module {
     private final Setting<Block> block = sgGeneral.add(new BlockSetting.Builder()
     .name("block")
     .description("The block to use when placing the inverted Y.")
-    .defaultValue(Items.OBSIDIAN.getBlock())
+    .defaultValue(Blocks.OBSIDIAN)
     .build()
     );
 
