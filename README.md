@@ -4,7 +4,7 @@
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
 - AutoInvertedY
   - Automatically constructs your favorite, uh... iconic shape — using any block you choose. Ideal for establishing a proudly ridiculous *rocket garden*.
-- AutoCommand
+- QuickCommand
   - Send your command to gamechat with a single click.
   - The default one is /w Wandelion {CoordX} {CoordY} {CoordZ} {Dimension}
   - {CoordX} {CoordY} {CoordZ} {Dimension} {Player} {UUID} {IP} {ServerName} {Time} {Timestamp}
