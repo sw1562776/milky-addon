@@ -157,7 +157,8 @@ for (Chunk chunk : mc.world.getChunkManager().getLoadedChunks()) {
             .replace("{LeggingsRaw}", Registries.ITEM.getId(legs.getItem()).toString())
             .replace("{Boots}", boots.getName().getString())
             .replace("{BootsRaw}", Registries.ITEM.getId(boots.getItem()).toString())
-            .replace("{NearbyPlayers}", nearbyPlayers);
+            .replace("{NearbyPlayers}", nearbyPlayers)
+            .replace("{Container}", String.valueOf(containerCount));
             for (int i = 0; i < 36; i++) {
                 ItemStack stack = mc.player.getInventory().getStack(i);
                 String name = stack.isEmpty() ? "air" : stack.getName().getString();
