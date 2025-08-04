@@ -109,15 +109,11 @@ public class QuickCommand extends Module {
         
         int containerCount = 0;
 
-for (Chunk chunk : mc.world.getChunkManager().getLoadedChunks()) {
-    if (chunk instanceof WorldChunk worldChunk) {
-        for (BlockEntity be : worldChunk.blockEntities.values()) {
-            if (be instanceof Inventory) {
-                containerCount++;
-            }
-        }
-    }
-}
+int containerCount = (int) mc.world.getChunkManager().getLoadedChunks().stream()
+    .filter(chunk -> chunk instanceof WorldChunk)
+    .flatMap(chunk -> ((WorldChunk) chunk).getBlockEntities().values().stream())
+    .filter(be -> be instanceof Inventory)
+    .count();
 
 
         String result = input
