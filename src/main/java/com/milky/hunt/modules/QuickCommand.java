@@ -100,17 +100,17 @@ public class QuickCommand extends Module {
 
         String nearbyPlayers = String.join(", ", nearbyNames);
 
-        //int containerCount = 0;
-        //for (BlockEntity be : mc.world.blockEntities.values()) {
-        //    if (be instanceof ChestBlockEntity
-        //     || be instanceof BarrelBlockEntity
-        //     || be instanceof ShulkerBoxBlockEntity
-        //     || be instanceof HopperBlockEntity
-        //     || be instanceof DispenserBlockEntity
-        //     || be instanceof DropperBlockEntity) {
-        //        containerCount++;
-        //    }
-        //}
+        int containerCount = 0;
+        for (BlockEntity be : mc.world.blockEntities.values()) {
+            if (be instanceof ChestBlockEntity
+             || be instanceof BarrelBlockEntity
+             || be instanceof ShulkerBoxBlockEntity
+             || be instanceof HopperBlockEntity
+             || be instanceof DispenserBlockEntity
+             || be instanceof DropperBlockEntity) {
+                containerCount++;
+            }
+        }
 
         String result = input
             .replace("{CoordX}", String.format("%.1f", x))
@@ -149,8 +149,8 @@ public class QuickCommand extends Module {
             .replace("{LeggingsRaw}", Registries.ITEM.getId(legs.getItem()).toString())
             .replace("{Boots}", boots.getName().getString())
             .replace("{BootsRaw}", Registries.ITEM.getId(boots.getItem()).toString())
-            .replace("{NearbyPlayers}", nearbyPlayers);
-           // .replace("{ContainerCount}", String.valueOf(containerCount));
+            .replace("{NearbyPlayers}", nearbyPlayers)
+            .replace("{ContainerCount}", String.valueOf(containerCount));
             for (int i = 0; i < 36; i++) {
                 ItemStack stack = mc.player.getInventory().getStack(i);
                 String name = stack.isEmpty() ? "air" : stack.getName().getString();
