@@ -11,7 +11,7 @@ import net.minecraft.block.Block;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.registry.Registries;
 import net.minecraft.entity.player.PlayerEntity;
 
 import java.time.LocalDateTime;
@@ -129,7 +129,7 @@ public class QuickCommand extends Module {
             .replace("{ServerName}", serverName)
 
             .replace("{MainHand}", mainHand.getName().getString())
-            .replace("{MainHandRaw}", Registry.ITEM.getId(mainHand.getItem()).toString())
+            .replace("{MainHandRaw}", Registries.ITEM.getId(mainHand.getItem()).toString())
             .replace("{OffHand}", offHand.getName().getString())
 
             .replace("{Helmet}", helmet.getName().getString())
