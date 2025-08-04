@@ -12,14 +12,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.registry.Registries;
-import net.minecraft.inventory.Inventory;
-import net.minecraft.block.entity.BlockEntity;
-//import net.minecraft.entity.player.PlayerEntity;
-//import net.minecraft.block.entity.*;
-//import net.minecraft.client.world.ClientWorld;
-//import net.minecraft.client.world.ClientChunkManager;
-//import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.WorldChunk;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -106,15 +98,6 @@ public class QuickCommand extends Module {
             .collect(Collectors.toList());
 
         String nearbyPlayers = String.join(", ", nearbyNames);
-        
-        int containerCount = 0;
-for (WorldChunk chunk : mc.world.getChunkManager().getChunks()) {
-    for (BlockEntity be : chunk.getBlockEntities().values()) {
-        if (be instanceof Inventory) {
-            containerCount++;
-        }
-    }
-}
 
 
         String result = input
@@ -154,8 +137,7 @@ for (WorldChunk chunk : mc.world.getChunkManager().getChunks()) {
             .replace("{LeggingsRaw}", Registries.ITEM.getId(legs.getItem()).toString())
             .replace("{Boots}", boots.getName().getString())
             .replace("{BootsRaw}", Registries.ITEM.getId(boots.getItem()).toString())
-            .replace("{NearbyPlayers}", nearbyPlayers)
-            .replace("{Container}", String.valueOf(containerCount));
+            .replace("{NearbyPlayers}", nearbyPlayers);
             for (int i = 0; i < 36; i++) {
                 ItemStack stack = mc.player.getInventory().getStack(i);
                 String name = stack.isEmpty() ? "air" : stack.getName().getString();
