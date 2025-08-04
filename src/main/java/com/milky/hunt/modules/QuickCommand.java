@@ -117,15 +117,12 @@ public class QuickCommand extends Module {
             .replace("{CoordY}", String.format("%.1f", y))
             .replace("{CoordZ}", String.format("%.1f", z))
             .replace("{Dimension}", dimension)
-           // .replace("{ContainerCount}", String.valueOf(containerCount));
-            
             .replace("{Player}", playerName)
             .replace("{UUID}", uuid)
             .replace("{IP}", serverIp)
             .replace("{ServerName}", serverName)
             .replace("{Time}", time)
             .replace("{Timestamp}", timestamp)
-            
             .replace("{Health}", String.format("%.1f", health))
             .replace("{MaxHealth}", String.format("%.1f", maxHealth))
             .replace("{Hunger}", String.valueOf(hunger))
@@ -140,7 +137,6 @@ public class QuickCommand extends Module {
             .replace("{BlockUnder}", blockUnder.getName().getString())
             .replace("{Biome}", biome)
             .replace("{LightLevel}", String.valueOf(light))
-            
             .replace("{MainHand}", mainHand.getName().getString())
             .replace("{MainHandRaw}", Registries.ITEM.getId(mainHand.getItem()).toString())
             .replace("{OffHand}", offHand.getName().getString())
@@ -153,6 +149,8 @@ public class QuickCommand extends Module {
             .replace("{LeggingsRaw}", Registries.ITEM.getId(legs.getItem()).toString())
             .replace("{Boots}", boots.getName().getString())
             .replace("{BootsRaw}", Registries.ITEM.getId(boots.getItem()).toString())
+            .replace("{NearbyPlayers}", nearbyPlayers);
+           // .replace("{ContainerCount}", String.valueOf(containerCount));
             for (int i = 0; i < 36; i++) {
                 ItemStack stack = mc.player.getInventory().getStack(i);
                 String name = stack.isEmpty() ? "air" : stack.getName().getString();
@@ -160,7 +158,6 @@ public class QuickCommand extends Module {
                 result = result.replace("{Inventory" + i + "}", name);
                 result = result.replace("{Inventory" + i + "Raw}", raw);
             }
-            .replace("{NearbyPlayers}", nearbyPlayers);
 
         return result;
     }
