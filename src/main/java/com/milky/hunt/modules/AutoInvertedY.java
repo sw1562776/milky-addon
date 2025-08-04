@@ -64,32 +64,22 @@ public class AutoInvertedY extends Module {
         Vec3d target = mc.player.getPos().add(horizontal).add(0, 2, 0);
         BlockPos basePos = BlockPos.ofFloored(target);
 
-        // Horizontal bar
-
         tBlocks.add(basePos);
 
-        boolean eastWest = Math.abs(dir.z) >= Math.abs(dir.x);  // true = wings on west/east
-        
+        boolean eastWest = Math.abs(dir.z) >= Math.abs(dir.x);
+
         if (eastWest) {
-            // Player is facing mostly north/south → use west/east wings
             tBlocks.add(basePos.west().down());
             tBlocks.add(basePos.east().down());
         } else {
-            // Player is facing mostly east/west → use north/south wings
             tBlocks.add(basePos.north().down());
             tBlocks.add(basePos.south().down());
         }
 
-        // Vertical stem upward
-        int stemHeight = switch (height.get()) {
-            case Medium -> 1;
-            case Large -> 2;
-            case Extra_Large -> 3;
-        };
-
-        for (int i = 1; i <= stemHeight; i++) {
+        for (int i = 1; i <= height.get().value; i++) {
             tBlocks.add(basePos.up(i));
         }
+    }
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
@@ -103,7 +93,7 @@ public class AutoInvertedY extends Module {
         Item targetItem = block.get().asItem();
         int slot = findBlockInHotbar(targetItem);
         if (slot == -1) {
-            warning("Not enough" + block.get().getName().getString() + "in hotbar.");
+            warning("[" + block.get().getName().getString() + "] 不足");
             toggle();
             return;
         }
