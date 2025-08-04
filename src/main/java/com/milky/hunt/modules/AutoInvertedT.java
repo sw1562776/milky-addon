@@ -83,14 +83,14 @@ public class AutoInvertedT extends Module {
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
-        Vec3d target = mc.player.getPos().add(horizontal);
+        Vec3d target = mc.player.getPos().add(horizontal).add(0, 1, 0);
         BlockPos basePos = BlockPos.ofFloored(target);
 
         // Inverted T structure: middle-bottom block, then left/right above it, and center above that
-        tBlocks.add(basePos);                             // bottom of T
-        tBlocks.add(basePos.up());                        // vertical center
-        tBlocks.add(basePos.up().west());                 // left arm
-        tBlocks.add(basePos.up().east());                 // right arm
+        tBlocks.add(basePos);
+        tBlocks.add(basePos.west());
+        tBlocks.add(basePos.east());
+        tBlocks.add(basePos.up());
 
         // Check for enough blocks
         int count = 0;
