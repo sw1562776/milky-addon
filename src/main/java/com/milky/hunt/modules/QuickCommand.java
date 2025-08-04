@@ -25,7 +25,7 @@ public class QuickCommand extends Module {
     private boolean hasSent;
 
     public QuickCommand() {
-        super(Addon.CATEGORY, "quick-command", "Send command or message (works even on signed‑chat servers like 2b2t).");
+        super(Addon.CATEGORY, "quick-command", "Send command or message (supports signed-chat bypass).");
     }
 
     @Override public void onActivate() { hasSent = false; }
@@ -40,13 +40,13 @@ public class QuickCommand extends Module {
             // Send command packet
             mc.getNetworkHandler().sendPacket(new CommandExecutionC2SPacket(parsed.substring(1)));
         } else {
-            // Send signed chat packet
+            // Send unsigned chat packet
             mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(
                 parsed,
                 Instant.now(),
-                0L,                              // salt
-                MessageSignatureData.NONE,       // no signature
-                LastSeenMessageList.Acknowledgment.NONE
+                0L,
+                null, // <- MessageSignatureData
+                null  // <- LastSeenMessageList.Acknowledgment
             ));
         }
 
