@@ -19,12 +19,23 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class QuickCommand extends Module {
+    
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
         .description("Send a quick message/command with rich placeholders.")
         .defaultValue("/w Wandelion {CoordX}, {CoordY}, {CoordZ}, {Dimension}")
         .build()
     );
+
+    settings.getDefaultGroup().add(new StringSetting.Builder()
+    .name("placeholder-info")
+    .description("Available placeholders:\n" +
+                 "{CoordX}, {CoordY}, {CoordZ}\n" +
+                 "{Player}, {UUID}, {Health}\n" +
+                 "{MainHand}, {Helmet}, {Biome}")
+    .defaultValue("")
+    .visible(false)
+    .build());
 
     private boolean hasSent;
 
