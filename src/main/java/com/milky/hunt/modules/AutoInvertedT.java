@@ -25,6 +25,17 @@ import java.util.List;
 public class AutoInvertedT extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
+    private enum THeight {
+        Medium, Large, Extra_Large
+    }
+
+    private final Setting<THeight> height = sgGeneral.add(new EnumSetting.Builder<THeight>()
+        .name("height")
+        .description("Height of the inverted T.")
+        .defaultValue(THeight.Medium)
+        .build()
+    );
+
     private final Setting<Integer> placeDelay = sgGeneral.add(new IntSetting.Builder()
         .name("place-delay")
         .description("Ticks between each block placement.")
@@ -72,7 +83,7 @@ public class AutoInvertedT extends Module {
     private int index = 0;
 
     public AutoInvertedT() {
-        super(Addon.CATEGORY, "AutoInvertedT", "Places an inverted T shape (e.g. obsidian) using offhand spoofing.");
+        super(Addon.CATEGORY, "AutoInvertedT", "Places an inverted T shape using offhand spoof.");
     }
 
     @Override
@@ -86,11 +97,23 @@ public class AutoInvertedT extends Module {
         Vec3d target = mc.player.getPos().add(horizontal).add(0, 1, 0);
         BlockPos basePos = BlockPos.ofFloored(target);
 
+        // Horizontal bar
         tBlocks.add(basePos);
         tBlocks.add(basePos.west());
         tBlocks.add(basePos.east());
-        tBlocks.add(basePos.up());
 
+        // Vertical stem upward
+        int stemHeight = switch (height.get()) {
+            case Medium -> 1;
+            case Large -> 2;
+            case Extra_Large -> 3;
+        };
+
+        for (int i = 1; i <= stemHeight; i++) {
+            tBlocks.add(basePos.up(i));
+        }
+
+        // Check for enough obsidian
         int count = 0;
         for (int i = 0; i < 36; i++) {
             if (mc.player.getInventory().getStack(i).getItem() == Items.OBSIDIAN) {
@@ -104,7 +127,7 @@ public class AutoInvertedT extends Module {
             return;
         }
 
-        // Pre-select first hotbar slot with obsidian
+        // Pre-select obsidian in hotbar
         for (int i = 0; i < 9; i++) {
             if (mc.player.getInventory().getStack(i).getItem() == Items.OBSIDIAN) {
                 mc.player.getInventory().selectedSlot = i;
@@ -138,7 +161,7 @@ public class AutoInvertedT extends Module {
 
             if (!mc.world.getBlockState(pos).isReplaceable()) return;
 
-            // Find obsidian in hotbar
+            // Find obsidian
             int slotToUse = -1;
             for (int s = 0; s < 9; s++) {
                 if (mc.player.getInventory().getStack(s).getItem() == Items.OBSIDIAN) {
@@ -163,7 +186,7 @@ public class AutoInvertedT extends Module {
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
-            // Spoof offhand to bypass 2b2t anticheat
+            // Spoof offhand to bypass anti-cheat
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                 PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
