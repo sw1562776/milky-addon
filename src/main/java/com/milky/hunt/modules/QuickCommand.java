@@ -104,17 +104,6 @@ public class QuickCommand extends Module {
 
         String nearbyPlayers = String.join(", ", nearbyNames);
 
-        int containerCount = 0;
-for (Chunk chunk : mc.world.getChunkManager().getLoadedChunks()) {
-    if (chunk instanceof WorldChunk worldChunk) {
-        for (BlockEntity blockEntity : worldChunk.getBlockEntities().values()) {
-            if (blockEntity instanceof Inventory) {
-                containerCount++;
-            }
-        }
-    }
-}
-
 
         String result = input
             .replace("{CoordX}", String.format("%.1f", x))
