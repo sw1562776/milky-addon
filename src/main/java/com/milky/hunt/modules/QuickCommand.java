@@ -104,7 +104,9 @@ public class QuickCommand extends Module {
         String nearbyPlayers = String.join(", ", nearbyNames);
 
          int containerCount = 0;
-for (BlockEntity be : mc.world.blockEntities.values()) {
+for (BlockEntity be : ((ClientWorld) mc.world).getChunkManager().getChunks().stream()
+        .flatMap(chunk -> chunk.getBlockEntities().values().stream())
+        .collect(Collectors.toList())) {
     if (be instanceof ChestBlockEntity
         || be instanceof BarrelBlockEntity
         || be instanceof ShulkerBoxBlockEntity
@@ -114,6 +116,7 @@ for (BlockEntity be : mc.world.blockEntities.values()) {
         containerCount++;
     }
 }
+
 
 
         String result = input
