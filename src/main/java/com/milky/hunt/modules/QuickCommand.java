@@ -25,7 +25,7 @@ public class QuickCommand extends Module {
     private boolean hasSent;
 
     public QuickCommand() {
-        super(Addon.CATEGORY, "quick-command", "Send command or message (supports signed-chat bypass).");
+        super(Addon.CATEGORY, "QuickCommand", "Send command or message (supports signed-chat bypass).");
     }
 
     @Override public void onActivate() { hasSent = false; }
