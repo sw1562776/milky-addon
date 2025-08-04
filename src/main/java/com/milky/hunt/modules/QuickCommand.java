@@ -10,15 +10,9 @@ import meteordevelopment.orbit.EventHandler;
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
-        .defaultValue("/w Wandelion {CoordX} {CoordY} {CoordZ}")
+        .defaultValue("/w tifmaid 123")
         .build()
     );
-
-    private final Setting<String> infoText = settings.getDefaultGroup().add(new StringSetting.Builder()
-    .name("Use {CoordX}, {CoordY}, {CoordZ} for your coordinates.")
-    .defaultValue("")
-    .build()
-);
 
     private boolean hasSent = false;
 
