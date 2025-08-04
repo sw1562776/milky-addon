@@ -10,8 +10,8 @@ import meteordevelopment.orbit.EventHandler;
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
-        .description("The command to send when toggled. Use {x}, {y}, {z} for your coordinates.")
-        .defaultValue("#stop")
+        .description("The command to send when toggled. Use {CoordX}, {CoordY}, {CoordZ} for your coordinates.")
+        .defaultValue("/w Wandelion {CoordX} {CoordY} {CoordZ}")
         .build()
     );
 
@@ -35,14 +35,14 @@ public class QuickCommand extends Module {
     }
 
     private String parseCommand(String input) {
-        double x = mc.player.getX();
-        double y = mc.player.getY();
-        double z = mc.player.getZ();
+        double coordx = mc.player.getX();
+        double coordy = mc.player.getY();
+        double coordz = mc.player.getZ();
 
         return input
-            .replace("{x}", String.format("%.1f", x))
-            .replace("{y}", String.format("%.1f", y))
-            .replace("{z}", String.format("%.1f", z));
+            .replace("{CoordX}", String.format("%.1f", coordx))
+            .replace("{CoordY}", String.format("%.1f", coordy))
+            .replace("{CoordZ}", String.format("%.1f", coordz));
     }
 
     @Override
