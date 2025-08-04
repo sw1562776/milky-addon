@@ -18,6 +18,8 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import meteordevelopment.meteorclient.settings.BlockSetting;
+import net.minecraft.block.Block;
 
 import java.util.ArrayList;
 import java.util.List;
