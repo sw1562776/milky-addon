@@ -108,9 +108,16 @@ public class QuickCommand extends Module {
             .replace("{CoordY}", String.format("%.1f", y))
             .replace("{CoordZ}", String.format("%.1f", z))
             .replace("{Dimension}", dimension)
-
+            
             .replace("{Player}", playerName)
             .replace("{UUID}", uuid)
+            .replace("{IP}", serverIp)
+            .replace("{ServerName}", serverName)
+            .replace("{Time}", time)
+            .replace("{Timestamp}", timestamp)
+            
+            .replace("{NearbyPlayers}", nearbyPlayers);
+            
             .replace("{Health}", String.format("%.1f", health))
             .replace("{MaxHealth}", String.format("%.1f", maxHealth))
             .replace("{Hunger}", String.valueOf(hunger))
@@ -121,35 +128,30 @@ public class QuickCommand extends Module {
             .replace("{OnGround}", String.valueOf(onGround))
             .replace("{Air}", String.valueOf(air))
             .replace("{FireTicks}", String.valueOf(fireTicks))
-
-            .replace("{Time}", time)
-            .replace("{Timestamp}", timestamp)
-
-            .replace("{IP}", serverIp)
-            .replace("{ServerName}", serverName)
-
-            .replace("{MainHand}", mainHand.getName().getString())
-            .replace("{MainHandRaw}", Registries.ITEM.getId(mainHand.getItem()).toString())
-            .replace("{OffHand}", offHand.getName().getString())
-
-            .replace("{Helmet}", helmet.getName().getString())
-            .replace("{Chestplate}", chest.getName().getString())
-            .replace("{Leggings}", legs.getName().getString())
-            .replace("{Boots}", boots.getName().getString())
-
+            .replace("{SelectedSlot}", String.valueOf(mc.player.getInventory().selectedSlot))
             .replace("{BlockUnder}", blockUnder.getName().getString())
             .replace("{Biome}", biome)
             .replace("{LightLevel}", String.valueOf(light))
-
-            .replace("{SelectedSlot}", String.valueOf(mc.player.getInventory().selectedSlot))
-
-            .replace("{NearbyPlayers}", nearbyPlayers);
-
-        for (int i = 0; i < 36; i++) {
-            ItemStack stack = mc.player.getInventory().getStack(i);
-            String name = stack.isEmpty() ? "air" : stack.getName().getString();
-            result = result.replace("{Inventory" + i + "}", name);
-        }
+            
+            .replace("{MainHand}", mainHand.getName().getString())
+            .replace("{MainHandRaw}", Registries.ITEM.getId(mainHand.getItem()).toString())
+            .replace("{OffHand}", offHand.getName().getString())
+            .replace("{OffHandRaw}", Registries.ITEM.getId(offHand.getItem()).toString())
+            .replace("{Helmet}", helmet.getName().getString())
+            .replace("{HelmetRaw}", Registries.ITEM.getId(helmet.getItem()).toString())
+            .replace("{Chestplate}", chest.getName().getString())
+            .replace("{ChestplateRaw}", Registries.ITEM.getId(chest.getItem()).toString())
+            .replace("{Leggings}", legs.getName().getString())
+            .replace("{LeggingsRaw}", Registries.ITEM.getId(legs.getItem()).toString())
+            .replace("{Boots}", boots.getName().getString())
+            .replace("{BootsRaw}", Registries.ITEM.getId(boots.getItem()).toString())
+            for (int i = 0; i < 36; i++) {
+                ItemStack stack = mc.player.getInventory().getStack(i);
+                String name = stack.isEmpty() ? "air" : stack.getName().getString();
+                String raw = stack.isEmpty() ? "minecraft:air" : Registries.ITEM.getId(stack.getItem()).toString();
+                result = result.replace("{Inventory" + i + "}", name);
+                result = result.replace("{Inventory" + i + "Raw}", raw);
+            }
 
         return result;
     }
