@@ -1,24 +1,31 @@
 package com.milky.hunt.modules;
 
 import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.settings.KeybindSetting;
-import meteordevelopment.meteorclient.utils.misc.input.Input;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import org.lwjgl.glfw.GLFW;
 
 public class QuickCommand extends Module {
-
     private static final String COMMAND = "#stop";
 
+    private boolean hasSent = false;
+
     public QuickCommand() {
-        super(AddonCategory.CATEGORY, "quick-command", "Sends a fixed chat command when you press a key.");
+        super(AddonCategory.CATEGORY, "quick-command", "Sends a fixed command instantly when toggled.");
     }
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
-        if (mc.player != null && mc.world != null && Input.isKeyPressed(keybind.get())) {
+        if (mc.player == null || mc.world == null) return;
+
+        if (!hasSent) {
             mc.player.sendChatMessage(COMMAND);
+            hasSent = true;
+            toggle();
         }
+    }
+
+    @Override
+    public void onActivate() {
+        hasSent = false;
     }
 }
