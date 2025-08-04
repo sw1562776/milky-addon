@@ -100,24 +100,24 @@ public class QuickCommand extends Module {
 
         String nearbyPlayers = String.join(", ", nearbyNames);
 
-        int containerCount = 0;
-        for (BlockEntity be : mc.world.blockEntities.values()) {
-            if (be instanceof ChestBlockEntity
-             || be instanceof BarrelBlockEntity
-             || be instanceof ShulkerBoxBlockEntity
-             || be instanceof HopperBlockEntity
-             || be instanceof DispenserBlockEntity
-             || be instanceof DropperBlockEntity) {
-                containerCount++;
-            }
-        }
+        //int containerCount = 0;
+        //for (BlockEntity be : mc.world.blockEntities.values()) {
+        //    if (be instanceof ChestBlockEntity
+        //     || be instanceof BarrelBlockEntity
+        //     || be instanceof ShulkerBoxBlockEntity
+        //     || be instanceof HopperBlockEntity
+        //     || be instanceof DispenserBlockEntity
+        //     || be instanceof DropperBlockEntity) {
+        //        containerCount++;
+        //    }
+        //}
 
         String result = input
             .replace("{CoordX}", String.format("%.1f", x))
             .replace("{CoordY}", String.format("%.1f", y))
             .replace("{CoordZ}", String.format("%.1f", z))
             .replace("{Dimension}", dimension)
-            .replace("{ContainerCount}", String.valueOf(containerCount));
+           // .replace("{ContainerCount}", String.valueOf(containerCount));
             
             .replace("{Player}", playerName)
             .replace("{UUID}", uuid)
