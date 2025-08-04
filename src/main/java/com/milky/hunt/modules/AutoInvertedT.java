@@ -1,132 +1,114 @@
 package com.milky.hunt.modules;
 
 import com.milky.hunt.Addon;
+import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.meteorclient.utils.player.PlayerUtils;
+import meteordevelopment.meteorclient.utils.player.InvUtils;
+import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.network.packet.c2s.play.PlayerSwingC2SPacket;
-import net.minecraft.network.packet.c2s.play.UpdateSelectedSlotC2SPacket;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class AutoInvertedT extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private final Setting<Integer> blocksPerTick = sgGeneral.add(new IntSetting.Builder()
-        .name("blocks-per-tick")
-        .description("How many blocks to place per tick.")
-        .defaultValue(1)
-        .min(1)
-        .sliderMax(5)
+    private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
+        .name("rotate")
+        .description("Faces the blocks before placing them.")
+        .defaultValue(true)
         .build()
     );
 
-    private final Setting<Integer> delay = sgGeneral.add(new IntSetting.Builder()
-        .name("place-delay")
-        .description("Delay between placement attempts in ticks.")
-        .defaultValue(2)
-        .min(0)
-        .sliderMax(20)
+    private final Setting<Boolean> swingHand = sgGeneral.add(new BoolSetting.Builder()
+        .name("swing-hand")
+        .description("Swings your hand when placing blocks.")
+        .defaultValue(true)
         .build()
     );
 
-    private BlockPos base;
-    private int ticks;
+    private final List<BlockPos> structure = new ArrayList<>();
     private int index;
-    private final BlockPos[] offsets = new BlockPos[] {
-        new BlockPos(0, 0, 0),
-        new BlockPos(1, 0, 0),
-        new BlockPos(-1, 0, 0),
-        new BlockPos(0, 0, 1),
-        new BlockPos(0, 1, 0)
-    };
+    private boolean firstRun;
 
     public AutoInvertedT() {
-        super(Addon.CATEGORY, "AutoInvertedT", "Automatically places an upside-down T of obsidian blocks.");
+        super(Addon.CATEGORY, "auto-inverted-t", "Automatically places upside-down T made of obsidian.");
     }
 
     @Override
     public void onActivate() {
-        ClientPlayerEntity player = mc.player;
-        if (player == null) return;
-
-        // Center base position 2 blocks ahead
-        Vec3d look = player.getRotationVec(1.0F);
-        BlockPos center = player.getBlockPos().add(look.x * 2, 0, look.z * 2);
-
-        base = center;
-        ticks = 0;
+        structure.clear();
         index = 0;
+        firstRun = true;
+
+        BlockPos base = mc.player.getBlockPos().up();
+
+        // T upside-down shape: top block first, then sides
+        structure.add(base.up(2)); // top obsidian
+        structure.add(base.up()); // center
+        structure.add(base.east()); // right arm
+        structure.add(base.west()); // left arm
     }
 
     @EventHandler
-    private void onTick(TickEvent.Pre event) {
-        if (mc.player == null || mc.world == null) return;
+    private void onTick(TickEvent.Post event) {
+        if (index >= structure.size()) return;
 
-        ticks++;
-        if (ticks < delay.get()) return;
-        ticks = 0;
+        int obsidianSlot = InvUtils.findInHotbar(Items.OBSIDIAN).getSlot();
+        if (obsidianSlot == -1) return;
 
-        int placed = 0;
-        while (index < offsets.length && placed < blocksPerTick.get()) {
-            BlockPos target = base.add(offsets[index]);
-            if (!mc.world.getBlockState(target).isReplaceable()) {
-                index++;
-                continue;
-            }
-
-            int slot = findObsidianInHotbar();
-            if (slot == -1) {
-                error("No obsidian found in hotbar.");
-                toggle();
-                return;
-            }
-
-            mc.player.getInventory().selectedSlot = slot;
-
-            placeBlock(target);
+        BlockPos pos = structure.get(index);
+        if (!mc.world.getBlockState(pos).isReplaceable()) {
             index++;
-            placed++;
+            return;
         }
 
-        if (index >= offsets.length) toggle();
+        placeBlock(pos, obsidianSlot);
+        index++;
     }
 
-    private int findObsidianInHotbar() {
-        for (int i = 0; i < 9; i++) {
-            Item item = mc.player.getInventory().getStack(i).getItem();
-            if (item == Items.OBSIDIAN) return i;
+    private void placeBlock(BlockPos pos, int slot) {
+        int prevSlot = mc.player.getInventory().selectedSlot;
+        mc.player.getInventory().selectedSlot = slot;
+
+        Vec3d eyePos = mc.player.getEyePos();
+        for (Direction dir : Direction.values()) {
+            BlockPos neighbor = pos.offset(dir);
+            if (!mc.world.getBlockState(neighbor).isReplaceable()) {
+                Vec3d hitVec = Vec3d.ofCenter(neighbor).add(Vec3d.of(dir.getVector()).multiply(0.5));
+                if (rotate.get()) Rotations.rotate(Rotations.getYaw(hitVec), Rotations.getPitch(hitVec));
+
+                mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(Hand.MAIN_HAND,
+                    new BlockHitResult(hitVec, dir.getOpposite(), neighbor, false), 0));
+
+                if (swingHand.get()) mc.player.networkHandler.sendPacket(new PlayerSwingC2SPacket(Hand.MAIN_HAND));
+
+                break;
+            }
         }
-        return -1;
+
+        mc.player.getInventory().selectedSlot = prevSlot;
     }
 
-    private void placeBlock(BlockPos pos) {
-        Vec3d hitPos = Vec3d.ofCenter(pos);
-        BlockHitResult hitResult = new BlockHitResult(hitPos, Direction.UP, pos, false);
-
-        // Swap to offhand
-        mc.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(40));
-
-        // Use item in offhand (bypass anticheat)
-        mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(Hand.OFF_HAND, hitResult, 0));
-
-        // Swap back
-        mc.player.networkHandler.sendPacket(new UpdateSelectedSlotC2SPacket(mc.player.getInventory().selectedSlot));
-
-        // Swing main hand to fake legit
-        mc.player.networkHandler.sendPacket(new PlayerSwingC2SPacket(Hand.MAIN_HAND));
+    @EventHandler
+    private void onRender(Render3DEvent event) {
+        MatrixStack matrices = event.matrices;
+        structure.forEach(pos -> event.renderer.box(pos, 0, 255, 255, 35));
     }
 }
