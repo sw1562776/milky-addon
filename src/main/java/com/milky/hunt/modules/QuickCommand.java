@@ -13,6 +13,13 @@ import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.registry.Registries;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BarrelBlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.entity.ShulkerBoxBlockEntity;
+import net.minecraft.block.entity.HopperBlockEntity;
+import net.minecraft.block.entity.DispenserBlockEntity;
+import net.minecraft.block.entity.DropperBlockEntity;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -101,16 +108,18 @@ public class QuickCommand extends Module {
         String nearbyPlayers = String.join(", ", nearbyNames);
 
         int containerCount = 0;
-        for (BlockEntity be : mc.world.blockEntities.values()) {
-            if (be instanceof ChestBlockEntity
-             || be instanceof BarrelBlockEntity
-             || be instanceof ShulkerBoxBlockEntity
-             || be instanceof HopperBlockEntity
-             || be instanceof DispenserBlockEntity
-             || be instanceof DropperBlockEntity) {
-                containerCount++;
-            }
-        }
+        for (BlockEntity be : mc.world.getBlockEntities()) {
+        if (be instanceof ChestBlockEntity
+        || be instanceof BarrelBlockEntity
+        || be instanceof ShulkerBoxBlockEntity
+        || be instanceof HopperBlockEntity
+        || be instanceof DispenserBlockEntity
+        || be instanceof DropperBlockEntity) {
+        containerCount++;
+    }
+}
+String message = messageTemplate.replace("{ContainerCount}", Integer.toString(containerCount));
+
 
         String result = input
             .replace("{CoordX}", String.format("%.1f", x))
