@@ -19,7 +19,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class QuickCommandPlus extends Module {
+public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
         .description("Send a quick message/command with rich placeholders.")
@@ -29,8 +29,8 @@ public class QuickCommandPlus extends Module {
 
     private boolean hasSent;
 
-    public QuickCommandPlus() {
-        super(Addon.CATEGORY, "QuickCommandPlus", "Send a message/command with rich placeholders like {CoordX}, {Health}, etc.");
+    public QuickCommand() {
+        super(Addon.CATEGORY, "QuickCommand", "Send a message/command with rich placeholders like {CoordX}, {Health}, etc.");
     }
 
     @Override
