@@ -86,13 +86,11 @@ public class AutoInvertedT extends Module {
         Vec3d target = mc.player.getPos().add(horizontal).add(0, 1, 0);
         BlockPos basePos = BlockPos.ofFloored(target);
 
-        // Inverted T structure: middle-bottom block, then left/right above it, and center above that
         tBlocks.add(basePos);
         tBlocks.add(basePos.west());
         tBlocks.add(basePos.east());
         tBlocks.add(basePos.up());
 
-        // Check for enough blocks
         int count = 0;
         for (int i = 0; i < 36; i++) {
             if (mc.player.getInventory().getStack(i).getItem() == Items.OBSIDIAN) {
