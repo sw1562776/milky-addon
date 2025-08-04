@@ -57,9 +57,6 @@ public class QuickCommand extends Module {
 
     private String parseCommand(String input) {
         double x = mc.player.getX(), y = mc.player.getY(), z = mc.player.getZ();
-        int bx = (int) Math.floor(x);
-        int by = (int) Math.floor(y);
-        int bz = (int) Math.floor(z);
 
         String time = LocalTime.now().toString().split("\\.")[0];
         String timestamp = LocalDateTime.now().toString().replace("T", " ").split("\\.")[0];
