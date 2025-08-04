@@ -147,7 +147,7 @@ public class AutoInvertedY extends Module {
             return;
         }
 
-        // Pre-select obsidian in hotbar
+        // Pre-select blocks in hotbar
         for (int i = 0; i < 9; i++) {
             if (mc.player.getInventory().getStack(i).getItem() == block.get().asItem()) {
                 mc.player.getInventory().selectedSlot = i;
@@ -181,10 +181,10 @@ public class AutoInvertedY extends Module {
 
             if (!mc.world.getBlockState(pos).isReplaceable()) return;
 
-            // Find obsidian
+            // Find block
             int slotToUse = -1;
             for (int s = 0; s < 9; s++) {
-                if (mc.player.getInventory().getStack(s).getItem() == Items.OBSIDIAN) {
+                if (mc.player.getInventory().getStack(s).getItem() == Items.block.get().asItem()) {
                     slotToUse = s;
                     break;
                 }
