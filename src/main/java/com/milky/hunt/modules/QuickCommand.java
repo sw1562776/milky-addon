@@ -18,7 +18,7 @@ public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
         .description("Send a command or chat message, supports {CoordX}, {CoordY}, {CoordZ}.")
-        .defaultValue("/w tifmaid Hello at {CoordX}, {CoordY}, {CoordZ}")
+        .defaultValue("/w Wandelion {CoordX}, {CoordY}, {CoordZ}")
         .build()
     );
 
