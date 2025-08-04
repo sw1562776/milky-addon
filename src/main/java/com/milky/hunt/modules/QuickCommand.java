@@ -6,10 +6,12 @@ import meteordevelopment.meteorclient.settings.StringSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
 
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
+        .description("Command to send when toggled.")
         .defaultValue("/w tifmaid 123")
         .build()
     );
@@ -27,25 +29,20 @@ public class QuickCommand extends Module {
         if (!hasSent) {
             String raw = command.get();
             String parsed = parseCommand(raw);
-            mc.getNetworkHandler().sendChatMessage(parsed);
+            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(parsed));
             hasSent = true;
             toggle();
         }
-    }
-
-    private String parseCommand(String input) {
-        double coordx = mc.player.getX();
-        double coordy = mc.player.getY();
-        double coordz = mc.player.getZ();
-
-        return input
-            .replace("{CoordX}", String.format("%.1f", coordx))
-            .replace("{CoordY}", String.format("%.1f", coordy))
-            .replace("{CoordZ}", String.format("%.1f", coordz));
     }
 
     @Override
     public void onActivate() {
         hasSent = false;
     }
+
+    //private String parseCommand(String raw) {
+    //    return raw.replace("{x}", String.valueOf((int) mc.player.getX()))
+    //              .replace("{y}", String.valueOf((int) mc.player.getY()))
+    //              .replace("{z}", String.valueOf((int) mc.player.getZ()));
+    //}
 }
