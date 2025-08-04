@@ -11,7 +11,7 @@ public class QuickCommand extends Module {
     private boolean hasSent = false;
 
     public QuickCommand() {
-        super(AddonCategory.CATEGORY, "quick-command", "Sends a fixed command instantly when toggled.");
+        super(Addon.CATEGORY, "quick-command", "Sends a fixed command instantly when toggled.");
     }
 
     @EventHandler
