@@ -61,21 +61,23 @@ public class AutoInvertedY extends Module {
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
-        Vec3d target = mc.player.getPos().add(horizontal).add(0, 2, 0);
+        Vec3d target = mc.player.getPos().add(horizontal).add(0, 1, 0);
         BlockPos basePos = BlockPos.ofFloored(target);
 
-        tBlocks.add(basePos);
-
+        // 横杆方向判断
         boolean eastWest = Math.abs(dir.z) >= Math.abs(dir.x);
 
+        // 添加横杆
+        tBlocks.add(basePos);
         if (eastWest) {
-            tBlocks.add(basePos.west().down());
-            tBlocks.add(basePos.east().down());
+            tBlocks.add(basePos.west());
+            tBlocks.add(basePos.east());
         } else {
-            tBlocks.add(basePos.north().down());
-            tBlocks.add(basePos.south().down());
+            tBlocks.add(basePos.north());
+            tBlocks.add(basePos.south());
         }
 
+        // 添加竖杆（向上）
         for (int i = 1; i <= height.get().value; i++) {
             tBlocks.add(basePos.up(i));
         }
@@ -93,7 +95,7 @@ public class AutoInvertedY extends Module {
         Item targetItem = block.get().asItem();
         int slot = findBlockInHotbar(targetItem);
         if (slot == -1) {
-            warning("[" + block.get().getName().getString() + "] 不足");
+            warning("Not enough" + block.get().getName().getString() + "in hotbar.");
             toggle();
             return;
         }
