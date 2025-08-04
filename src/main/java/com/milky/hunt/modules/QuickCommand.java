@@ -15,9 +15,8 @@ public class QuickCommand extends Module {
     );
 
     private final Setting<String> infoText = settings.getDefaultGroup().add(new StringSetting.Builder()
-    .name("The command to send when toggled. Use {CoordX}, {CoordY}, {CoordZ} for your coordinates.")
+    .name("Use {CoordX}, {CoordY}, {CoordZ} for your coordinates.")
     .defaultValue("")
-    .visible(() -> false)
     .build()
 );
 
