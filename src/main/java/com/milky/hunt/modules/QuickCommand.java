@@ -23,7 +23,7 @@ public class QuickCommand extends Module {
     private boolean hasSent = false;
 
     public QuickCommand() {
-        super(Addon.CATEGORY, "quick-command", "Sends a fixed or coordinate-based command when toggled.");
+        super(Addon.CATEGORY, "QuickCommand", "Sends a fixed or coordinate-based command when toggled.");
     }
 
     @EventHandler
