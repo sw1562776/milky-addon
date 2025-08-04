@@ -41,13 +41,7 @@ public class QuickCommand extends Module {
             mc.getNetworkHandler().sendPacket(new CommandExecutionC2SPacket(parsed.substring(1)));
         } else {
             // Send unsigned chat packet
-            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(
-                parsed,
-                Instant.now(),
-                0L,
-                null, // <- MessageSignatureData
-                null  // <- LastSeenMessageList.Acknowledgment
-            ));
+            mc.getNetworkHandler().sendChatMessage(parsed);
         }
 
         hasSent = true;
