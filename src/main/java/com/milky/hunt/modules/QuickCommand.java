@@ -7,11 +7,10 @@ import meteordevelopment.orbit.EventHandler;
 
 public class QuickCommand extends Module {
     private static final String COMMAND = "#stop";
-
     private boolean hasSent = false;
 
     public QuickCommand() {
-        super(Addon.CATEGORY, "QuickCommand", "Sends a fixed command instantly when toggled.");
+        super(Addon.CATEGORY, "quick-command", "Sends a fixed command instantly when toggled.");
     }
 
     @EventHandler
@@ -19,7 +18,7 @@ public class QuickCommand extends Module {
         if (mc.player == null || mc.world == null) return;
 
         if (!hasSent) {
-            mc.player.sendChatMessage(COMMAND);
+            mc.getNetworkHandler().sendChatMessage(COMMAND);
             hasSent = true;
             toggle();
         }
