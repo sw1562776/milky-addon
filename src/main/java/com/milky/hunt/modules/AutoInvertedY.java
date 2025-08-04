@@ -35,7 +35,7 @@ public class AutoInvertedY extends Module {
     private final Setting<Block> block = sgGeneral.add(new BlockSetting.Builder()
     .name("block")
     .description("The block to use when placing the inverted Y.")
-    .defaultValue(Blocks.)
+    .defaultValue(Blocks.OBSIDIAN)
     .build()
     );
 
