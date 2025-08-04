@@ -126,7 +126,7 @@ public class QuickCommand extends Module {
             .replace("{Time}", time)
             .replace("{Timestamp}", timestamp)
             
-            .replace("{NearbyPlayers}", nearbyPlayers);
+            .replace("{NearbyPlayers}", nearbyPlayers)
             
             .replace("{Health}", String.format("%.1f", health))
             .replace("{MaxHealth}", String.format("%.1f", maxHealth))
