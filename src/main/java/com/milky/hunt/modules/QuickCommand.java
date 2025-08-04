@@ -12,6 +12,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.registry.Registries;
+import net.minecraft.inventory.Inventory;
+import net.minecraft.block.entity.BlockEntity;
 //import net.minecraft.entity.player.PlayerEntity;
 //import net.minecraft.block.entity.*;
 //import net.minecraft.client.world.ClientWorld;
@@ -104,7 +106,18 @@ public class QuickCommand extends Module {
             .collect(Collectors.toList());
 
         String nearbyPlayers = String.join(", ", nearbyNames);
+        
+        int containerCount = 0;
 
+for (Chunk chunk : mc.world.getChunkManager().getLoadedChunks()) {
+    if (chunk instanceof WorldChunk worldChunk) {
+        for (BlockEntity be : worldChunk.blockEntities.values()) {
+            if (be instanceof Inventory) {
+                containerCount++;
+            }
+        }
+    }
+}
 
 
         String result = input
