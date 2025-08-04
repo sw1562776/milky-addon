@@ -19,7 +19,7 @@ import net.minecraft.block.entity.BlockEntity;
 //import net.minecraft.client.world.ClientWorld;
 //import net.minecraft.client.world.ClientChunkManager;
 //import net.minecraft.world.chunk.Chunk;
-//import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.chunk.WorldChunk;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -108,12 +108,13 @@ public class QuickCommand extends Module {
         String nearbyPlayers = String.join(", ", nearbyNames);
         
         int containerCount = 0;
-
-int containerCount = (int) mc.world.getChunkManager().getLoadedChunks().stream()
-    .filter(chunk -> chunk instanceof WorldChunk)
-    .flatMap(chunk -> ((WorldChunk) chunk).getBlockEntities().values().stream())
-    .filter(be -> be instanceof Inventory)
-    .count();
+for (WorldChunk chunk : mc.world.getChunkManager().getChunks()) {
+    for (BlockEntity be : chunk.getBlockEntities().values()) {
+        if (be instanceof Inventory) {
+            containerCount++;
+        }
+    }
+}
 
 
         String result = input
