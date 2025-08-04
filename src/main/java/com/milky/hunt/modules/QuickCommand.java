@@ -6,20 +6,19 @@ import meteordevelopment.meteorclient.settings.StringSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
 
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
-        .description("Command to send when toggled. Supports placeholders like {x}, {y}, {z}.")
+        .description("Supports {x}, {y}, {z}")
         .defaultValue("/w tifmaid 123")
         .build()
     );
-
     private boolean hasSent = false;
 
     public QuickCommand() {
-        super(Addon.CATEGORY, "QuickCommand", "Sends a fixed or coordinate-based command when toggled.");
+        super(Addon.CATEGORY, "QuickCommand", "Send commands on toggle.");
     }
 
     @EventHandler
@@ -29,7 +28,7 @@ public class QuickCommand extends Module {
         if (!hasSent) {
             String raw = command.get();
             String parsed = parseCommand(raw);
-            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(parsed)); // 1.21.4 使用字符串构造器
+            ClientPlayNetworkHandler.sendChatMessage(parsed);
             hasSent = true;
             toggle();
         }
