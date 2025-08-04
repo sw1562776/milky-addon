@@ -1,20 +1,20 @@
 package com.milky.hunt.modules;
 
-import com.milky.hunt.Addon;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.meteorclient.utils.render.color.SettingColor;
+import meteordevelopment.meteorclient.utils.render.RenderUtils;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
+import net.minecraft.client.gui.screen.ingame.HandledScreens;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
-import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
@@ -24,197 +24,118 @@ import java.util.List;
 
 public class AutoInvertedY extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
+    private final SettingGroup sgRender = settings.createGroup("Render");
 
-    private enum THeight {
-        Medium, Large, Extra_Large
-    }
+    private final Setting<Block> block = sgGeneral.add(new BlockSetting.Builder()
+        .name("block")
+        .description("The block to use for building the Y shape.")
+        .defaultValue(Blocks.OBSIDIAN)
+        .build()
+    );
 
-    private final Setting<THeight> height = sgGeneral.add(new EnumSetting.Builder<THeight>()
+    private final Setting<Height> height = sgGeneral.add(new EnumSetting.Builder<Height>()
         .name("height")
-        .description("Height of the inverted T.")
-        .defaultValue(THeight.Medium)
+        .description("Height of the vertical part of the Y.")
+        .defaultValue(Height.MEDIUM)
         .build()
     );
 
-    private final Setting<Integer> placeDelay = sgGeneral.add(new IntSetting.Builder()
-        .name("place-delay")
-        .description("Ticks between each block placement.")
-        .defaultValue(1)
-        .sliderRange(1, 20)
-        .build()
-    );
-
-    private final Setting<Integer> blocksPerTick = sgGeneral.add(new IntSetting.Builder()
-        .name("blocks-per-tick")
-        .description("How many blocks to place each tick.")
-        .defaultValue(1)
-        .sliderRange(1, 5)
-        .build()
-    );
-
-    private final Setting<Boolean> render = sgGeneral.add(new BoolSetting.Builder()
-        .name("render")
-        .description("Render the T shape while placing.")
-        .defaultValue(true)
-        .build()
-    );
-
-    private final Setting<ShapeMode> shapeMode = sgGeneral.add(new EnumSetting.Builder<ShapeMode>()
-        .name("shape-mode")
-        .description("How the box is rendered.")
-        .defaultValue(ShapeMode.Both)
-        .build()
-    );
-
-    private final Setting<SettingColor> sideColor = sgGeneral.add(new ColorSetting.Builder()
-        .name("side-color")
-        .defaultValue(new SettingColor(255, 255, 255, 20))
-        .build()
-    );
-
-    private final Setting<SettingColor> lineColor = sgGeneral.add(new ColorSetting.Builder()
-        .name("line-color")
-        .defaultValue(new SettingColor(255, 255, 255, 200))
+    private final Setting<SettingColor> color = sgRender.add(new ColorSetting.Builder()
+        .name("color")
+        .description("Color of the render.")
+        .defaultValue(new SettingColor(255, 255, 255, 75))
         .build()
     );
 
     private final List<BlockPos> tBlocks = new ArrayList<>();
-    private int delay = 0;
-    private int index = 0;
 
     public AutoInvertedY() {
-        super(Addon.CATEGORY, "AutoInvertedY", "Places an inverted Y shape using your favorite block.");
+        super("auto-inverted-y", "Automatically places an upside-down Y structure.");
     }
 
     @Override
     public void onActivate() {
+        if (mc.player == null || mc.world == null) return;
+
         tBlocks.clear();
-        index = 0;
-        delay = 0;
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
-        Vec3d target = mc.player.getPos().add(horizontal).add(0, 2, 0);
+        Vec3d target = mc.player.getPos().add(horizontal).add(0, 1, 0);
         BlockPos basePos = BlockPos.ofFloored(target);
 
-        // Horizontal bar
-        boolean eastWest = Math.abs(dir.z) >= Math.abs(dir.x);  // true = wings on west/east
-        // Horizontal bar
+        // 横杆方向判断
+        boolean eastWest = Math.abs(dir.z) >= Math.abs(dir.x);
+
+        // 添加横杆
         tBlocks.add(basePos);
         if (eastWest) {
-            // Player is facing mostly north/south → use west/east wings
-            tBlocks.add(basePos.west().down());
-            tBlocks.add(basePos.east().down());
+            tBlocks.add(basePos.west());
+            tBlocks.add(basePos.east());
         } else {
-            // Player is facing mostly east/west → use north/south wings
-            tBlocks.add(basePos.north().down());
-            tBlocks.add(basePos.south().down());
+            tBlocks.add(basePos.north());
+            tBlocks.add(basePos.south());
         }
 
-        // Vertical stem upward
-        int stemHeight = switch (height.get()) {
-            case Medium -> 1;
-            case Large -> 2;
-            case Extra_Large -> 3;
-        };
-
-        for (int i = 1; i <= stemHeight; i++) {
+        // 添加竖杆（向上）
+        for (int i = 1; i <= height.get().value; i++) {
             tBlocks.add(basePos.up(i));
         }
-
-        // Check for enough obsidian
-        int count = 0;
-        for (int i = 0; i < 36; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() == Items.OBSIDIAN) {
-                count += mc.player.getInventory().getStack(i).getCount();
-            }
-        }
-
-        if (count < tBlocks.size()) {
-            error("Not enough obsidian (need " + tBlocks.size() + ").");
-            toggle();
-            return;
-        }
-
-        // Pre-select obsidian in hotbar
-        for (int i = 0; i < 9; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() == Items.OBSIDIAN) {
-                mc.player.getInventory().selectedSlot = i;
-                break;
-            }
-        }
-    }
-
-    @Override
-    public void onDeactivate() {
-        tBlocks.clear();
-        index = 0;
-        delay = 0;
     }
 
     @EventHandler
-    private void onTick(TickEvent.Post event) {
+    private void onTick(TickEvent.Pre event) {
         if (mc.player == null || mc.world == null) return;
 
-        if (index >= tBlocks.size()) {
-            info("T shape complete.");
+        if (tBlocks.isEmpty()) {
             toggle();
             return;
         }
 
-        delay++;
-        if (delay < placeDelay.get()) return;
-
-        for (int i = 0; i < blocksPerTick.get() && index < tBlocks.size(); i++) {
-            BlockPos pos = tBlocks.get(index);
-
-            if (!mc.world.getBlockState(pos).isReplaceable()) return;
-
-            // Find obsidian
-            int slotToUse = -1;
-            for (int s = 0; s < 9; s++) {
-                if (mc.player.getInventory().getStack(s).getItem() == Items.OBSIDIAN) {
-                    slotToUse = s;
-                    break;
-                }
-            }
-
-            if (slotToUse == -1) {
-                error("No obsidian in hotbar.");
-                toggle();
-                return;
-            }
-
-            mc.player.getInventory().selectedSlot = slotToUse;
-
-            if (!(mc.player.getMainHandStack().getItem() instanceof BlockItem)) {
-                error("Main hand is not a block.");
-                toggle();
-                return;
-            }
-
-            BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
-
-            // Spoof offhand to bypass anti-cheat
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-            mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
-                Hand.OFF_HAND, bhr, mc.player.currentScreenHandler.getRevision() + 2));
-            mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
-                PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
-
-            mc.player.swingHand(Hand.MAIN_HAND);
-            index++;
+        Item targetItem = block.get().asItem();
+        int slot = findBlockInHotbar(targetItem);
+        if (slot == -1) {
+            warning("Not enough" + block.get().getName().getString() + "in hotbar.");
+            toggle();
+            return;
         }
 
-        delay = 0;
+        int prevSlot = mc.player.getInventory().selectedSlot;
+        if (prevSlot != slot) PlayerUtils.selectSlot(slot);
+
+        for (BlockPos pos : tBlocks) {
+            if (!mc.world.getBlockState(pos).isAir()) continue;
+
+            PlayerUtils.place(pos, event, true, false);
+        }
+
+        if (prevSlot != slot) PlayerUtils.selectSlot(prevSlot);
+        toggle();
     }
 
     @EventHandler
     private void onRender(Render3DEvent event) {
-        if (!render.get()) return;
-        for (int i = index; i < tBlocks.size(); i++) {
-            event.renderer.box(tBlocks.get(i), sideColor.get(), lineColor.get(), shapeMode.get(), 0);
+        if (tBlocks.isEmpty()) return;
+
+        for (BlockPos pos : tBlocks) {
+            RenderUtils.drawBox(event, pos, color.get(), false);
         }
+    }
+
+    private int findBlockInHotbar(Item item) {
+        PlayerInventory inv = mc.player.getInventory();
+        for (int i = 0; i < 9; i++) {
+            if (inv.getStack(i).getItem() == item) return i;
+        }
+        return -1;
+    }
+
+    public enum Height {
+        MEDIUM(2),
+        LARGE(3),
+        EXTRA_LARGE(4);
+
+        public final int value;
+        Height(int value) { this.value = value; }
     }
 }
