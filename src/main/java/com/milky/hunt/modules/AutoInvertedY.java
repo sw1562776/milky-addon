@@ -22,7 +22,7 @@ import net.minecraft.util.math.Vec3d;
 import java.util.ArrayList;
 import java.util.List;
 
-public class AutoInvertedT extends Module {
+public class AutoInvertedY extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
     private enum THeight {
@@ -82,8 +82,8 @@ public class AutoInvertedT extends Module {
     private int delay = 0;
     private int index = 0;
 
-    public AutoInvertedT() {
-        super(Addon.CATEGORY, "AutoInvertedT", "Places an inverted T shape using offhand spoof.");
+    public AutoInvertedY() {
+        super(Addon.CATEGORY, "AutoInvertedY", "Places an inverted Y shape using your favorite block.");
     }
 
     @Override
