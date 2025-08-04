@@ -162,6 +162,7 @@ public class QuickCommand extends Module {
                 result = result.replace("{Inventory" + i + "}", name);
                 result = result.replace("{Inventory" + i + "Raw}", raw);
             }
+        ;
 
         return result;
     }
