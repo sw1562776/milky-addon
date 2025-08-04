@@ -61,27 +61,35 @@ public class AutoInvertedY extends Module {
 
         Vec3d dir = mc.player.getRotationVec(1.0f);
         Vec3d horizontal = new Vec3d(dir.x, 0, dir.z).normalize().multiply(2.0);
-        Vec3d target = mc.player.getPos().add(horizontal).add(0, 1, 0);
+        Vec3d target = mc.player.getPos().add(horizontal).add(0, 2, 0);
         BlockPos basePos = BlockPos.ofFloored(target);
 
-        // 横杆方向判断
-        boolean eastWest = Math.abs(dir.z) >= Math.abs(dir.x);
+        // Horizontal bar
 
-        // 添加横杆
         tBlocks.add(basePos);
+
+        boolean eastWest = Math.abs(dir.z) >= Math.abs(dir.x);  // true = wings on west/east
+        
         if (eastWest) {
-            tBlocks.add(basePos.west());
-            tBlocks.add(basePos.east());
+            // Player is facing mostly north/south → use west/east wings
+            tBlocks.add(basePos.west().down());
+            tBlocks.add(basePos.east().down());
         } else {
-            tBlocks.add(basePos.north());
-            tBlocks.add(basePos.south());
+            // Player is facing mostly east/west → use north/south wings
+            tBlocks.add(basePos.north().down());
+            tBlocks.add(basePos.south().down());
         }
 
-        // 添加竖杆（向上）
-        for (int i = 1; i <= height.get().value; i++) {
+        // Vertical stem upward
+        int stemHeight = switch (height.get()) {
+            case Medium -> 1;
+            case Large -> 2;
+            case Extra_Large -> 3;
+        };
+
+        for (int i = 1; i <= stemHeight; i++) {
             tBlocks.add(basePos.up(i));
         }
-    }
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
