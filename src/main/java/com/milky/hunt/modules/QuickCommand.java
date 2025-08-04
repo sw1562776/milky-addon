@@ -105,22 +105,6 @@ public class QuickCommand extends Module {
 
         String nearbyPlayers = String.join(", ", nearbyNames);
 
-         ClientChunkManager chunkManager = ((ClientWorld) mc.world).getChunkManager();
-
-int containerCount = 0;
-for (Chunk chunk : chunkManager.getLoadedChunksIterable()) {
-    for (BlockEntity be : chunk.getBlockEntities().values()) {
-        if (be instanceof ChestBlockEntity
-            || be instanceof BarrelBlockEntity
-            || be instanceof ShulkerBoxBlockEntity
-            || be instanceof HopperBlockEntity
-            || be instanceof DispenserBlockEntity
-            || be instanceof DropperBlockEntity) {
-            containerCount++;
-        }
-    }
-}
-
 
 
         String result = input
@@ -160,8 +144,7 @@ for (Chunk chunk : chunkManager.getLoadedChunksIterable()) {
             .replace("{LeggingsRaw}", Registries.ITEM.getId(legs.getItem()).toString())
             .replace("{Boots}", boots.getName().getString())
             .replace("{BootsRaw}", Registries.ITEM.getId(boots.getItem()).toString())
-            .replace("{NearbyPlayers}", nearbyPlayers)
-            .replace("{ContainerCount}", String.valueOf(containerCount));
+            .replace("{NearbyPlayers}", nearbyPlayers);
             for (int i = 0; i < 36; i++) {
                 ItemStack stack = mc.player.getInventory().getStack(i);
                 String name = stack.isEmpty() ? "air" : stack.getName().getString();
