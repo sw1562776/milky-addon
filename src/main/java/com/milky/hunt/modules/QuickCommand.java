@@ -10,10 +10,16 @@ import meteordevelopment.orbit.EventHandler;
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
-        .description("The command to send when toggled. Use {CoordX}, {CoordY}, {CoordZ} for your coordinates.")
         .defaultValue("/w Wandelion {CoordX} {CoordY} {CoordZ}")
         .build()
     );
+
+    private final Setting<String> infoText = settings.getDefaultGroup().add(new StringSetting.Builder()
+    .name("The command to send when toggled. Use {CoordX}, {CoordY}, {CoordZ} for your coordinates.")
+    .defaultValue("")
+    .visible(() -> false)
+    .build()
+);
 
     private boolean hasSent = false;
 
