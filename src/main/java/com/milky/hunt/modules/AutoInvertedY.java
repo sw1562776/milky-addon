@@ -31,6 +31,13 @@ public class AutoInvertedY extends Module {
         Medium, Large, Extra_Large
     }
 
+    private final Setting<Block> block = sgGeneral.add(new BlockSetting.Builder()
+    .name("block")
+    .description("The block to use when placing the inverted Y.")
+    .defaultValue(Items.OBSIDIAN.getBlock())
+    .build()
+    );
+
     private final Setting<THeight> height = sgGeneral.add(new EnumSetting.Builder<THeight>()
         .name("height")
         .description("Height of the inverted T.")
@@ -123,11 +130,12 @@ public class AutoInvertedY extends Module {
         for (int i = 1; i <= stemHeight; i++) {
             tBlocks.add(basePos.up(i));
         }
-
-        // Check for enough obsidian
+        
+        Item targetItem = block.get().asItem();
+        
         int count = 0;
         for (int i = 0; i < 36; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() == Items.OBSIDIAN) {
+            if (mc.player.getInventory().getStack(i).getItem() == block.get().asItem()) {
                 count += mc.player.getInventory().getStack(i).getCount();
             }
         }
@@ -140,7 +148,7 @@ public class AutoInvertedY extends Module {
 
         // Pre-select obsidian in hotbar
         for (int i = 0; i < 9; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() == Items.OBSIDIAN) {
+            if (mc.player.getInventory().getStack(i).getItem() == block.get().asItem()) {
                 mc.player.getInventory().selectedSlot = i;
                 break;
             }
