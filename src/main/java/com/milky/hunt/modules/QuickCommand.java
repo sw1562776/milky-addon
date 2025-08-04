@@ -7,11 +7,12 @@ import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
+import net.minecraft.text.Text;
 
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
-        .description("Command to send when toggled.")
+        .description("Command to send when toggled. Supports placeholders like {x}, {y}, {z}.")
         .defaultValue("/w tifmaid 123")
         .build()
     );
@@ -29,7 +30,10 @@ public class QuickCommand extends Module {
         if (!hasSent) {
             String raw = command.get();
             String parsed = parseCommand(raw);
-            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(parsed));
+
+            // 使用 Text.literal() 适配 ChatMessageC2SPacket 的构造函数
+            mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(Text.literal(parsed)));
+
             hasSent = true;
             toggle();
         }
@@ -42,7 +46,7 @@ public class QuickCommand extends Module {
 
     //private String parseCommand(String raw) {
     //    return raw.replace("{x}", String.valueOf((int) mc.player.getX()))
-    //              .replace("{y}", String.valueOf((int) mc.player.getY()))
-    //              .replace("{z}", String.valueOf((int) mc.player.getZ()));
+    //               .replace("{y}", String.valueOf((int) mc.player.getY()))
+    //             .replace("{z}", String.valueOf((int) mc.player.getZ()));
     //}
 }
