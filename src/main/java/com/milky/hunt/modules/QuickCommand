@@ -1,5 +1,6 @@
 package com.milky.hunt.modules;
 
+import com.milky.hunt.Addon;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
