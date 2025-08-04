@@ -8,9 +8,9 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
+import net.minecraft.network.message.Acknowledgment;
 
 import java.time.Instant;
-import java.util.BitSet;
 
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
@@ -40,25 +40,14 @@ public class QuickCommand extends Module {
         String parsed = parseCommand(raw);
 
         if (parsed.startsWith("/")) {
-            // Remove leading slash and send as command packet
-            String commandWithoutSlash = parsed.substring(1);
-            mc.getNetworkHandler().sendPacket(new CommandExecutionC2SPacket(
-                commandWithoutSlash,
-                Instant.now().toEpochMilli(),
-                0L,
-                null,
-                0,
-                new BitSet()
-            ));
+            mc.getNetworkHandler().sendPacket(new CommandExecutionC2SPacket(parsed.substring(1)));
         } else {
-            // Send as regular chat message
             mc.getNetworkHandler().sendPacket(new ChatMessageC2SPacket(
                 parsed,
-                Instant.now().toEpochMilli(),
+                Instant.now(),
                 0L,
                 null,
-                0,
-                new BitSet()
+                new Acknowledgment()
             ));
         }
 
