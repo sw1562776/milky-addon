@@ -184,7 +184,7 @@ public class AutoInvertedY extends Module {
             // Find block
             int slotToUse = -1;
             for (int s = 0; s < 9; s++) {
-                if (mc.player.getInventory().getStack(s).getItem() == Items.block.get().asItem()) {
+                if (mc.player.getInventory().getStack(s).getItem() == block.get().asItem()) {
                     slotToUse = s;
                     break;
                 }
