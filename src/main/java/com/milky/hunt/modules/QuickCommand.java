@@ -6,7 +6,6 @@ import meteordevelopment.meteorclient.settings.StringSetting;
 import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
 
 public class QuickCommand extends Module {
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
@@ -28,7 +27,10 @@ public class QuickCommand extends Module {
         if (!hasSent) {
             String raw = command.get();
             String parsed = parseCommand(raw);
-            ClientPlayNetworkHandler.sendChatMessage(parsed);
+
+            // ✅ 这是正确用法：实例方法
+            mc.getNetworkHandler().sendChatMessage(parsed);
+
             hasSent = true;
             toggle();
         }
