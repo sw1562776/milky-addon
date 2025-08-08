@@ -5,13 +5,7 @@
 - AutoInvertedY
   - Automatically constructs your favorite, uh... iconic shape — using any block you choose. Ideal for establishing a proudly ridiculous *rocket garden*.
 - QuickCommand
-  - Send your command to gamechat with a single click.
-  - The default one is /w Wandelion {CoordX} {CoordY} {CoordZ} {Dimension}
-  - {CoordX} {CoordY} {CoordZ} {Dimension} {Player} {UUID} {IP} {ServerName} {Time} {Timestamp}
-  - {Health} {MaxHealth} {Hunger} {XP} {Facing} {Sneaking} {Sprinting} {OnGround} {Air} {FireTicks}
-  - {SelectedSlot} {BlockUnder} {Biome} {LightLevel} {MainHand} {MainHandRaw} {OffHand} {OffHandRaw}
-  - {Helmet} {HelmetRaw} {Chestplate} {ChestplateRaw} {Leggings} {LeggingsRaw} {Boots} {BootsRaw}
-  - {Inventory0} ... {Inventory26}
+  - Send your message/command with rich placeholders to gamechat with a single click.
 - AutoFishBucketing (coming soon)
 
 
