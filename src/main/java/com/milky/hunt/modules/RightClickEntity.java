@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class EntityInteract extends Module {
+public class RightClickEntity extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
     private final Setting<Boolean> oneInteractionPerTick = sgGeneral.add(new BoolSetting.Builder()
