@@ -72,7 +72,7 @@ public class RightClickEntity extends Module {
     private final List<Entity> used = new ArrayList<>();
     private long lastClearTime;
 
-    public EntityInteract() {
+    public RightClickEntity() {
         super(Addon.CATEGORY, "RightClickEntity", "Automatically interacts with entities in range.");
     }
 
