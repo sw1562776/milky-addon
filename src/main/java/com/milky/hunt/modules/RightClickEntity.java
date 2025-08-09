@@ -73,7 +73,7 @@ public class EntityInteract extends Module {
     private long lastClearTime;
 
     public EntityInteract() {
-        super(Addon.CATEGORY, "entity-interact", "Automatically interacts with entities in range (2b2t-friendly).");
+        super(Addon.CATEGORY, "RightClickEntity", "Automatically interacts with entities in range.");
     }
 
     @Override
