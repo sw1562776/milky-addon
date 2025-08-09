@@ -95,7 +95,7 @@ public class EntityInteract extends Module {
             if (swingHand.get()) mc.player.swingHand(hand.get());
             if (oneTime.get()) used.add(entity);
 
-            Rotations.rotate(targetYaw, targetPitch, () -> {
+            Rotations.rotate(Rotations.getYaw(entity), Rotations.getPitch(entity), () -> {
                 mc.interactionManager.interactEntity(mc.player, entity, hand.get());
             });
 
