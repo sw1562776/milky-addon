@@ -28,7 +28,7 @@ public class EntityInteract extends Module {
         .defaultValue(true)
         .build()
     );
-
+    
     private final Setting<Set<EntityType<?>>> entities = sgGeneral.add(new EntityTypeListSetting.Builder()
         .name("entities")
         .description("Entities to interact with.")
@@ -36,19 +36,12 @@ public class EntityInteract extends Module {
         .onlyAttackable()
         .build()
     );
-
+    
     private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
         .name("range")
         .description("Interact range.")
         .min(0)
         .defaultValue(2)
-        .build()
-    );
-
-    private final Setting<Hand> hand = sgGeneral.add(new EnumSetting.Builder<Hand>()
-        .name("hand")
-        .description("The hand to use when interacting.")
-        .defaultValue(Hand.MAIN_HAND)
         .build()
     );
 
@@ -58,14 +51,14 @@ public class EntityInteract extends Module {
         .defaultValue(true)
         .build()
     );
-
+    
     private final Setting<Boolean> oneTime = sgGeneral.add(new BoolSetting.Builder()
         .name("one-time")
         .description("Interact with each entity only one time.")
         .defaultValue(true)
         .build()
     );
-
+    
     private final List<Entity> used = new ArrayList<>();
 
     public EntityInteract() {
@@ -116,6 +109,6 @@ public class EntityInteract extends Module {
         );
         mc.getNetworkHandler().sendPacket(interactAtPacket);
 
-        mc.getNetworkHandler().sendPacket(new HandSwingC2SPacket(hand.get()));
+        mc.getNetworkHandler().sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
     }
 }
