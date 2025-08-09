@@ -324,7 +324,6 @@ public class AutoGolem extends Module {
     }
 
     if (waitingForSlotSync) {
-        // 等待一帧让主手切换生效，跳过放置
         waitingForSlotSync = false;
         return;
     }
