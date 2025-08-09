@@ -69,13 +69,6 @@ public class EntityInteract extends Module {
         .build()
     );
 
-    private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
-        .name("rotate")
-        .description("Sends rotation packets to the server when interacting with entity.")
-        .defaultValue(true)
-        .build()
-    );
-
     private final List<Entity> used = new ArrayList<>();
 
     public EntityInteract() {
@@ -99,11 +92,13 @@ public class EntityInteract extends Module {
                 || mc.player.distanceTo(entity) > range.get()
                 || (ignoreBabies.get() && ((LivingEntity) entity).isBaby())) continue;
 
-            if (rotate.get()) Rotations.rotate(Rotations.getYaw(entity), Rotations.getPitch(entity), 10, null);
             if (swingHand.get()) mc.player.swingHand(hand.get());
             if (oneTime.get()) used.add(entity);
 
-            mc.interactionManager.interactEntity(mc.player, entity, hand.get());
+            Rotations.rotate(targetYaw, targetPitch, () -> {
+                mc.interactionManager.interactEntity(mc.player, entity, hand.get());
+            });
+
 
             if (oneInteractionPerTick.get()) break;
         }
