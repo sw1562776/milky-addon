@@ -25,7 +25,7 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new AutoGolem());
         Modules.get().add(new AutoInvertedY());
         Modules.get().add(new QuickCommand());
-        Modules.get().add(new EntityInteract());
+        Modules.get().add(new RightClickEntity());
         
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
