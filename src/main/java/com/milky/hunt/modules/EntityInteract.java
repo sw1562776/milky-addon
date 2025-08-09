@@ -9,7 +9,11 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.Vec3d;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,13 +52,6 @@ public class EntityInteract extends Module {
         .build()
     );
 
-    private final Setting<Boolean> swingHand = sgGeneral.add(new BoolSetting.Builder()
-        .name("swing-hand")
-        .description("Swing hand client-side.")
-        .defaultValue(true)
-        .build()
-    );
-
     private final Setting<Boolean> ignoreBabies = sgGeneral.add(new BoolSetting.Builder()
         .name("ignore-babies")
         .description("Ignore baby entities.")
@@ -72,7 +69,7 @@ public class EntityInteract extends Module {
     private final List<Entity> used = new ArrayList<>();
 
     public EntityInteract() {
-        super(Addon.CATEGORY, "entity-interact", "Automatically interacts with entities in range.");
+        super(Addon.CATEGORY, "entity-interact", "Automatically interacts with entities in range (2b2t-friendly).");
     }
 
     @Override
@@ -92,15 +89,33 @@ public class EntityInteract extends Module {
                 || mc.player.distanceTo(entity) > range.get()
                 || (ignoreBabies.get() && ((LivingEntity) entity).isBaby())) continue;
 
-            if (swingHand.get()) mc.player.swingHand(hand.get());
             if (oneTime.get()) used.add(entity);
 
             Rotations.rotate(Rotations.getYaw(entity), Rotations.getPitch(entity), () -> {
-                mc.interactionManager.interactEntity(mc.player, entity, hand.get());
+                sendInteractPackets(entity);
             });
-
 
             if (oneInteractionPerTick.get()) break;
         }
+    }
+
+    private void sendInteractPackets(Entity entity) {
+        Packet<?> interactPacket = PlayerInteractEntityC2SPacket.interact(
+            entity,
+            false,
+            hand.get()
+        );
+        mc.getNetworkHandler().sendPacket(interactPacket);
+
+        Vec3d hitPos = entity.getPos().add(0, entity.getStandingEyeHeight() / 2.0, 0);
+        Packet<?> interactAtPacket = PlayerInteractEntityC2SPacket.interactAt(
+            entity,
+            false,
+            hand.get(),
+            hitPos
+        );
+        mc.getNetworkHandler().sendPacket(interactAtPacket);
+
+        mc.getNetworkHandler().sendPacket(new HandSwingC2SPacket(hand.get()));
     }
 }
