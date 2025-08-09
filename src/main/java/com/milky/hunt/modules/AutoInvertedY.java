@@ -121,7 +121,6 @@ public class AutoInvertedY extends Module {
             tBlocks.add(basePos.south().down());
         }
 
-        // Vertical stem upward
         int stemHeight = switch (height.get()) {
             case Medium -> 1;
             case Large -> 2;
@@ -147,7 +146,6 @@ public class AutoInvertedY extends Module {
             return;
         }
 
-        // Pre-select blocks in hotbar
         for (int i = 0; i < 9; i++) {
             if (mc.player.getInventory().getStack(i).getItem() == block.get().asItem()) {
                 mc.player.getInventory().selectedSlot = i;
@@ -206,7 +204,6 @@ public class AutoInvertedY extends Module {
 
             BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
-            // Spoof offhand to bypass anti-cheat
             mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
                 PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
             mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
