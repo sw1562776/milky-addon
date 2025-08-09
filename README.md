@@ -5,7 +5,7 @@
 - AutoInvertedY
   - Automatically constructs your favorite, uh... iconic shape — using any block you choose. Ideal for establishing a proudly ridiculous *rocket garden*.
 - RightClickEntity
-  - 
+  - Automatically interacts with entities in range
 - QuickCommand
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 
