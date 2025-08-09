@@ -41,7 +41,7 @@ public class EntityInteract extends Module {
         .name("range")
         .description("Interact range.")
         .min(0)
-        .defaultValue(4)
+        .defaultValue(2)
         .build()
     );
 
