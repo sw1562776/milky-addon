@@ -32,7 +32,7 @@ public class EntityInteract extends Module {
     private final Setting<Set<EntityType<?>>> entities = sgGeneral.add(new EntityTypeListSetting.Builder()
         .name("entities")
         .description("Entities to interact with.")
-        .defaultValue(EntityType.SHEEP)
+        .defaultValue(EntityType.TURTLE)
         .onlyAttackable()
         .build()
     );
@@ -41,7 +41,7 @@ public class EntityInteract extends Module {
         .name("range")
         .description("Interact range.")
         .min(0)
-        .defaultValue(2)
+        .defaultValue(3)
         .build()
     );
 
@@ -61,8 +61,8 @@ public class EntityInteract extends Module {
 
     private final Setting<Double> clearInterval = sgGeneral.add(new DoubleSetting.Builder()
         .name("clear-interval")
-        .description("How often to clear the list of interacted entities (seconds).")
-        .defaultValue(5.0)
+        .description("How often to clear the list of interacted entities (seconds). Set to 0 to never clear.")
+        .defaultValue(10.0)
         .min(0)
         .sliderMax(60)
         .visible(oneTime::get)
