@@ -28,7 +28,7 @@ public class EntityInteract extends Module {
         .defaultValue(true)
         .build()
     );
-    
+
     private final Setting<Set<EntityType<?>>> entities = sgGeneral.add(new EntityTypeListSetting.Builder()
         .name("entities")
         .description("Entities to interact with.")
@@ -36,7 +36,7 @@ public class EntityInteract extends Module {
         .onlyAttackable()
         .build()
     );
-    
+
     private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
         .name("range")
         .description("Interact range.")
@@ -51,15 +51,26 @@ public class EntityInteract extends Module {
         .defaultValue(true)
         .build()
     );
-    
+
     private final Setting<Boolean> oneTime = sgGeneral.add(new BoolSetting.Builder()
         .name("one-time")
         .description("Interact with each entity only one time.")
         .defaultValue(true)
         .build()
     );
-    
+
+    private final Setting<Double> clearInterval = sgGeneral.add(new DoubleSetting.Builder()
+        .name("clear-interval")
+        .description("How often to clear the list of interacted entities (seconds).")
+        .defaultValue(5.0)
+        .min(0)
+        .sliderMax(60)
+        .visible(oneTime::get)
+        .build()
+    );
+
     private final List<Entity> used = new ArrayList<>();
+    private long lastClearTime;
 
     public EntityInteract() {
         super(Addon.CATEGORY, "entity-interact", "Automatically interacts with entities in range (2b2t-friendly).");
@@ -68,11 +79,20 @@ public class EntityInteract extends Module {
     @Override
     public void onActivate() {
         used.clear();
+        lastClearTime = System.currentTimeMillis();
     }
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
         if (mc.world == null || mc.player == null) return;
+
+        if (oneTime.get()) {
+            double intervalMs = clearInterval.get() * 1000;
+            if (intervalMs > 0 && System.currentTimeMillis() - lastClearTime >= intervalMs) {
+                used.clear();
+                lastClearTime = System.currentTimeMillis();
+            }
+        }
 
         for (Entity entity : mc.world.getEntities()) {
             if (!(entity instanceof LivingEntity)
