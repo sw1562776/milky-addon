@@ -96,7 +96,7 @@ public class EntityInteract extends Module {
         Packet<?> interactPacket = PlayerInteractEntityC2SPacket.interact(
             entity,
             false,
-            hand.get()
+            Hand.MAIN_HAND
         );
         mc.getNetworkHandler().sendPacket(interactPacket);
 
@@ -104,7 +104,7 @@ public class EntityInteract extends Module {
         Packet<?> interactAtPacket = PlayerInteractEntityC2SPacket.interactAt(
             entity,
             false,
-            hand.get(),
+            Hand.MAIN_HAND,
             hitPos
         );
         mc.getNetworkHandler().sendPacket(interactAtPacket);
