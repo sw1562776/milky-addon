@@ -352,7 +352,7 @@ public class AutoGolem extends Module {
                 mc.player.swingHand(Hand.MAIN_HAND);
                 waitingForBreak.add(pos);
             }
-            return; // 这里不要index--，等下tick再检查
+            return;
         }
 
         waitingForBreak.remove(pos);
@@ -375,7 +375,6 @@ public class AutoGolem extends Module {
             return;
         }
 
-        // 如果当前选中的槽不是需要的，切换并等待一帧，不增加index，下一帧再尝试
         if (mc.player.getInventory().selectedSlot != slotToSelect) {
             mc.player.getInventory().selectedSlot = slotToSelect;
             waitingForSlotSync = true;
@@ -390,7 +389,6 @@ public class AutoGolem extends Module {
 
         BlockHitResult bhr = new BlockHitResult(Vec3d.ofCenter(pos), Direction.UP, pos, false);
 
-        // 副手绕过反作弊放置
         mc.player.networkHandler.sendPacket(new PlayerActionC2SPacket(
             PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
         mc.player.networkHandler.sendPacket(new PlayerInteractBlockC2SPacket(
@@ -399,7 +397,7 @@ public class AutoGolem extends Module {
             PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND, BlockPos.ORIGIN, Direction.DOWN));
         mc.player.swingHand(Hand.MAIN_HAND);
 
-        index++; // 放成功，递增index
+        index++;
     }
 
     delay = 0;
