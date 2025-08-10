@@ -84,30 +84,38 @@ public class GotoMultiPoints extends Module {
                 lastArriveTime = System.currentTimeMillis();
                 BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
             } else {
+
                 if (System.currentTimeMillis() - lastArriveTime >= 300) {
-                    if (currentIndex == 0 && loopWait) {
+                    int lastIndex = points.size() - 1;
+
+                    if (currentIndex == lastIndex) {
+                        if (loop.get()) {
+                            currentIndex = 0;
+                            waiting = false;
+                            loopWait = true;
+                            goTo(points.get(currentIndex));
+                        } else {
+                            info("Finished all points. Stopping.");
+                            toggle();
+                        }
+                    }
+                    else if (currentIndex == 0 && loopWait) {
                         if (System.currentTimeMillis() - lastArriveTime >= waitSeconds.get() * 1000) {
                             loopWait = false;
-                            currentIndex = 1;
-                            waiting = false;
-                            goTo(points.get(currentIndex));
-                        }
-                    } else {
-                        currentIndex++;
-                        if (currentIndex >= points.size()) {
-                            if (loop.get()) {
-                                currentIndex = 0;
-                                loopWait = true;
-                                lastArriveTime = System.currentTimeMillis();
+                            if (points.size() > 1) {
+                                currentIndex = 1;
+                                waiting = false;
+                                goTo(points.get(currentIndex));
                             } else {
-                                info("Finished all points. Stopping.");
-                                toggle();
+                                waiting = false;
+                                goTo(points.get(0));
                             }
                         }
-                        if (!loopWait && isActive()) {
-                            waiting = false;
-                            goTo(points.get(currentIndex));
-                        }
+                    }
+                    else {
+                        currentIndex++;
+                        waiting = false;
+                        goTo(points.get(currentIndex));
                     }
                 }
             }
@@ -115,8 +123,7 @@ public class GotoMultiPoints extends Module {
     }
 
     private void goTo(BlockPos pos) {
-        BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess()
-            .setGoalAndPath(new GoalBlock(pos));
+        BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(pos));
     }
 
     @Override
