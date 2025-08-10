@@ -36,7 +36,7 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
-    private final Setting<Void> addPointButton = sgGeneral.add(new ActionSetting.Builder()
+    private final Setting<Void> addPointButton = sgGeneral.add(new ButtonSetting.Builder()
         .name("add")
         .description("Append the above coordinate to the points list.")
         .action(() -> {
