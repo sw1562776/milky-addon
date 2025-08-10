@@ -106,7 +106,7 @@ public class GotoMultiPoints extends Module {
         .name("point-9")
         .description("Coordinate of point 9.")
         .defaultValue(new BlockPos(2048, 64, 2048))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
+        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 9)
         .build()
     );
 
@@ -115,7 +115,7 @@ public class GotoMultiPoints extends Module {
         .name("point-10")
         .description("Coordinate of point 10.")
         .defaultValue(new BlockPos(2048, 64, 2048))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
+        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 10)
         .build()
     );
 
@@ -124,7 +124,7 @@ public class GotoMultiPoints extends Module {
         .name("point-11")
         .description("Coordinate of point 11.")
         .defaultValue(new BlockPos(4096, 64, 4096))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
+        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 11)
         .build()
     );
 
@@ -133,7 +133,7 @@ public class GotoMultiPoints extends Module {
         .name("point-12")
         .description("Coordinate of point 12.")
         .defaultValue(new BlockPos(8192, 64, 8192))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
+        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 12)
         .build()
     );
 
@@ -142,7 +142,7 @@ public class GotoMultiPoints extends Module {
         .name("point-13")
         .description("Coordinate of point 13.")
         .defaultValue(new BlockPos(16384, 64, 16384))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
+        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 13)
         .build()
     );
 
@@ -151,7 +151,7 @@ public class GotoMultiPoints extends Module {
         .name("point-14")
         .description("Coordinate of point 14.")
         .defaultValue(new BlockPos(32768, 64, 32768))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
+        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 14)
         .build()
     );
 
@@ -160,7 +160,7 @@ public class GotoMultiPoints extends Module {
         .name("point-15")
         .description("Coordinate of point 15.")
         .defaultValue(new BlockPos(65536, 64, 65536))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
+        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 15)
         .build()
     );
 
@@ -169,7 +169,7 @@ public class GotoMultiPoints extends Module {
         .name("point-16")
         .description("Coordinate of point 16.")
         .defaultValue(new BlockPos(131072, 64, 131072))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
+        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 16)
         .build()
     );
 
