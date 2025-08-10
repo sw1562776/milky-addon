@@ -29,7 +29,6 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
-    // 新增的 BlockPosSetting（Meteor GUI 自带 click / set here）
     private final Setting<BlockPos> addPointSetting = sgGeneral.add(new BlockPosSetting.Builder()
         .name("add-point")
         .description("Pick a coordinate to add to the points list.")
@@ -37,7 +36,6 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
-    // 新增的按钮，用来把 BlockPos 追加到 pointsString
     private final Setting<Void> addPointButton = sgGeneral.add(new ActionSetting.Builder()
         .name("add")
         .description("Append the above coordinate to the points list.")
