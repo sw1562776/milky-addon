@@ -233,7 +233,10 @@ public class GotoMultiPoints extends Module {
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
+        
         if (mc.player == null || points.isEmpty()) return;
+
+        if (RightClickEntity.isInteracting) return;
 
         BlockPos target = points.get(currentIndex);
 
