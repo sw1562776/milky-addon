@@ -29,33 +29,6 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
-    private final Setting<BlockPos> addPointSetting = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("add-point")
-        .description("Pick a coordinate to add to the points list.")
-        .defaultValue(new BlockPos(0, 64, 0))
-        .build()
-    );
-
-    private final Setting<Void> addPointButton = sgGeneral.add(new ButtonSetting.Builder()
-        .name("add")
-        .description("Append the above coordinate to the points list.")
-        .action(() -> {
-            BlockPos pos = addPointSetting.get();
-            String current = pointsString.get().trim();
-            String newCoord = pos.getX() + "," + pos.getY() + "," + pos.getZ();
-
-            if (!current.isEmpty()) {
-                current += "; " + newCoord;
-            } else {
-                current = newCoord;
-            }
-
-            pointsString.set(current);
-            info("Added point: " + newCoord);
-        })
-        .build()
-    );
-
     private final Setting<Double> reachDistance = sgGeneral.add(new DoubleSetting.Builder()
         .name("reach-distance")
         .description("How close you need to be to consider the point reached.")
@@ -111,6 +84,7 @@ public class GotoMultiPoints extends Module {
                 lastArriveTime = System.currentTimeMillis();
                 BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
             } else {
+
                 if (System.currentTimeMillis() - lastArriveTime >= 300) {
                     int lastIndex = points.size() - 1;
 
