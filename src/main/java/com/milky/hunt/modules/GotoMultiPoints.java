@@ -15,6 +15,13 @@ import java.util.List;
 public class GotoMultiPoints extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
+    private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
+        .name("loop")
+        .description("Whether to loop through points or stop after the last one.")
+        .defaultValue(true)
+        .build()
+    );
+
     private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
         .name("points")
         .description("Coordinates to patrol through in sequence. Format: x,y,z; x,y,z; ...")
@@ -33,17 +40,19 @@ public class GotoMultiPoints extends Module {
 
     private final Setting<Double> waitSeconds = sgGeneral.add(new DoubleSetting.Builder()
         .name("wait-seconds")
-        .description("Seconds to wait at each point before going to the next one.")
+        .description("Seconds to wait after completing a full loop.")
         .defaultValue(2.0)
         .min(0)
-        .sliderMax(10)
+        .sliderMax(30)
+        .visible(loop::get)
         .build()
     );
 
     private final List<BlockPos> points = new ArrayList<>();
     private int currentIndex = 0;
-    private long lastArriveTime = 0;
     private boolean waiting = false;
+    private long lastArriveTime = 0;
+    private boolean loopWait = false;
 
     public GotoMultiPoints() {
         super(Addon.CATEGORY, "GotoMultiPoints", "Walks between multiple coordinates using Baritone.");
@@ -58,6 +67,8 @@ public class GotoMultiPoints extends Module {
             return;
         }
         currentIndex = 0;
+        waiting = false;
+        loopWait = false;
         goTo(points.get(currentIndex));
     }
 
@@ -73,10 +84,29 @@ public class GotoMultiPoints extends Module {
                 lastArriveTime = System.currentTimeMillis();
                 BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
             } else {
-                if (System.currentTimeMillis() - lastArriveTime >= waitSeconds.get() * 1000) {
-                    currentIndex = (currentIndex + 1) % points.size();
-                    waiting = false;
-                    goTo(points.get(currentIndex));
+                if (System.currentTimeMillis() - lastArriveTime >= 500) { // small settle delay
+                    if (currentIndex == points.size() - 1) { // last point
+                        if (loop.get()) {
+                            if (!loopWait) {
+                                loopWait = true;
+                                lastArriveTime = System.currentTimeMillis();
+                                return;
+                            }
+                            if (System.currentTimeMillis() - lastArriveTime >= waitSeconds.get() * 1000) {
+                                loopWait = false;
+                                currentIndex = 0;
+                                waiting = false;
+                                goTo(points.get(currentIndex));
+                            }
+                        } else {
+                            info("Finished all points. Stopping.");
+                            toggle();
+                        }
+                    } else {
+                        currentIndex++;
+                        waiting = false;
+                        goTo(points.get(currentIndex));
+                    }
                 }
             }
         }
