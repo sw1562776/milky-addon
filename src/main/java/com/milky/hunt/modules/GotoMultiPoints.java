@@ -15,8 +15,6 @@ import java.util.List;
 public class GotoMultiPoints extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    // 改成用 StringSetting 存多个坐标
-    // 格式: "0,64,0; 16,64,16"
     private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
         .name("points")
         .description("Coordinates to patrol through in sequence. Format: x,y,z; x,y,z; ...")
