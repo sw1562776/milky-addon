@@ -15,17 +15,89 @@ import java.util.List;
 public class GotoMultiPoints extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
+    public enum InputMode {
+        String,
+        Simple
+    }
+
+    // 输入模式选择
+    private final Setting<InputMode> inputMode = sgGeneral.add(new EnumSetting.Builder<InputMode>()
+        .name("input-mode")
+        .description("Choose how to input patrol points.")
+        .defaultValue(InputMode.String)
+        .build()
+    );
+
+    // String 模式输入
+    private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
+        .name("points")
+        .description("Coordinates in format: x,y,z; x,y,z; ...")
+        .defaultValue("0,64,0; 16,64,16")
+        .visible(() -> inputMode.get() == InputMode.String)
+        .build()
+    );
+
+    // Simple 模式输入（8个点）
+    private final Setting<BlockPos> point1 = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("Point 1")
+        .defaultValue(new BlockPos(0, 64, 0))
+        .visible(() -> inputMode.get() == InputMode.Simple)
+        .build()
+    );
+
+    private final Setting<BlockPos> point2 = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("Point 2")
+        .defaultValue(new BlockPos(16, 64, 16))
+        .visible(() -> inputMode.get() == InputMode.Simple)
+        .build()
+    );
+
+    private final Setting<BlockPos> point3 = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("Point 3")
+        .defaultValue(new BlockPos(0, 64, 0))
+        .visible(() -> inputMode.get() == InputMode.Simple)
+        .build()
+    );
+
+    private final Setting<BlockPos> point4 = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("Point 4")
+        .defaultValue(new BlockPos(0, 64, 0))
+        .visible(() -> inputMode.get() == InputMode.Simple)
+        .build()
+    );
+
+    private final Setting<BlockPos> point5 = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("Point 5")
+        .defaultValue(new BlockPos(0, 64, 0))
+        .visible(() -> inputMode.get() == InputMode.Simple)
+        .build()
+    );
+
+    private final Setting<BlockPos> point6 = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("Point 6")
+        .defaultValue(new BlockPos(0, 64, 0))
+        .visible(() -> inputMode.get() == InputMode.Simple)
+        .build()
+    );
+
+    private final Setting<BlockPos> point7 = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("Point 7")
+        .defaultValue(new BlockPos(0, 64, 0))
+        .visible(() -> inputMode.get() == InputMode.Simple)
+        .build()
+    );
+
+    private final Setting<BlockPos> point8 = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("Point 8")
+        .defaultValue(new BlockPos(0, 64, 0))
+        .visible(() -> inputMode.get() == InputMode.Simple)
+        .build()
+    );
+
     private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
         .name("loop")
         .description("Whether to loop through points or stop after the last one.")
         .defaultValue(true)
-        .build()
-    );
-
-    private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
-        .name("points")
-        .description("Coordinates to patrol through in sequence. Format: x,y,z; x,y,z; ...")
-        .defaultValue("0,64,0; 16,64,16")
         .build()
     );
 
@@ -84,7 +156,6 @@ public class GotoMultiPoints extends Module {
                 lastArriveTime = System.currentTimeMillis();
                 BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
             } else {
-
                 if (System.currentTimeMillis() - lastArriveTime >= 300) {
                     int lastIndex = points.size() - 1;
 
@@ -133,6 +204,15 @@ public class GotoMultiPoints extends Module {
 
     private void parsePoints() {
         points.clear();
+
+        if (inputMode.get() == InputMode.String) {
+            parseStringPoints();
+        } else {
+            parseSimplePoints();
+        }
+    }
+
+    private void parseStringPoints() {
         String[] entries = pointsString.get().split(";");
         for (String s : entries) {
             String[] parts = s.trim().split(",");
@@ -144,6 +224,23 @@ public class GotoMultiPoints extends Module {
                     points.add(new BlockPos(x, y, z));
                 } catch (NumberFormatException ignored) {}
             }
+        }
+    }
+
+    private void parseSimplePoints() {
+        addPointIfValid(point1.get());
+        addPointIfValid(point2.get());
+        addPointIfValid(point3.get());
+        addPointIfValid(point4.get());
+        addPointIfValid(point5.get());
+        addPointIfValid(point6.get());
+        addPointIfValid(point7.get());
+        addPointIfValid(point8.get());
+    }
+
+    private void addPointIfValid(BlockPos pos) {
+        if (!(pos.getX() == 0 && pos.getY() == 0 && pos.getZ() == 0)) {
+            points.add(pos);
         }
     }
 }
