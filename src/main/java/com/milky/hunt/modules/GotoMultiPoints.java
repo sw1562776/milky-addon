@@ -15,13 +15,12 @@ import java.util.List;
 public class GotoMultiPoints extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private final Setting<List<BlockPos>> points = sgGeneral.add(new BlockPosListSetting.Builder()
+    // 改成用 StringSetting 存多个坐标
+    // 格式: "0,64,0; 16,64,16"
+    private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
         .name("points")
-        .description("Coordinates to patrol through in sequence.")
-        .defaultValue(List.of(
-            new BlockPos(0, 64, 0),
-            new BlockPos(16, 64, 16)
-        ))
+        .description("Coordinates to patrol through in sequence. Format: x,y,z; x,y,z; ...")
+        .defaultValue("0,64,0; 16,64,16")
         .build()
     );
 
@@ -43,6 +42,7 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
+    private final List<BlockPos> points = new ArrayList<>();
     private int currentIndex = 0;
     private long lastArriveTime = 0;
     private boolean waiting = false;
@@ -53,20 +53,21 @@ public class GotoMultiPoints extends Module {
 
     @Override
     public void onActivate() {
-        if (points.get().isEmpty()) {
+        parsePoints();
+        if (points.isEmpty()) {
             info("No points set!");
             toggle();
             return;
         }
         currentIndex = 0;
-        goTo(points.get().get(currentIndex));
+        goTo(points.get(currentIndex));
     }
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
-        if (mc.player == null || points.get().isEmpty()) return;
+        if (mc.player == null || points.isEmpty()) return;
 
-        BlockPos target = points.get().get(currentIndex);
+        BlockPos target = points.get(currentIndex);
 
         if (mc.player.getBlockPos().isWithinDistance(target, reachDistance.get())) {
             if (!waiting) {
@@ -75,9 +76,9 @@ public class GotoMultiPoints extends Module {
                 BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
             } else {
                 if (System.currentTimeMillis() - lastArriveTime >= waitSeconds.get() * 1000) {
-                    currentIndex = (currentIndex + 1) % points.get().size();
+                    currentIndex = (currentIndex + 1) % points.size();
                     waiting = false;
-                    goTo(points.get().get(currentIndex));
+                    goTo(points.get(currentIndex));
                 }
             }
         }
@@ -91,5 +92,21 @@ public class GotoMultiPoints extends Module {
     @Override
     public void onDeactivate() {
         BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
+    }
+
+    private void parsePoints() {
+        points.clear();
+        String[] entries = pointsString.get().split(";");
+        for (String s : entries) {
+            String[] parts = s.trim().split(",");
+            if (parts.length == 3) {
+                try {
+                    int x = Integer.parseInt(parts[0].trim());
+                    int y = Integer.parseInt(parts[1].trim());
+                    int z = Integer.parseInt(parts[2].trim());
+                    points.add(new BlockPos(x, y, z));
+                } catch (NumberFormatException ignored) {}
+            }
+        }
     }
 }
