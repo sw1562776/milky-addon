@@ -40,6 +40,13 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
+    private final Setting<Void> addHereButton = sgGeneral.add(new ButtonSetting.Builder()
+        .name("Add Here")
+        .description("Add your current coordinates to the points list.")
+        .onClick(this::addCurrentPosition)
+        .build()
+    );
+
     private final List<BlockPos> points = new ArrayList<>();
     private int currentIndex = 0;
     private long lastArriveTime = 0;
@@ -106,5 +113,15 @@ public class GotoMultiPoints extends Module {
                 } catch (NumberFormatException ignored) {}
             }
         }
+    }
+
+    private void addCurrentPosition() {
+        if (mc.player == null) return;
+        BlockPos pos = mc.player.getBlockPos();
+        String newEntry = pos.getX() + "," + pos.getY() + "," + pos.getZ();
+        String updated = pointsString.get() + "; " + newEntry;
+        pointsString.set(updated);
+        parsePoints();
+        info("Added point: " + newEntry);
     }
 }
