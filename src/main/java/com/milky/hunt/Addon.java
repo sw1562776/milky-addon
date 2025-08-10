@@ -1,93 +1,65 @@
-package com.milky.hunt.modules;
+package com.milky.hunt;
 
-import com.milky.hunt.Addon;
-import meteordevelopment.meteorclient.events.world.TickEvent;
-import meteordevelopment.meteorclient.settings.Setting;
-import meteordevelopment.meteorclient.settings.SettingGroup;
-import meteordevelopment.meteorclient.settings.StringListSetting;
-import meteordevelopment.meteorclient.settings.DoubleSetting;
-import meteordevelopment.meteorclient.systems.modules.Module;
-import meteordevelopment.orbit.EventHandler;
-import net.minecraft.util.math.BlockPos;
-import meteordevelopment.meteorclient.pathing.PathManagers;
+import com.milky.hunt.modules.*;
+import com.mojang.logging.LogUtils;
+import meteordevelopment.meteorclient.addons.MeteorAddon;
+import meteordevelopment.meteorclient.settings.Settings;
+import meteordevelopment.meteorclient.systems.hud.Hud;
+import meteordevelopment.meteorclient.systems.hud.HudGroup;
+import meteordevelopment.meteorclient.systems.modules.Category;
+import meteordevelopment.meteorclient.systems.modules.Modules;
+import net.fabricmc.loader.api.FabricLoader;
+import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
+public class Addon extends MeteorAddon {
+    public static final Logger LOG = LogUtils.getLogger();
+    public static final Category CATEGORY = new Category("Milky Mod");
+    public static final HudGroup HUD_GROUP = new HudGroup("Milky Mod");
 
-public class GotoMultiPoints extends Module {
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+    public final Settings settings = new Settings();
 
-    private final Setting<List<String>> points = sgGeneral.add(new StringListSetting.Builder()
-        .name("points")
-        .description("List of coordinates to walk between. Format: x y z")
-        .defaultValue(List.of("0 64 0", "100 64 100"))
-        .build()
-    );
+    @Override
+    public void onInitialize() {
+        LOG.info("Initializing Milky Mod");
 
-    private final Setting<Double> waitTime = sgGeneral.add(new DoubleSetting.Builder()
-        .name("wait-time")
-        .description("Time to wait at each point before moving to the next.")
-        .defaultValue(2.0)
-        .min(0.0)
-        .sliderMax(30.0)
-        .build()
-    );
+        Modules.get().add(new AutoGolem());
+        Modules.get().add(new AutoInvertedY());
+        Modules.get().add(new RightClickEntity());
+        Modules.get().add(new QuickCommand());
+        Modules.get().add(new GotoMultiPoints());
 
-    private int currentIndex = 0;
-    private long lastArrivalTime = 0;
-    private boolean waiting = false;
+        boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
+        boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
+        boolean xaeroMinimapLoaded = checkModLoaded("xaerominimap");
+        boolean xaeroPlusLoaded = checkModLoaded("xaeroplus");
 
-    public GotoMultiPoints() {
-        super(Addon.CATEGORY, "GotoMultiPoints", "Walks between multiple points back and forth using Baritone.");
     }
 
     @Override
-    public void onActivate() {
-        currentIndex = 0;
-        waiting = false;
-        moveToCurrentPoint();
+    public void onRegisterCategories() {
+        Modules.registerCategory(CATEGORY);
     }
 
-    @EventHandler
-    private void onTick(TickEvent.Pre event) {
-        if (mc.player == null || mc.world == null) return;
+    @Override
+    public String getPackage() {
+        return "com.milky.hunt";
+    }
 
-        BlockPos target = parseBlockPos(points.get().get(currentIndex));
-        if (target == null) return;
-
-        double dist = mc.player.getBlockPos().getSquaredDistance(target);
-        if (!waiting && dist <= 2) { // 到达
-            waiting = true;
-            lastArrivalTime = System.currentTimeMillis();
-        }
-
-        if (waiting) {
-            if ((System.currentTimeMillis() - lastArrivalTime) >= waitTime.get() * 1000) {
-                // 下一个点
-                currentIndex = (currentIndex + 1) % points.get().size();
-                waiting = false;
-                moveToCurrentPoint();
+    private boolean checkModLoaded(String... modIds)
+    {
+        boolean loaded = false;
+        for (String id : modIds)
+        {
+            if (FabricLoader.getInstance().isModLoaded(id))
+            {
+                loaded = true;
+                break;
             }
         }
-    }
-
-    private void moveToCurrentPoint() {
-        BlockPos target = parseBlockPos(points.get().get(currentIndex));
-        if (target != null) {
-            PathManagers.get().moveTo(target, true);
+        if (!loaded)
+        {
+            LOG.error("{} not found, disabling modules that require it.", modIds[0]);
         }
-    }
-
-    private BlockPos parseBlockPos(String s) {
-        try {
-            String[] parts = s.trim().split("\\s+");
-            if (parts.length != 3) return null;
-            int x = Integer.parseInt(parts[0]);
-            int y = Integer.parseInt(parts[1]);
-            int z = Integer.parseInt(parts[2]);
-            return new BlockPos(x, y, z);
-        } catch (Exception e) {
-            return null;
-        }
+        return loaded;
     }
 }
