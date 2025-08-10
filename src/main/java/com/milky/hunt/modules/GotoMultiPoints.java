@@ -15,33 +15,45 @@ import java.util.List;
 public class GotoMultiPoints extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
-        .name("points")
-        .description("Coordinates to patrol through in sequence. Format: x,y,z; x,y,z; ...")
-        .defaultValue("")
+    private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
+        .name("loop")
+        .description("Whether to loop through points or stop after the last one.")
+        .defaultValue(true)
         .build()
     );
 
+    private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
+        .name("points")
+        .description("Coordinates to patrol through in sequence. Format: x,y,z; x,y,z; ...")
+        .defaultValue("0,64,0; 16,64,16")
+        .build()
+    );
 
-    private final Setting<BlockPos> tempPoint = sgGeneral.add(new BlockPosSetting.Builder()
+    // 新增的 BlockPosSetting（Meteor GUI 自带 click / set here）
+    private final Setting<BlockPos> addPointSetting = sgGeneral.add(new BlockPosSetting.Builder()
         .name("add-point")
-        .description("Pick a point to add to the list.")
+        .description("Pick a coordinate to add to the points list.")
         .defaultValue(new BlockPos(0, 64, 0))
         .build()
     );
 
+    // 新增的按钮，用来把 BlockPos 追加到 pointsString
     private final Setting<Void> addPointButton = sgGeneral.add(new ActionSetting.Builder()
         .name("add")
-        .description("Add the above point to the points list.")
+        .description("Append the above coordinate to the points list.")
         .action(() -> {
-            BlockPos pos = tempPoint.get();
-            String newPoint = pos.getX() + "," + pos.getY() + "," + pos.getZ();
-            if (pointsString.get().isEmpty()) {
-                pointsString.set(newPoint);
+            BlockPos pos = addPointSetting.get();
+            String current = pointsString.get().trim();
+            String newCoord = pos.getX() + "," + pos.getY() + "," + pos.getZ();
+
+            if (!current.isEmpty()) {
+                current += "; " + newCoord;
             } else {
-                pointsString.set(pointsString.get() + "; " + newPoint);
+                current = newCoord;
             }
-            info("Added point: " + newPoint);
+
+            pointsString.set(current);
+            info("Added point: " + newCoord);
         })
         .build()
     );
@@ -52,13 +64,6 @@ public class GotoMultiPoints extends Module {
         .defaultValue(1.0)
         .min(0.1)
         .sliderMax(5.0)
-        .build()
-    );
-    
-     private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
-        .name("loop")
-        .description("Whether to loop through points or stop after the last one.")
-        .defaultValue(true)
         .build()
     );
 
