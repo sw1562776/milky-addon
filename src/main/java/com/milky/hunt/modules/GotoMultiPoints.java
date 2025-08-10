@@ -15,17 +15,34 @@ import java.util.List;
 public class GotoMultiPoints extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
-        .name("loop")
-        .description("Whether to loop through points or stop after the last one.")
-        .defaultValue(true)
-        .build()
-    );
-
     private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
         .name("points")
         .description("Coordinates to patrol through in sequence. Format: x,y,z; x,y,z; ...")
-        .defaultValue("0,64,0; 16,64,16")
+        .defaultValue("")
+        .build()
+    );
+
+
+    private final Setting<BlockPos> tempPoint = sgGeneral.add(new BlockPosSetting.Builder()
+        .name("add-point")
+        .description("Pick a point to add to the list.")
+        .defaultValue(new BlockPos(0, 64, 0))
+        .build()
+    );
+
+    private final Setting<Void> addPointButton = sgGeneral.add(new ActionSetting.Builder()
+        .name("add")
+        .description("Add the above point to the points list.")
+        .action(() -> {
+            BlockPos pos = tempPoint.get();
+            String newPoint = pos.getX() + "," + pos.getY() + "," + pos.getZ();
+            if (pointsString.get().isEmpty()) {
+                pointsString.set(newPoint);
+            } else {
+                pointsString.set(pointsString.get() + "; " + newPoint);
+            }
+            info("Added point: " + newPoint);
+        })
         .build()
     );
 
@@ -35,6 +52,13 @@ public class GotoMultiPoints extends Module {
         .defaultValue(1.0)
         .min(0.1)
         .sliderMax(5.0)
+        .build()
+    );
+    
+     private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
+        .name("loop")
+        .description("Whether to loop through points or stop after the last one.")
+        .defaultValue(true)
         .build()
     );
 
@@ -84,7 +108,6 @@ public class GotoMultiPoints extends Module {
                 lastArriveTime = System.currentTimeMillis();
                 BaritoneAPI.getProvider().getPrimaryBaritone().getPathingBehavior().cancelEverything();
             } else {
-
                 if (System.currentTimeMillis() - lastArriveTime >= 300) {
                     int lastIndex = points.size() - 1;
 
