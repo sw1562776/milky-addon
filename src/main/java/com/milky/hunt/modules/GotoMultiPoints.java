@@ -13,48 +13,57 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GotoMultiPoints extends Module {
+    public enum InputMode {
+        Simple,
+        String
+    }
+
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-    private static final BlockPos DEFAULT_POS = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
-
-    private final Setting<String> inputMode = sgGeneral.add(new StringSetting.Builder()
+    private final Setting<InputMode> inputMode = sgGeneral.add(new EnumSetting.Builder<InputMode>()
         .name("input-mode")
-        .description("Coordinate input mode: simple or string.")
-        .defaultValue("string")
+        .description("Choose how to input coordinates.")
+        .defaultValue(InputMode.Simple)
         .build()
     );
 
-    private final Setting<BlockPos> point1 = addPointSetting("point-1");
-    private final Setting<BlockPos> point2 = addPointSetting("point-2");
-    private final Setting<BlockPos> point3 = addPointSetting("point-3");
-    private final Setting<BlockPos> point4 = addPointSetting("point-4");
-    private final Setting<BlockPos> point5 = addPointSetting("point-5");
-    private final Setting<BlockPos> point6 = addPointSetting("point-6");
-    private final Setting<BlockPos> point7 = addPointSetting("point-7");
-    private final Setting<BlockPos> point8 = addPointSetting("point-8");
+    private final List<Setting<BlockPos>> simplePoints = new ArrayList<>();
+    private static final BlockPos DEFAULT_NULL_POS = new BlockPos(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
 
-
+    {
+        for (int i = 1; i <= 8; i++) {
+            int index = i;
+            simplePoints.add(sgGeneral.add(new BlockPosSetting.Builder()
+                .name("point-" + index)
+                .description("Point " + index + " coordinate.")
+                .defaultValue(DEFAULT_NULL_POS)
+                .visible(() -> inputMode.get() == InputMode.Simple)
+                .build()
+            ));
+        }
+    }
+    
     private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
         .name("points")
-        .description("Coordinates to patrol through in sequence. Format: x,y,z; x,y,z; ...")
+        .description("Coordinates in sequence (x,y,z; x,y,z; ...).")
         .defaultValue("0,64,0; 16,64,16")
-        .visible(() -> inputMode.get().equalsIgnoreCase("string"))
-        .build()
-    );
-
-    private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
-        .name("loop")
-        .description("Whether to loop through points or stop after the last one.")
-        .defaultValue(true)
+        .visible(() -> inputMode.get() == InputMode.String)
         .build()
     );
 
     private final Setting<Double> reachDistance = sgGeneral.add(new DoubleSetting.Builder()
         .name("reach-distance")
-        .description("How close you need to be to consider the point reached.")
+        .description("Distance to consider point reached.")
         .defaultValue(1.0)
         .min(0.1)
         .sliderMax(5.0)
+        .build()
+    );
+    
+    private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
+        .name("loop")
+        .description("Loop through points or stop after the last one.")
+        .defaultValue(true)
         .build()
     );
 
@@ -152,16 +161,7 @@ public class GotoMultiPoints extends Module {
 
     private void parsePoints() {
         points.clear();
-        if (inputMode.get().equalsIgnoreCase("simple")) {
-            addPointIfValid(point1.get());
-            addPointIfValid(point2.get());
-            addPointIfValid(point3.get());
-            addPointIfValid(point4.get());
-            addPointIfValid(point5.get());
-            addPointIfValid(point6.get());
-            addPointIfValid(point7.get());
-            addPointIfValid(point8.get());
-        } else {
+        if (inputMode.get() == InputMode.String) {
             String[] entries = pointsString.get().split(";");
             for (String s : entries) {
                 String[] parts = s.trim().split(",");
@@ -174,21 +174,13 @@ public class GotoMultiPoints extends Module {
                     } catch (NumberFormatException ignored) {}
                 }
             }
+        } else {
+            for (Setting<BlockPos> sp : simplePoints) {
+                BlockPos pos = sp.get();
+                if (!pos.equals(DEFAULT_NULL_POS)) {
+                    points.add(pos);
+                }
+            }
         }
-    }
-
-    private void addPointIfValid(BlockPos pos) {
-        if (!pos.equals(DEFAULT_POS)) {
-            points.add(pos);
-        }
-    }
-
-    private Setting<BlockPos> addPointSetting(String name) {
-        return sgGeneral.add(new BlockPosSetting.Builder()
-            .name(name)
-            .defaultValue(DEFAULT_POS)
-            .visible(() -> inputMode.get().equalsIgnoreCase("simple"))
-            .build()
-        );
     }
 }
