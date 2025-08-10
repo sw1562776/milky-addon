@@ -31,7 +31,7 @@ public class GotoMultiPoints extends Module {
     private final Setting<Integer> pointsCount = sgGeneral.add(new IntSetting.Builder()
         .name("points-count")
         .description("Number of points to use.")
-        .defaultValue(4)
+        .defaultValue(2)
         .min(1)
         .max(16)
         .visible(() -> inputMode.get() == InputMode.Simple)
