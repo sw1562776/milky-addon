@@ -21,8 +21,6 @@ import java.util.Set;
 
 public class RightClickEntity extends Module {
     
-    public static boolean isInteracting = false;
-    
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
     private final Setting<Boolean> oneInteractionPerTick = sgGeneral.add(new BoolSetting.Builder()
@@ -87,8 +85,6 @@ public class RightClickEntity extends Module {
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
-
-        isInteracting = false;
         
         if (mc.world == null || mc.player == null) return;
 
@@ -109,8 +105,6 @@ public class RightClickEntity extends Module {
                 || (ignoreBabies.get() && ((LivingEntity) entity).isBaby())) continue;
 
             if (oneTime.get()) used.add(entity);
-
-             isInteracting = true;
 
             Rotations.rotate(Rotations.getYaw(entity), Rotations.getPitch(entity), () -> {
                 sendInteractPackets(entity);
