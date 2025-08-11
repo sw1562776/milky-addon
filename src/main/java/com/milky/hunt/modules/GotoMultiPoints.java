@@ -1,7 +1,6 @@
 package com.milky.hunt.modules;
 
 import com.milky.hunt.Addon;
-import com.milky.hunt.modules.RightClickEntity;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -236,8 +235,6 @@ public class GotoMultiPoints extends Module {
     private void onTick(TickEvent.Pre event) {
         
         if (mc.player == null || points.isEmpty()) return;
-
-        if (RightClickEntity.isInteracting) return;
 
         BlockPos target = points.get(currentIndex);
 
