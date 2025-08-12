@@ -15,7 +15,7 @@ Meteor Addon For minecraft 1.21.4
 
 ### In progress
 - AutoDeposit
-  - Deposits items from your inventory into chests when needed.
+  - Automatically deposits items from your inventory into chests when needed.
 - AutoRefill
   - Automatically refill your inventory from chests when necessary.
 - RightClickBlock
