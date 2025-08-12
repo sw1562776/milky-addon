@@ -1,5 +1,6 @@
 # Milky Mod (Meteor Addon For minecraft 1.21.4)
 
+### Current Modules
 - AutoGolem
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
 - AutoInvertedY
@@ -10,6 +11,12 @@
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickEntity
   - Automatically interacts with entities in range.
+
+### In progress
+- AutoRefill
+  - Automatically refill your inventory from chests when necessary.
+- AutoDeposit
+  - Deposits items from your inventory into nearby chests when needed.
 
 
 
