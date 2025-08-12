@@ -14,10 +14,10 @@ Meteor Addon For minecraft 1.21.4
   - Automatically interacts with entities in range.
 
 ### In progress
-- AutoRefill
-  - Automatically refill your inventory from chests when necessary.
 - AutoDeposit
   - Deposits items from your inventory into chests when needed.
+- AutoRefill
+  - Automatically refill your inventory from chests when necessary.
 - RightClickBlock
   - Automatically interacts with blocks in range.
 
