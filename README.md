@@ -22,7 +22,8 @@ Meteor Addon For minecraft 1.21.4
   - Automatically interacts with blocks in range.
  
 ### Candidate feature
-- 
+- VCNameTag
+- CruiseUp
 
 
 ### About
