@@ -101,4 +101,9 @@ public class InHand extends Module {
             }
         }
     }
+     @Override
+    public void onDeactivate() {
+        mainTicks = 0;
+        offTicks = 0;
+    }
 }
