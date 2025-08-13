@@ -69,6 +69,8 @@ public class InHand extends Module {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre event) {
+        if (!isActive()) return;
+        
         if (mc.world == null || mc.player == null) return;
 
         if (mode.get() == Mode.MainHand || mode.get() == Mode.Both) {
