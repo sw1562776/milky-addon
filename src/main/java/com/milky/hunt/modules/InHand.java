@@ -67,40 +67,43 @@ public class InHand extends Module {
         super(Addon.CATEGORY, "InHand", "Automatically equips selected items in mainhand and/or offhand.");
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    private void onTick(TickEvent.Pre event) {
-        if (!isActive()) return;
-        
-        if (mc.world == null || mc.player == null) return;
+    @EventHandler(priority = EventPriority.NORMAL)
+private void onTickMainHand(TickEvent.Pre event) {
+    if (!isActive() || mc.player == null) return;
 
-        if (mode.get() == Mode.MainHand || mode.get() == Mode.Both) {
-            if (mainTicks < mainHandDelay.get()) {
-                mainTicks++;
-            } else {
-                mainTicks = 0;
-                if (mc.player.getMainHandStack().getItem() != mainHandItem.get()) {
-                    FindItemResult mainItem = InvUtils.find(mainHandItem.get());
-                    if (mainItem.found()) {
-                        InvUtils.move().from(mainItem.slot()).toHotbar(mc.player.getInventory().selectedSlot);
-                    }
-                }
-            }
-        }
-
-        if (mode.get() == Mode.OffHand || mode.get() == Mode.Both) {
-            if (offTicks < offHandDelay.get()) {
-                offTicks++;
-            } else {
-                offTicks = 0;
-                if (mc.player.getOffHandStack().getItem() != offHandItem.get()) {
-                    FindItemResult offItem = InvUtils.find(offHandItem.get());
-                    if (offItem.found()) {
-                        InvUtils.move().from(offItem.slot()).toOffhand();
-                    }
+    if (mode.get() == Mode.MainHand || mode.get() == Mode.Both) {
+        if (mainTicks < mainHandDelay.get()) {
+            mainTicks++;
+        } else {
+            mainTicks = 0;
+            if (mc.player.getMainHandStack().getItem() != mainHandItem.get()) {
+                FindItemResult mainItem = InvUtils.find(mainHandItem.get());
+                if (mainItem.found()) {
+                    InvUtils.move().from(mainItem.slot()).toHotbar(mc.player.getInventory().selectedSlot);
                 }
             }
         }
     }
+}
+
+@EventHandler(priority = EventPriority.HIGHEST)
+private void onTickOffHand(TickEvent.Pre event) {
+    if (!isActive() || mc.player == null) return;
+
+    if (mode.get() == Mode.OffHand || mode.get() == Mode.Both) {
+        if (offTicks < offHandDelay.get()) {
+            offTicks++;
+        } else {
+            offTicks = 0;
+            if (mc.player.getOffHandStack().getItem() != offHandItem.get()) {
+                FindItemResult offItem = InvUtils.find(offHandItem.get());
+                if (offItem.found()) {
+                    InvUtils.move().from(offItem.slot()).toOffhand();
+                }
+            }
+        }
+    }
+}
     
     @Override
     public void onDeactivate() {
