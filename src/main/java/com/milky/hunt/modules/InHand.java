@@ -38,7 +38,7 @@ public class InHand extends Module {
 
     private int ticks;
 
-    public AutoInHand() {
+    public InHand() {
         super(Addon.CATEGORY, "InHand", "Automatically equips selected items in mainhand and offhand.");
     }
 
