@@ -113,12 +113,12 @@ public class InHand extends Module {
         StringBuilder strbd = new StringBuilder();
         if (mode.get() == Mode.MainHand || mode.get() == Mode.Both) {
             FindItemResult main = InvUtils.find(mainHandItem.get());
-            sb.append(mainHandItem.get().getName().getString()).append("*").append(main.count());
+            strbd.append(mainHandItem.get().getName().getString()).append("*").append(main.count());
         }
         if (mode.get() == Mode.OffHand || mode.get() == Mode.Both) {
             if (strbd.length() > 0) strbd.append(" ");
             FindItemResult off = InvUtils.find(offHandItem.get());
-            sb.append(offHandItem.get().getName().getString()).append("*").append(off.count());
+            strbd.append(offHandItem.get().getName().getString()).append("*").append(off.count());
         }
         return strbd.toString();
     }
