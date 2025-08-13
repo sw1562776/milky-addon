@@ -25,6 +25,7 @@ Meteor Addon For minecraft 1.21.4
  
 ### Candidate feature
 - CruiseUp
+- Timeline
 - VCNameTag
 
 
