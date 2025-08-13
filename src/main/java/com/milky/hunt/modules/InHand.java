@@ -67,7 +67,7 @@ public class InHand extends Module {
         super(Addon.CATEGORY, "InHand", "Automatically equips selected items in mainhand and/or offhand.");
     }
 
-    @EventHandler(priority = EventPriority.NORMAL)
+    @EventHandler
 private void onTickMainHand(TickEvent.Pre event) {
     if (!isActive() || mc.player == null) return;
 
