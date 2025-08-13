@@ -110,16 +110,16 @@ public class InHand extends Module {
     
     @Override
     public String getInfoString() {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder strbd = new StringBuilder();
         if (mode.get() == Mode.MainHand || mode.get() == Mode.Both) {
             FindItemResult main = InvUtils.find(mainHandItem.get());
             sb.append(mainHandItem.get().getName().getString()).append("*").append(main.count());
         }
         if (mode.get() == Mode.OffHand || mode.get() == Mode.Both) {
-            if (sb.length() > 0) sb.append(" ");
+            if (strbd.length() > 0) strbd.append(" ");
             FindItemResult off = InvUtils.find(offHandItem.get());
             sb.append(offHandItem.get().getName().getString()).append("*").append(off.count());
         }
-        return sb.toString();
+        return strbd.toString();
     }
 }
