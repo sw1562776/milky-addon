@@ -6,6 +6,8 @@ Meteor Addon For minecraft 1.21.4
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
 - AutoInvertedY
   - Automatically constructs your favorite, uh... iconic shape — using any block you choose. Ideal for establishing a proudly ridiculous *rocket garden*.
+- InHand
+  - Fill your mainhand and offhand with chosen items.
 - GotoMultiPoints
    - Walks between multiple coordinates using Baritone.
 - QuickCommand
@@ -14,8 +16,6 @@ Meteor Addon For minecraft 1.21.4
   - Automatically interacts with entities in range.
 
 ### In progress
-- InHand
-  - Fill your mainhand and offhand with chosen items.
 - AutoDeposit
   - Automatically deposits items from your inventory into chests when needed.
 - AutoRefill
