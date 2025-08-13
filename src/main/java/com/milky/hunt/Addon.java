@@ -24,6 +24,7 @@ public class Addon extends MeteorAddon {
 
         Modules.get().add(new AutoGolem());
         Modules.get().add(new AutoInvertedY());
+        Modules.get().add(new InHand());
         Modules.get().add(new RightClickEntity());
         Modules.get().add(new QuickCommand());
         Modules.get().add(new GotoMultiPoints());
