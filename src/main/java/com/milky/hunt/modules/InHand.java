@@ -11,13 +11,26 @@ import meteordevelopment.orbit.EventPriority;
 import net.minecraft.item.Item;
 
 public class InHand extends Module {
+    public enum Mode {
+        MainHand,
+        OffHand,
+        Both
+    }
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
+
+    private final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
+        .name("mode")
+        .description("Which hand(s) to manage.")
+        .defaultValue(Mode.Both)
+        .build()
+    );
 
     private final Setting<Item> mainHandItem = sgGeneral.add(new ItemSetting.Builder()
         .name("main-hand-item")
         .description("Item to keep in your main hand.")
         .defaultValue(net.minecraft.item.Items.DIAMOND_SWORD)
+        .visible(() -> mode.get() == Mode.MainHand || mode.get() == Mode.Both)
         .build()
     );
 
@@ -25,6 +38,7 @@ public class InHand extends Module {
         .name("off-hand-item")
         .description("Item to keep in your off hand.")
         .defaultValue(net.minecraft.item.Items.SHIELD)
+        .visible(() -> mode.get() == Mode.OffHand || mode.get() == Mode.Both)
         .build()
     );
 
@@ -39,7 +53,7 @@ public class InHand extends Module {
     private int ticks;
 
     public InHand() {
-        super(Addon.CATEGORY, "InHand", "Automatically equips selected items in mainhand and offhand.");
+        super(Addon.CATEGORY, "InHand", "Automatically equips selected items in mainhand and/or offhand.");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -52,14 +66,16 @@ public class InHand extends Module {
         }
         ticks = 0;
 
-        if (mc.player.getMainHandStack().getItem() != mainHandItem.get()) {
+        if ((mode.get() == Mode.MainHand || mode.get() == Mode.Both)
+            && mc.player.getMainHandStack().getItem() != mainHandItem.get()) {
             FindItemResult mainItem = InvUtils.find(mainHandItem.get());
             if (mainItem.found()) {
                 InvUtils.move().from(mainItem.slot()).toHotbar(mc.player.getInventory().selectedSlot);
             }
         }
 
-        if (mc.player.getOffHandStack().getItem() != offHandItem.get()) {
+        if ((mode.get() == Mode.OffHand || mode.get() == Mode.Both)
+            && mc.player.getOffHandStack().getItem() != offHandItem.get()) {
             FindItemResult offItem = InvUtils.find(offHandItem.get());
             if (offItem.found()) {
                 InvUtils.move().from(offItem.slot()).toOffhand();
