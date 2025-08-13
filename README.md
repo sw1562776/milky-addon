@@ -14,6 +14,8 @@ Meteor Addon For minecraft 1.21.4
   - Automatically interacts with entities in range.
 
 ### In progress
+- InHand
+  - Fill your mainhand and offhand with chosen items.
 - AutoDeposit
   - Automatically deposits items from your inventory into chests when needed.
 - AutoRefill
