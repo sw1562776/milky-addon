@@ -32,7 +32,7 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new RightClickEntity());
         Modules.get().add(new Timeline());
 
-        Modules.get().add(new InfinityElytra());
+        Modules.get().add(new InfiniteElytra());
 
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
