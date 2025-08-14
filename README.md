@@ -20,12 +20,12 @@ Meteor Addon For minecraft 1.21.4
   - Automatically deposits items from your inventory into chests when needed.
 - AutoRefill
   - Automatically refill your inventory from chests when necessary.
-- RightClickBlock
-  - Automatically interacts with blocks in range.
 - Timeline
   - Use simple commands to schedule other modules to enable/disable.
  
 ### Candidate feature
+- RightClickBlock
+  - Automatically interacts with blocks in range.
 - CruiseUp
 - VCNameTag
 
