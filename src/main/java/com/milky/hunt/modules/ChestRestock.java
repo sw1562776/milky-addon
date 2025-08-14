@@ -3,6 +3,7 @@ package com.milky.hunt.modules;
 import baritone.api.BaritoneAPI;
 import baritone.api.pathing.goals.GoalBlock;
 import com.milky.hunt.Addon;
+import com.milky.hunt.mixin.ClientWorldPendingUpdateAccessor;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -179,12 +180,18 @@ public class ChestRestock extends Module {
         }
     }
 
+    // ---- helpers ----
+
     private BlockPos resolveChestPos() {
         if (inputMode.get() == InputMode.Simple) return chestPosSetting.get();
         try {
             String[] p = chestPosString.get().split(",");
             if (p.length != 3) return null;
-            return new BlockPos(Integer.parseInt(p[0].trim()), Integer.parseInt(p[1].trim()), Integer.parseInt(p[2].trim()));
+            return new BlockPos(
+                Integer.parseInt(p[0].trim()),
+                Integer.parseInt(p[1].trim()),
+                Integer.parseInt(p[2].trim())
+            );
         } catch (Exception e) {
             return null;
         }
@@ -218,7 +225,7 @@ public class ChestRestock extends Module {
         Vec3d hitVec = Vec3d.ofCenter(pos).add(0, 0.5, 0);
         BlockHitResult hit = new BlockHitResult(hitVec, Direction.UP, pos, false);
 
-        var pum = ((ClientWorld) m.world).getPendingUpdateManager();
+        var pum = ((ClientWorldPendingUpdateAccessor) (ClientWorld) m.world).milky$getPendingUpdateManager();
         pum.incrementSequence();
         int sequence = pum.getSequence();
 
