@@ -29,6 +29,8 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new QuickCommand());
         Modules.get().add(new GotoMultiPoints());
 
+        Modules.get().add(new ChestRestock());
+
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
         boolean xaeroMinimapLoaded = checkModLoaded("xaerominimap");
