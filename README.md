@@ -7,7 +7,7 @@ Meteor Addon For minecraft 1.21.4
 - AutoInvertedY
   - Automatically constructs your favorite, uh... iconic shape — using any block you choose. Ideal for establishing a proudly ridiculous *rocket garden*.
 - ChestRestock
-  - Automatically refill your inventory from chests when necessary.
+  - Automatically refill your inventory with chosen item from chests when necessary.
 - InHand
   - Fill your mainhand and offhand with chosen items.
 - GotoMultiPoints
