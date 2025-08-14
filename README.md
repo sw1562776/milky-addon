@@ -10,18 +10,18 @@ Meteor Addon For minecraft 1.21.4
   - Automatically deposits items from your inventory into chests when needed.
 - ChestRestock
   - Automatically refill your inventory with chosen item from chests when necessary.
-- InHand
-  - Fill your mainhand and offhand with chosen items.
 - GotoMultiPoints
    - Walks between multiple coordinates using Baritone.
+- InHand
+  - Fill your mainhand and offhand with chosen items.
 - QuickCommand
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickEntity
   - Automatically interacts with entities in range.
-
-### In progress
 - Timeline
   - Use simple commands to schedule other modules to enable/disable.
+
+### In progress
  
 ### Candidate feature
 - FlyTillHausePatch: Infinite flight—stops only if hausemaster disables it.
