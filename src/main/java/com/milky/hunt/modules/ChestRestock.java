@@ -42,23 +42,23 @@ public class ChestRestock extends Module {
     private final Setting<Integer> restockUntil = sgGeneral.add(new IntSetting.Builder()
         .name("restock-until")
         .description("Target total count in inventory.")
-        .defaultValue(64)
+        .defaultValue(2304)
         .min(1)
-        .sliderMax(1024)
+        .sliderMax(2304)
         .build()
     );
 
     private final Setting<BlockPos> chestPosSetting = sgGeneral.add(new BlockPosSetting.Builder()
         .name("chest-pos")
         .description("Chest coordinate.")
-        .defaultValue(new BlockPos(8, 64, 8))
+        .defaultValue(new BlockPos(0, 64, 0))
         .build()
     );
 
     private final Setting<Double> reachDistance = sgGeneral.add(new DoubleSetting.Builder()
         .name("reach-distance")
         .description("Consider reached when you are within this distance.")
-        .defaultValue(1.5)
+        .defaultValue(3)
         .min(0.5)
         .sliderMax(5.0)
         .build()
@@ -67,9 +67,9 @@ public class ChestRestock extends Module {
     private final Setting<Integer> clicksPerTick = sgGeneral.add(new IntSetting.Builder()
         .name("clicks-per-tick")
         .description("Max quick-move clicks per tick while looting.")
-        .defaultValue(8)
+        .defaultValue(1)
         .min(1)
-        .max(64)
+        .max(8)
         .build()
     );
 
