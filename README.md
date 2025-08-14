@@ -57,7 +57,7 @@ This mod isn’t meant to be serious or useful — it’s just 🐮 and friends 
 - RightClickEntity
   - 自动与范围内的实体互动。
 - Timeline
-  - 像管弦乐队一样指挥你的其他 Meteor 模块 —— 按顺序或并行开启/关闭。
+  - 像指挥管弦乐队一样安排你的其他 Meteor 模块 —— 按顺序或并行开启/关闭。
   - 写一行代码就能排好日程，还能选择循环执行。
 
 ### 候选功能
