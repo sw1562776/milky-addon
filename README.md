@@ -35,25 +35,28 @@ Meteor Addon For minecraft 1.21.4
 This mod isn’t meant to be serious or useful — it’s just 🐮 and friends talking big. (Back on July 30, 🐮 complained about the lack of decent open-source PVP mods for 2b2t.org.) 🐮 has no idea how to code. Realistically, there’s a 99% chance this gets abandoned in three days. But in that glorious 1%, you just might witness 🐮 learn everything from scratch, grinding hard and sprinting full speed toward building a real PVP module. If that sounds fun, stick around — 🐮’s Discord: dandelion_94876.
 
 # Milky Mod
+
 适用于 Minecraft 1.21.4 的 Meteor 插件
+
 ### 现有模块
--AutoGolem
+
+- AutoGolem
   - 你想堆个雪人吗？♪♪ 也许是铁做的……甚至是黑的。
--AutoInvertedY
+- AutoInvertedY
   - 自动建造你最爱的、呃……标志性造型 —— 用你想用的任何方块。完美适合打造一片骄傲又荒谬的火箭花园。
--ChestDeposit
+- ChestDeposit
   - 自动把背包里的物品存进箱子。
--ChestRestock
+- ChestRestock
   - 自动从箱子补充你选定的物品到背包。
--GotoMultiPoints
+- GotoMultiPoints
   - 用 Baritone 在多个坐标点间巡游。
--InHand
+- InHand
   - 自动把你选定的物品填满主手和副手。
--QuickCommand
+- QuickCommand
   - 一键把带有各种占位符的消息/指令发到游戏聊天。
--RightClickEntity
+- RightClickEntity
   - 自动与范围内的实体互动。
--Timeline
+- Timeline
   - 像指挥乐队一样安排你的 Meteor 模块 —— 按顺序或并行开启/关闭。
   - 写个小脚本就能排好日程，还能选择循环执行。
 ###候选功能
