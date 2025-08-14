@@ -61,11 +61,11 @@ This mod isn’t meant to be serious or useful — it’s just 🐮 and friends 
   - 写个小脚本就能排好日程，还能选择循环执行。
 
 ### 候选功能
--PullUp
+- PullUp
   - 自动从地面起飞，爬升到指定高度。
--PitStop
+- PitStop
   - 自动降落补给，补好再出发。
--RightClickBlock
+- RightClickBlock
   - 自动与范围内的方块互动。
 ### 关于
 这个模组不是什么严肃的生产工具 —— 只是 🐮 在和朋友们吹牛。（7 月 30 号那天，🐮 在抱怨 2b2t.org 上缺乏好用的开源 PVP 模组。）🐮 完全不会写代码。说实话，有 99% 的可能三天后就烂尾了。但在那 1% 的奇迹里，你或许能看到 🐮 从零开始学习，全速冲刺地，写一个真正的 PVP 模块。如果这听起来很有意思，那就留下来看看吧 —— 🐮 的 Discord：dandelion_94876。
