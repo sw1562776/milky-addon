@@ -19,7 +19,7 @@ Meteor Addon For minecraft 1.21.4
 - RightClickEntity
   - Automatically interacts with entities in range.
 - Timeline
-  - Timeline orchestrates your Meteor modules—start and stop modules in a defined order or in parallel.
+  - Orchestrates your Meteor modules—start and stop modules in a defined order or in parallel.
   - Write a short script to schedule routines and optionally loop them.
  
 ### Candidate feature
