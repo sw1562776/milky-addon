@@ -22,9 +22,9 @@ Meteor Addon For minecraft 1.21.4
   - Use simple commands to schedule other modules to enable/disable.
 
 ### In progress
+- FlyTillHausePatch: Infinite flight—stops only if hausemaster disables it.
  
 ### Candidate feature
-- FlyTillHausePatch: Infinite flight—stops only if hausemaster disables it.
 - RightClickBlock
   - Automatically interacts with blocks in range.
 
