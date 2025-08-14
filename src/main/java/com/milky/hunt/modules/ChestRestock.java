@@ -3,7 +3,6 @@ package com.milky.hunt.modules;
 import baritone.api.BaritoneAPI;
 import baritone.api.pathing.goals.GoalBlock;
 import com.milky.hunt.Addon;
-import com.milky.hunt.mixin.ClientWorldPendingUpdateAccessor;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
@@ -225,7 +224,7 @@ public class ChestRestock extends Module {
         Vec3d hitVec = Vec3d.ofCenter(pos).add(0, 0.5, 0);
         BlockHitResult hit = new BlockHitResult(hitVec, Direction.UP, pos, false);
 
-        var pum = ((ClientWorldPendingUpdateAccessor) (ClientWorld) m.world).milky$getPendingUpdateManager();
+        var pum = ((ClientWorld) m.world).getPendingUpdateManager();
         pum.incrementSequence();
         int sequence = pum.getSequence();
 
