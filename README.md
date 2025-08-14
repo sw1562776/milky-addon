@@ -43,7 +43,7 @@ This mod isn’t meant to be serious or useful — it’s just 🐮 and friends 
 - AutoGolem
   - 你想堆个雪人吗？♪♪ 也许是铁做的……甚至是黑的。
 - AutoInvertedY
-  - 自动建造你最爱的、呃……标志性造型 —— 用你想用的任何方块。完美适合打造一片骄傲又荒谬的火箭花园。
+  - 自动建造你最爱的、呃……标志性造型 —— 用你想用的任何方块。*火箭花园*必备。
 - ChestDeposit
   - 自动把背包里的选定物品存进箱子。
 - ChestRestock
