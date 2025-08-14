@@ -6,6 +6,8 @@ Meteor Addon For minecraft 1.21.4
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
 - AutoInvertedY
   - Automatically constructs your favorite, uh... iconic shape — using any block you choose. Ideal for establishing a proudly ridiculous *rocket garden*.
+- ChestDeposit
+  - Automatically deposits items from your inventory into chests when needed.
 - ChestRestock
   - Automatically refill your inventory with chosen item from chests when necessary.
 - InHand
@@ -18,8 +20,6 @@ Meteor Addon For minecraft 1.21.4
   - Automatically interacts with entities in range.
 
 ### In progress
-- AutoDeposit
-  - Automatically deposits items from your inventory into chests when needed.
 - Timeline
   - Use simple commands to schedule other modules to enable/disable.
  
