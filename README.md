@@ -21,9 +21,6 @@ Meteor Addon For minecraft 1.21.4
 - Timeline
   - Timeline orchestrates your Meteor modules—start and stop modules in a defined order or in parallel.
   - Write a short script to schedule routines and optionally loop them.
-
-### In progress
-- FlyTillHausePatch: Infinite flight—stops only if hausemaster disables it.
  
 ### Candidate feature
 - RightClickBlock
