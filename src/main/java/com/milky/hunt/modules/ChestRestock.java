@@ -161,12 +161,19 @@ public class ChestRestock extends Module {
         ScreenHandler h = mc.player.currentScreenHandler;
         return h != null && h != mc.player.playerScreenHandler;
     }
-
+    
     private void closeIfOpen() {
+        if (mc == null || mc.player == null) return;
+
         if (isContainerOpen()) {
-            mc.getNetworkHandler().sendPacket(new CloseHandledScreenC2SPacket(mc.player.currentScreenHandler.syncId));
+            mc.player.closeHandledScreen();
+        }
+        
+        if (mc.currentScreen != null) {
+            mc.setScreen(null);
         }
     }
+
 
     private void tryOpenChestPacket(BlockPos pos) {
         MinecraftClient m = mc;
