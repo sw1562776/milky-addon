@@ -23,6 +23,10 @@ Meteor Addon For minecraft 1.21.4
   - Write a short script to schedule routines and optionally loop them.
  
 ### Candidate feature
+- PullUp
+  - Automatically takes off from the ground and climbs to your target altitude.
+- PitStop
+  - Lands automatically for a quick restock before you head back out.
 - RightClickBlock
   - Automatically interacts with blocks in range.
 
