@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 public class Timeline extends Module {
     private enum StepType { WAIT_MODULE, RUN_GROUP_DURATION }
+
     private static class Step {
         StepType type;
         List<String> modules;
@@ -38,10 +39,11 @@ public class Timeline extends Module {
 
     private final Setting<Boolean> strictNames = sgGeneral.add(new BoolSetting.Builder()
         .name("strict-names")
-        .description("Fail on unknown module names.")
+        .description("Fail on unknown module names at parse-time.")
         .defaultValue(false)
         .build()
     );
+
 
     private static final Set<String> ONLY_UNTIMED = new HashSet<>(Arrays.asList(
         "chestdeposit", "chestrestock", "quickcommand"
@@ -164,24 +166,47 @@ public class Timeline extends Module {
 
             if (tokens.length == 1) {
                 String mod = tokens[0];
-                if (isOnlyTimed(mod)) { parseError = "Module requires duration: " + mod; return false; }
-                if (strictNames.get() && findModule(mod) == null) { parseError = "Unknown module: " + mod; return false; }
+
+                if (isOnlyTimed(mod)) {
+                    parseError = "Module requires duration: " + mod;
+                    return false;
+                }
+                if (strictNames.get() && findModule(mod) == null) {
+                    parseError = "Unknown module: " + mod;
+                    return false;
+                }
+
                 steps.add(new Step(StepType.WAIT_MODULE, List.of(mod), 0));
                 continue;
             }
 
             String last = tokens[tokens.length - 1];
             Long dur = parseDurationMs(last);
-            if (dur == null) { parseError = "Comma group must end with a duration: " + part; return false; }
+            if (dur == null) {
+                parseError = "Comma group must end with a duration: " + part;
+                return false;
+            }
 
             List<String> mods = new ArrayList<>();
             for (int i = 0; i < tokens.length - 1; i++) {
                 String m = tokens[i];
-                if (isOnlyUntimed(m)) { parseError = "Module cannot be used with duration: " + m; return false; }
-                if (!isParallelAllowed(m)) { parseError = "Only RightClickEntity, InHand, GotoMultiPoints can be used in parallel: " + m; return false; }
-                if (strictNames.get() && findModule(m) == null) { parseError = "Unknown module: " + m; return false; }
+
+                if (isOnlyUntimed(m)) {
+                    parseError = "Module cannot be used with duration: " + m;
+                    return false;
+                }
+                if (!isParallelAllowed(m)) {
+                    parseError = "Only RightClickEntity, InHand, GotoMultiPoints can be used in parallel: " + m;
+                    return false;
+                }
+                if (strictNames.get() && findModule(m) == null) {
+                    parseError = "Unknown module: " + m;
+                    return false;
+                }
+
                 mods.add(m);
             }
+
             steps.add(new Step(StepType.RUN_GROUP_DURATION, mods, dur));
         }
         return true;
@@ -217,13 +242,7 @@ public class Timeline extends Module {
     private static boolean isParallelAllowed(String name) { return ALLOWED_PARALLEL.contains(key(name)); }
 
     private Module findModule(String name) {
-        Module m = Modules.get().get(name);
-        if (m != null) return m;
-        for (Module each : Modules.get()) {
-            String n = each.name;
-            if (n != null && n.equalsIgnoreCase(name)) return each;
-        }
-        return null;
+        return Modules.get().get(name);
     }
 
     private void failUnknown(String name) {
