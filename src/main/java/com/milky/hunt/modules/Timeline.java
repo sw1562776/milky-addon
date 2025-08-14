@@ -63,9 +63,17 @@ public class Timeline extends Module {
     private boolean armedWait = false;
     private long loopStartAt = 0L;
 
-    public Timeline() {
-        super(Addon.CATEGORY, "Timeline", "Time-based module sequencer.");
-    }
+public Timeline() {
+    super(
+        Addon.CATEGORY,
+        "Timeline",
+        "Time-based sequencer that runs other modules via a one-line script.\n" +
+        "Use ';' to chain steps in order; within a step, ',' runs modules in parallel and the last token must be a duration (30s/2m/1h).\n" +
+        "A single module with no duration means: start it (if needed) and wait until it deactivates, then continue.\n" +
+        "Parallel steps may include only RightClickEntity, InHand, GotoMultiPoints; RightClickEntity and InHand require a duration; ChestDeposit, ChestRestock, QuickCommand must be untimed; GotoMultiPoints supports both.\n" +
+        "Enable 'loop' to restart from the first step when finished; the HUD shows the current step and 'loop 15h3m1s' elapsed in this round."
+    );
+}
 
     @Override
     public void onActivate() {
