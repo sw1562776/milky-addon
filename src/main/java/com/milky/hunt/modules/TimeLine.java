@@ -1,0 +1,249 @@
+package com.milky.hunt.modules;
+
+import com.milky.hunt.Addon;
+import meteordevelopment.meteorclient.events.world.TickEvent;
+import meteordevelopment.meteorclient.settings.*;
+import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.Modules;
+import meteordevelopment.orbit.EventHandler;
+import meteordevelopment.orbit.EventPriority;
+
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+
+public class Timeline extends Module {
+    private enum StepType { WAIT_MODULE, RUN_GROUP_DURATION }
+    private static class Step {
+        StepType type;
+        List<String> modules;
+        long durationMs;
+        Step(StepType t, List<String> ms, long d) { type = t; modules = ms; durationMs = d; }
+    }
+
+    private final SettingGroup sgGeneral = settings.getDefaultGroup();
+
+    private final Setting<String> script = sgGeneral.add(new StringSetting.Builder()
+        .name("timeline-script")
+        .description("Example: ChestRestock ; GotoMultiPoints, RightClickEntity, 30 mins")
+        .defaultValue("ChestRestock ; GotoMultiPoints, RightClickEntity, 30 mins")
+        .build()
+    );
+
+    private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
+        .name("loop")
+        .description("Loop the sequence.")
+        .defaultValue(false)
+        .build()
+    );
+
+    private final Setting<Boolean> strictNames = sgGeneral.add(new BoolSetting.Builder()
+        .name("strict-names")
+        .description("Fail on unknown module names.")
+        .defaultValue(false)
+        .build()
+    );
+
+    private static final Set<String> ONLY_UNTIMED = new HashSet<>(Arrays.asList(
+        "chestdeposit", "chestrestock", "quickcommand"
+    ));
+    private static final Set<String> ONLY_TIMED = new HashSet<>(Arrays.asList(
+        "rightclickentity", "inhand"
+    ));
+    private static final Set<String> ALLOWED_PARALLEL = new HashSet<>(Arrays.asList(
+        "rightclickentity", "inhand", "gotomultipoints"
+    ));
+
+    private final List<Step> steps = new ArrayList<>();
+    private int idx = -1;
+    private long stepEndAt = 0L;
+    private final Set<String> startedThisStep = new HashSet<>();
+    private final Map<String, Boolean> wasActiveBefore = new HashMap<>();
+    private String parseError = null;
+    private boolean armedWait = false;
+
+    public Timeline() {
+        super(Addon.CATEGORY, "Timeline", "Time-based module sequencer.");
+    }
+
+    @Override
+    public void onActivate() {
+        steps.clear();
+        idx = -1;
+        stepEndAt = 0L;
+        startedThisStep.clear();
+        wasActiveBefore.clear();
+        parseError = null;
+        armedWait = false;
+
+        if (!parse(script.get())) { toggle(); return; }
+        nextStep();
+    }
+
+    @Override
+    public void onDeactivate() {
+        stopStep(true);
+        startedThisStep.clear();
+        wasActiveBefore.clear();
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    private void onTick(TickEvent.Pre e) {
+        if (!isActive()) return;
+        if (parseError != null) { toggle(); return; }
+        if (idx < 0 || idx >= steps.size()) { toggle(); return; }
+
+        Step s = steps.get(idx);
+        switch (s.type) {
+            case WAIT_MODULE -> {
+                String name = s.modules.get(0);
+                Module m = findModule(name);
+                if (m == null) { failUnknown(name); return; }
+                if (!armedWait) {
+                    wasActiveBefore.put(name, m.isActive());
+                    if (!m.isActive()) { m.toggle(); startedThisStep.add(name); }
+                    armedWait = true;
+                } else {
+                    if (!m.isActive()) nextStep();
+                }
+            }
+            case RUN_GROUP_DURATION -> {
+                long now = System.currentTimeMillis();
+                if (stepEndAt == 0L) {
+                    for (String name : s.modules) {
+                        Module m = findModule(name);
+                        if (m == null) { failUnknown(name); return; }
+                        wasActiveBefore.put(name, m.isActive());
+                        if (!m.isActive()) { m.toggle(); startedThisStep.add(name); }
+                    }
+                    stepEndAt = now + s.durationMs;
+                } else if (now >= stepEndAt) {
+                    stopStep(false);
+                    nextStep();
+                }
+            }
+        }
+    }
+
+    private void nextStep() {
+        idx++;
+        armedWait = false;
+        stepEndAt = 0L;
+        startedThisStep.clear();
+        if (idx >= steps.size()) {
+            if (loop.get()) idx = 0;
+            else toggle();
+        }
+    }
+
+    private void stopStep(boolean onDeactivate) {
+        if (idx < 0 || idx >= steps.size()) return;
+        Step s = steps.get(idx);
+        if (s.type == StepType.RUN_GROUP_DURATION || onDeactivate) {
+            for (String name : startedThisStep) {
+                Module m = findModule(name);
+                if (m != null) {
+                    boolean before = wasActiveBefore.getOrDefault(name, false);
+                    if (m.isActive() && !before) m.toggle();
+                }
+            }
+        }
+    }
+
+    private boolean parse(String text) {
+        parseError = null;
+        steps.clear();
+
+        String[] parts = Arrays.stream(text.split(";"))
+            .map(String::trim).filter(p -> !p.isEmpty()).toArray(String[]::new);
+        if (parts.length == 0) { parseError = "Empty script"; return false; }
+
+        for (String part : parts) {
+            String[] tokens = Arrays.stream(part.split(","))
+                .map(String::trim).filter(t -> !t.isEmpty()).toArray(String[]::new);
+            if (tokens.length == 0) continue;
+
+            if (tokens.length == 1) {
+                String mod = tokens[0];
+                if (isOnlyTimed(mod)) { parseError = "Module requires duration: " + mod; return false; }
+                if (strictNames.get() && findModule(mod) == null) { parseError = "Unknown module: " + mod; return false; }
+                steps.add(new Step(StepType.WAIT_MODULE, List.of(mod), 0));
+                continue;
+            }
+
+            String last = tokens[tokens.length - 1];
+            Long dur = parseDurationMs(last);
+            if (dur == null) { parseError = "Comma group must end with a duration: " + part; return false; }
+
+            List<String> mods = new ArrayList<>();
+            for (int i = 0; i < tokens.length - 1; i++) {
+                String m = tokens[i];
+                if (isOnlyUntimed(m)) { parseError = "Module cannot be used with duration: " + m; return false; }
+                if (!isParallelAllowed(m)) { parseError = "Only RightClickEntity, InHand, GotoMultiPoints can be used in parallel: " + m; return false; }
+                if (strictNames.get() && findModule(m) == null) { parseError = "Unknown module: " + m; return false; }
+                mods.add(m);
+            }
+            steps.add(new Step(StepType.RUN_GROUP_DURATION, mods, dur));
+        }
+        return true;
+    }
+
+    private Long parseDurationMs(String raw) {
+        String s = raw.trim().toLowerCase(Locale.ROOT);
+        if (s.matches("\\d+[smh]")) {
+            long n = Long.parseLong(s.substring(0, s.length() - 1));
+            char u = s.charAt(s.length() - 1);
+            if (u == 's') return TimeUnit.SECONDS.toMillis(n);
+            if (u == 'm') return TimeUnit.MINUTES.toMillis(n);
+            if (u == 'h') return TimeUnit.HOURS.toMillis(n);
+        }
+        String[] sp = s.split("\\s+");
+        if (sp.length == 2 && sp[0].matches("\\d+")) {
+            long n = Long.parseLong(sp[0]);
+            String u = sp[1];
+            if (u.startsWith("s")) return TimeUnit.SECONDS.toMillis(n);
+            if (u.startsWith("m")) return TimeUnit.MINUTES.toMillis(n);
+            if (u.startsWith("h")) return TimeUnit.HOURS.toMillis(n);
+        }
+        if (sp.length == 1 && sp[0].matches("\\d+")) {
+            long n = Long.parseLong(sp[0]);
+            return TimeUnit.SECONDS.toMillis(n);
+        }
+        return null;
+    }
+
+    private static String key(String name) { return name.toLowerCase(Locale.ROOT); }
+    private static boolean isOnlyUntimed(String name) { return ONLY_UNTIMED.contains(key(name)); }
+    private static boolean isOnlyTimed(String name) { return ONLY_TIMED.contains(key(name)); }
+    private static boolean isParallelAllowed(String name) { return ALLOWED_PARALLEL.contains(key(name)); }
+
+    private Module findModule(String name) {
+        Module m = Modules.get().get(name);
+        if (m != null) return m;
+        for (Module each : Modules.get()) {
+            String n = each.name;
+            if (n != null && n.equalsIgnoreCase(name)) return each;
+        }
+        return null;
+    }
+
+    private void failUnknown(String name) {
+        parseError = "Unknown module: " + name;
+        stopStep(false);
+    }
+
+    @Override
+    public String getInfoString() {
+        if (parseError != null) return "ERR";
+        if (idx < 0 || idx >= steps.size()) return null;
+        Step s = steps.get(idx);
+        if (s.type == StepType.WAIT_MODULE) {
+            return (idx + 1) + "/" + steps.size() + " " + s.modules.get(0);
+        } else {
+            long leftMs = Math.max(0L, stepEndAt == 0L ? 0L : (stepEndAt - System.currentTimeMillis()));
+            long sec = leftMs / 1000;
+            long mm = sec / 60, ss = sec % 60;
+            return (idx + 1) + "/" + steps.size() + " " + String.join("+", s.modules) +
+                " " + String.format("%d:%02d", mm, ss);
+        }
+    }
+}
