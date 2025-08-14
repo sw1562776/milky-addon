@@ -22,10 +22,11 @@ Meteor Addon For minecraft 1.21.4
   - Automatically refill your inventory from chests when necessary.
 - RightClickBlock
   - Automatically interacts with blocks in range.
+- Timeline
+  - Use simple commands to schedule other modules to enable/disable.
  
 ### Candidate feature
 - CruiseUp
-- Timeline
 - VCNameTag
 
 
