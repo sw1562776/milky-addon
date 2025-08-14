@@ -45,7 +45,7 @@ This mod isn’t meant to be serious or useful — it’s just 🐮 and friends 
 - AutoInvertedY
   - 自动建造你最爱的、呃……标志性造型 —— 用你想用的任何方块。完美适合打造一片骄傲又荒谬的火箭花园。
 - ChestDeposit
-  - 自动把背包里的物品存进箱子。
+  - 自动把背包里的选定物品存进箱子。
 - ChestRestock
   - 自动从箱子补充你选定的物品到背包。
 - GotoMultiPoints
@@ -57,8 +57,8 @@ This mod isn’t meant to be serious or useful — it’s just 🐮 and friends 
 - RightClickEntity
   - 自动与范围内的实体互动。
 - Timeline
-  - 像指挥乐队一样安排你的 Meteor 模块 —— 按顺序或并行开启/关闭。
-  - 写个小脚本就能排好日程，还能选择循环执行。
+  - 像管弦乐队一样指挥你的其他 Meteor 模块 —— 按顺序或并行开启/关闭。
+  - 写一行代码就能排好日程，还能选择循环执行。
 
 ### 候选功能
 - PullUp
