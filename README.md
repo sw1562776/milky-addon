@@ -33,3 +33,35 @@ Meteor Addon For minecraft 1.21.4
 
 ### About
 This mod isn’t meant to be serious or useful — it’s just 🐮 and friends talking big. (Back on July 30, 🐮 complained about the lack of decent open-source PVP mods for 2b2t.org.) 🐮 has no idea how to code. Realistically, there’s a 99% chance this gets abandoned in three days. But in that glorious 1%, you just might witness 🐮 learn everything from scratch, grinding hard and sprinting full speed toward building a real PVP module. If that sounds fun, stick around — 🐮’s Discord: dandelion_94876.
+
+# Milky Mod
+适用于 Minecraft 1.21.4 的 Meteor 插件
+### 现有模块
+-AutoGolem
+你想堆个雪人吗？♪♪ 也许是铁做的……甚至是黑的。
+-AutoInvertedY
+自动建造你最爱的、呃……标志性造型 —— 用你想用的任何方块。完美适合打造一片骄傲又荒谬的火箭花园。
+-ChestDeposit
+自动把背包里的物品存进箱子。
+-ChestRestock
+自动从箱子补充你选定的物品到背包。
+-GotoMultiPoints
+用 Baritone 在多个坐标点间巡游。
+-InHand
+自动把你选定的物品填满主手和副手。
+-QuickCommand
+一键把带有各种占位符的消息/指令发到游戏聊天。
+-RightClickEntity
+自动与范围内的实体互动。
+-Timeline
+像指挥乐队一样安排你的 Meteor 模块 —— 按顺序或并行开启/关闭。
+写个小脚本就能排好日程，还能选择循环执行。
+###候选功能
+-PullUp
+自动从地面起飞，爬升到指定高度。
+-PitStop
+自动降落补给，补好再出发。
+-RightClickBlock
+自动与范围内的方块互动。
+###关于
+这个模组不是什么严肃的生产工具 —— 它只是 🐮 和朋友们的吹牛大赛。（7 月 30 号那天，🐮 还在抱怨 2b2t.org 上缺乏好用的开源 PVP 模组。）🐮 完全不会写代码。说实话，有 99% 的可能三天后就烂尾了。但在那 1% 的奇迹里，你或许能看到 🐮 从零开始学习，全速冲刺地去写一个真正的 PVP 模块。如果这听起来很有意思，那就留下来看看吧 —— 🐮 的 Discord：dandelion_94876。
