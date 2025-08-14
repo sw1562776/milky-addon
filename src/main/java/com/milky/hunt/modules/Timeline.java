@@ -44,7 +44,6 @@ public class Timeline extends Module {
         .build()
     );
 
-
     private static final Set<String> ONLY_UNTIMED = new HashSet<>(Arrays.asList(
         "chestdeposit", "chestrestock", "quickcommand"
     ));
@@ -62,6 +61,7 @@ public class Timeline extends Module {
     private final Map<String, Boolean> wasActiveBefore = new HashMap<>();
     private String parseError = null;
     private boolean armedWait = false;
+    private long loopStartAt = 0L;
 
     public Timeline() {
         super(Addon.CATEGORY, "Timeline", "Time-based module sequencer.");
@@ -76,6 +76,7 @@ public class Timeline extends Module {
         wasActiveBefore.clear();
         parseError = null;
         armedWait = false;
+        loopStartAt = System.currentTimeMillis();
 
         if (!parse(script.get())) { toggle(); return; }
         nextStep();
@@ -131,9 +132,14 @@ public class Timeline extends Module {
         armedWait = false;
         stepEndAt = 0L;
         startedThisStep.clear();
+
         if (idx >= steps.size()) {
-            if (loop.get()) idx = 0;
-            else toggle();
+            if (loop.get()) {
+                idx = 0;
+                loopStartAt = System.currentTimeMillis();
+            } else {
+                toggle();
+            }
         }
     }
 
@@ -250,19 +256,35 @@ public class Timeline extends Module {
         stopStep(false);
     }
 
+    private static String formatCompact(long ms) {
+        if (ms < 0) ms = 0;
+        long s = ms / 1000;
+        long h = s / 3600;
+        long m = (s % 3600) / 60;
+        long sec = s % 60;
+
+        StringBuilder sb = new StringBuilder();
+        if (h > 0) sb.append(h).append("h");
+        if (m > 0 || h > 0) sb.append(m).append("m");
+        sb.append(sec).append("s");
+        return sb.toString();
+    }
+
     @Override
     public String getInfoString() {
         if (parseError != null) return "ERR";
         if (idx < 0 || idx >= steps.size()) return null;
+
+        String loopStr = "loop " + formatCompact(System.currentTimeMillis() - loopStartAt);
         Step s = steps.get(idx);
+
         if (s.type == StepType.WAIT_MODULE) {
-            return (idx + 1) + "/" + steps.size() + " " + s.modules.get(0);
+            return (idx + 1) + "/" + steps.size() + " " + s.modules.get(0) + " | " + loopStr;
         } else {
             long leftMs = Math.max(0L, stepEndAt == 0L ? 0L : (stepEndAt - System.currentTimeMillis()));
-            long sec = leftMs / 1000;
-            long mm = sec / 60, ss = sec % 60;
-            return (idx + 1) + "/" + steps.size() + " " + String.join("+", s.modules) +
-                " " + String.format("%d:%02d", mm, ss);
+            String stepLeft = formatCompact(leftMs);
+            String mods = String.join("+", s.modules);
+            return (idx + 1) + "/" + steps.size() + " " + mods + " " + stepLeft + " | " + loopStr;
         }
     }
 }
