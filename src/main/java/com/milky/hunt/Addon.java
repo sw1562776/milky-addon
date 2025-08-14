@@ -26,11 +26,11 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new AutoInvertedY());
         Modules.get().add(new ChestDeposit());
         Modules.get().add(new ChestRestock());
+        Modules.get().add(new GotoMultiPoints());
         Modules.get().add(new InHand());
+        Modules.get().add(new QuickCommand());
         Modules.get().add(new RightClickEntity());
         Modules.get().add(new Timeline());
-        Modules.get().add(new QuickCommand());
-        Modules.get().add(new GotoMultiPoints());
 
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
