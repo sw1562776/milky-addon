@@ -28,8 +28,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 
 public class ChestRestock extends Module {
-    public enum InputMode { Simple, String }
-    private enum State { IDLE, PATHING, OPENING, LOOTING, COOLDOWN }
+    private enum State { IDLE, PATHING, OPEN_ONCE, WAIT_OPEN, LOOTING }
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
@@ -49,26 +48,10 @@ public class ChestRestock extends Module {
         .build()
     );
 
-    private final Setting<InputMode> inputMode = sgGeneral.add(new EnumSetting.Builder<InputMode>()
-        .name("input-mode")
-        .description("Choose coordinate input mode.")
-        .defaultValue(InputMode.Simple)
-        .build()
-    );
-
     private final Setting<BlockPos> chestPosSetting = sgGeneral.add(new BlockPosSetting.Builder()
         .name("chest-pos")
         .description("Chest coordinate.")
         .defaultValue(new BlockPos(8, 64, 8))
-        .visible(() -> inputMode.get() == InputMode.Simple)
-        .build()
-    );
-
-    private final Setting<String> chestPosString = sgGeneral.add(new StringSetting.Builder()
-        .name("chest-pos-str")
-        .description("Chest coordinate in string: x,y,z")
-        .defaultValue("8,64,8")
-        .visible(() -> inputMode.get() == InputMode.String)
         .build()
     );
 
@@ -90,33 +73,22 @@ public class ChestRestock extends Module {
         .build()
     );
 
-    private final Setting<Integer> reopenCooldown = sgGeneral.add(new IntSetting.Builder()
-        .name("reopen-cooldown-ticks")
-        .description("Cooldown before retrying open if it fails.")
-        .defaultValue(10)
-        .min(0)
-        .max(100)
-        .build()
-    );
-
+    private static final int WAIT_OPEN_TICKS_MAX = 10;
     private State state = State.IDLE;
-    private int cd = 0;
     private BlockPos chestPos = BlockPos.ORIGIN;
+    private int waitOpenTicks = 0;
 
     public ChestRestock() {
-        super(Addon.CATEGORY, "ChestRestock", "Restock a chosen item from a chest at a configured coordinate using low-level packets.");
+        super(Addon.CATEGORY, "ChestRestock", "One-shot restock from a chest using low-level packets.");
     }
 
     @Override
     public void onActivate() {
-        chestPos = resolveChestPos();
-        if (chestPos == null) {
-            info("Invalid chest coordinate.");
-            toggle();
-            return;
-        }
+        chestPos = chestPosSetting.get();
+        if (mc.player == null || mc.world == null) { toggle(); return; }
+        if (countInInventory(targetItem.get()) >= restockUntil.get()) { toggle(); return; }
         state = State.IDLE;
-        cd = 0;
+        waitOpenTicks = 0;
     }
 
     @Override
@@ -128,15 +100,9 @@ public class ChestRestock extends Module {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre e) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.world == null) { toggle(); return; }
 
-        int have = countInInventory(targetItem.get());
-        if (have >= restockUntil.get()) {
-            stopBaritone();
-            closeIfOpen();
-            state = State.IDLE;
-            return;
-        }
+        if (countInInventory(targetItem.get()) >= restockUntil.get()) { finishAndToggle(); return; }
 
         switch (state) {
             case IDLE -> {
@@ -146,54 +112,39 @@ public class ChestRestock extends Module {
             case PATHING -> {
                 if (mc.player.getBlockPos().isWithinDistance(chestPos, reachDistance.get())) {
                     stopBaritone();
-                    state = State.OPENING;
+                    state = State.OPEN_ONCE;
                 }
             }
-            case OPENING -> {
-                if (!isContainerOpen()) {
-                    if (cd > 0) { cd--; break; }
-                    tryOpenChestPacket(chestPos);
-                    cd = reopenCooldown.get();
+            case OPEN_ONCE -> {
+                tryOpenChestPacket(chestPos);
+                state = State.WAIT_OPEN;
+                waitOpenTicks = WAIT_OPEN_TICKS_MAX;
+            }
+            case WAIT_OPEN -> {
+                if (isContainerOpen()) {
+                    state = State.LOOTING;
                     break;
                 }
-                state = State.LOOTING;
+                if (--waitOpenTicks <= 0) {
+                    finishAndToggle();
+                }
             }
             case LOOTING -> {
-                if (!isContainerOpen()) {
-                    state = State.OPENING;
-                    break;
+                if (!isContainerOpen()) { finishAndToggle(); return; }
+                int moved = lootSome(targetItem.get(), clicksPerTick.get());
+                boolean chestNoMoreTarget = moved == 0;
+                boolean full = !hasSpaceFor(targetItem.get());
+                if (countInInventory(targetItem.get()) >= restockUntil.get() || chestNoMoreTarget || full) {
+                    finishAndToggle();
                 }
-                int did = lootSome(targetItem.get(), clicksPerTick.get());
-                int now = countInInventory(targetItem.get());
-                boolean chestNoMoreTarget = (did == 0);
-                if (now >= restockUntil.get() || chestNoMoreTarget || !hasSpaceFor(targetItem.get())) {
-                    closeIfOpen();
-                    state = State.COOLDOWN;
-                    cd = 5;
-                }
-            }
-            case COOLDOWN -> {
-                if (cd > 0) cd--;
-                else state = State.IDLE;
             }
         }
     }
 
-    // ---- helpers ----
-
-    private BlockPos resolveChestPos() {
-        if (inputMode.get() == InputMode.Simple) return chestPosSetting.get();
-        try {
-            String[] p = chestPosString.get().split(",");
-            if (p.length != 3) return null;
-            return new BlockPos(
-                Integer.parseInt(p[0].trim()),
-                Integer.parseInt(p[1].trim()),
-                Integer.parseInt(p[2].trim())
-            );
-        } catch (Exception e) {
-            return null;
-        }
+    private void finishAndToggle() {
+        closeIfOpen();
+        stopBaritone();
+        toggle();
     }
 
     private void startBaritone(BlockPos pos) {
