@@ -36,7 +36,7 @@ public class PullUp extends Module {
 
     private final Setting<Double> targetY = sg.add(new DoubleSetting.Builder()
         .name("target-y").description("Stop when reaching this Y.")
-        .defaultValue(800.0).min(0).max(4096).sliderRange(64, 1200).build());
+        .defaultValue(800.0).min(0).max(4096).sliderRange(64, 10000).build());
 
     // Vertical & cruise cadence (no hyper-spam)
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
@@ -45,11 +45,11 @@ public class PullUp extends Module {
 
     private final Setting<Integer> verticalInterval = sg.add(new IntSetting.Builder()
         .name("vertical-interval-ticks").description("Ticks between fireworks during vertical climb (< switch Y).")
-        .defaultValue(8).min(3).max(30).sliderRange(4, 16).build());
+        .defaultValue(8).min(1).max(30).sliderRange(4, 16).build());
 
     private final Setting<Integer> cruiseInterval = sg.add(new IntSetting.Builder()
         .name("cruise-interval-ticks").description("Ticks between fireworks after switch Y.")
-        .defaultValue(12).min(5).max(40).sliderRange(6, 20).build());
+        .defaultValue(12).min(3).max(500).sliderRange(6, 20).build());
 
     // Reacquire gliding strictly when falling
     private final Setting<Integer> reacquireEveryTicks = sg.add(new IntSetting.Builder()
