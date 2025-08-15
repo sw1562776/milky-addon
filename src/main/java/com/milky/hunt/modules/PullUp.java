@@ -9,6 +9,7 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.entity.EntityPose;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -18,10 +19,12 @@ import net.minecraft.util.Hand;
 import java.util.Random;
 
 public class PullUp extends Module {
+    // ----- Settings groups -----
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgTiming  = settings.createGroup("timing");
     private final SettingGroup sgAntiAc  = settings.createGroup("anti-cheat");
-  
+
+    // ----- General -----
     private final Setting<Double> targetY = sgGeneral.add(new DoubleSetting.Builder()
         .name("target-y")
         .description("Stop at this altitude.")
@@ -59,7 +62,8 @@ public class PullUp extends Module {
         .description("Keep rockets selected during the whole climb.")
         .defaultValue(true)
         .build());
-  
+
+    // ----- Timing -----
     private final Setting<Integer> rocketInterval = sgTiming.add(new IntSetting.Builder()
         .name("rocket-interval-ticks")
         .description("Ticks between rocket uses while ascending.")
@@ -77,7 +81,8 @@ public class PullUp extends Module {
         .description("Ticks after leaving ground before START_FALL_FLYING.")
         .defaultValue(2).min(0).sliderRange(0, 10)
         .build());
-  
+
+    // ----- Anti-cheat-ish -----
     private final Setting<Boolean> spoofStartFallFlying = sgAntiAc.add(new BoolSetting.Builder()
         .name("spoof-start-fall-flying")
         .description("Send START_FALL_FLYING packet.")
@@ -95,7 +100,8 @@ public class PullUp extends Module {
         .description("Set pitch to 0 at target altitude.")
         .defaultValue(true)
         .build());
-  
+
+    // ----- State -----
     private enum Phase { INIT, EQUIP, TAKEOFF_ALIGN, JUMP, START_FLY, BOOST, DONE }
     private Phase phase;
 
@@ -110,7 +116,8 @@ public class PullUp extends Module {
     private final Random rng = new Random();
 
     public PullUp() {
-        super(Addon.CATEGORY, "PullUp", "Auto vertical Elytra takeoff with MAIN-HAND rockets and climb to target altitude.");
+        super(Addon.CATEGORY, "PullUp",
+            "Auto vertical Elytra takeoff with MAIN-HAND rockets and climb to target altitude.");
     }
 
     @Override
@@ -118,7 +125,7 @@ public class PullUp extends Module {
         if (mc.player == null) { toggle(); return; }
         phase = Phase.INIT;
         airborneTicks = 0;
-        sinceRocket  = 1000;
+        sinceRocket   = 1000;
         currentInterval = withJitter(rocketInterval.get(), jitter.get());
         savedSlot = mc.player.getInventory().selectedSlot;
         resetPitchLerp();
@@ -132,6 +139,7 @@ public class PullUp extends Module {
         resetPitchLerp();
     }
 
+    // ----- Helpers -----
     private void resetPitchLerp() { pitchLerpTicks = 0; pitchLerpTotal = 0; }
 
     private int withJitter(int base, int j) {
@@ -149,7 +157,7 @@ public class PullUp extends Module {
         if (wearingElytra()) return true;
         FindItemResult ely = InvUtils.find(Items.ELYTRA);
         if (!ely.found()) return false;
-        InvUtils.move().from(ely.slot()).toArmor(EquipmentSlot.CHEST);
+        InvUtils.move().from(ely.slot()).toArmor(2);
         return wearingElytra();
     }
 
@@ -171,7 +179,6 @@ public class PullUp extends Module {
             InvUtils.move().from(any.slot()).toHotbar(mc.player.getInventory().selectedSlot);
             return mc.player.getMainHandStack().getItem() == Items.FIREWORK_ROCKET;
         }
-
         return false;
     }
 
@@ -197,6 +204,10 @@ public class PullUp extends Module {
         pitchLerpTicks++;
     }
 
+    private boolean isGliding() {
+        return mc.player.getPose() == EntityPose.FALL_FLYING;
+    }
+
     private boolean useRocketMainHand() {
         if (!ensureMainHandRockets()) return false;
         mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
@@ -213,29 +224,27 @@ public class PullUp extends Module {
         }
     }
 
-    private enum Phase { INIT, EQUIP, TAKEOFF_ALIGN, JUMP, START_FLY, BOOST, DONE }
-
+    // ----- Tick -----
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre e) {
         if (mc.player == null || mc.world == null) { toggle(); return; }
 
-        if (!haveAnyRockets()) { error("No rockets."); toggle(); return; }
+        if (!haveAnyRockets()) { info("[PullUp] No rockets."); toggle(); return; }
 
         tickPitchLerp();
         double y = mc.player.getY();
 
         switch (phase) {
             case INIT -> {
-                if (autoEquipElytra.get()) phase = Phase.EQUIP;
-                else phase = Phase.TAKEOFF_ALIGN;
+                phase = autoEquipElytra.get() ? Phase.EQUIP : Phase.TAKEOFF_ALIGN;
             }
             case EQUIP -> {
-                if (!ensureElytraEquipped()) { error("No Elytra."); toggle(); return; }
+                if (!ensureElytraEquipped()) { info("[PullUp] No Elytra."); toggle(); return; }
                 phase = Phase.TAKEOFF_ALIGN;
             }
             case TAKEOFF_ALIGN -> {
                 smoothPitchTo(takeoffPitch.get());
-                if (!ensureMainHandRockets()) { error("No rockets to main hand."); toggle(); return; }
+                if (!ensureMainHandRockets()) { info("[PullUp] No rockets to main hand."); toggle(); return; }
                 phase = Phase.JUMP;
             }
             case JUMP -> {
@@ -248,8 +257,8 @@ public class PullUp extends Module {
                 if (airborneTicks >= startDelay.get()) phase = Phase.START_FLY;
             }
             case START_FLY -> {
-                if (!mc.player.isFallFlying()) tryStartFallFlying();
-                if (mc.player.isFallFlying()) {
+                if (!isGliding()) tryStartFallFlying();
+                if (isGliding()) {
                     if (sinceRocket > 3) useRocketMainHand();
                     phase = Phase.BOOST;
                 }
@@ -258,10 +267,10 @@ public class PullUp extends Module {
                 if (y >= switchPitchAtY.get()) smoothPitchTo(cruisePitch.get());
                 else if (Math.abs(mc.player.getPitch() - takeoffPitch.get().floatValue()) > 2f) smoothPitchTo(takeoffPitch.get());
 
-                if (mc.player.isFallFlying()) {
+                if (isGliding()) {
                     sinceRocket++;
                     if (sinceRocket >= currentInterval) {
-                        if (!useRocketMainHand()) { error("Out of rockets or not in main hand."); toggle(); return; }
+                        if (!useRocketMainHand()) { info("[PullUp] Out of rockets or not in main hand."); toggle(); return; }
                         if (!keepRocketsSelected.get() && savedSlot >= 0 && savedSlot < 9) {
                             InvUtils.swap(savedSlot, false);
                         }
