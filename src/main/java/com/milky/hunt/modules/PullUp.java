@@ -36,7 +36,7 @@ public class PullUp extends Module {
         .name("target-y").description("Stop when reaching this Y.")
         .defaultValue(800.0).min(0).max(4096).sliderRange(64, 1200).build());
 
-    // High-frequency spam settings (vertical phase)
+    // High-frequency spam (vertical phase)
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
         .name("pre-spam-ticks").description("Ticks to spam fireworks BEFORE jumping.")
         .defaultValue(10).min(0).max(60).sliderRange(0, 30).build());
@@ -46,14 +46,14 @@ public class PullUp extends Module {
         .defaultValue(2).min(1).max(10).sliderRange(1, 5).build());
 
     private final Setting<Boolean> spamStartFallFlying = sg.add(new BoolSetting.Builder()
-        .name("spam-start-fall-flying").description("Also spam START_FALL_FLYING while spamming in-air.")
+        .name("spam-start-fall-flying").description("Also spam START_FALL_FLYING while airborne.")
         .defaultValue(true).build());
 
     private final Setting<Integer> startFlySpamTicks = sg.add(new IntSetting.Builder()
-        .name("start-fly-spam-ticks").description("Consecutive ticks to send START_FALL_FLYING after jump.")
+        .name("start-fly-spam-ticks").description("Extra consecutive ticks to spam START_FALL_FLYING right after jump.")
         .defaultValue(12).min(0).max(60).sliderRange(0, 30).visible(spamStartFallFlying::get).build());
 
-    // Cruise (post-320) timing
+    // Cruise (post-320)
     private final Setting<Integer> cruiseInterval = sg.add(new IntSetting.Builder()
         .name("cruise-interval-ticks").description("Ticks between fireworks after switch Y.")
         .defaultValue(12).min(5).max(40).sliderRange(5, 30).build());
@@ -145,13 +145,22 @@ public class PullUp extends Module {
                 facePitch(startPitch.get());
                 ensureRocketInMainHand();
 
-                if (ticksInPhase % Math.max(1, spamEveryTicks.get()) == 0) pressFirework();
+                boolean gliding = isPlayerGliding(mc.player);
 
-                if (spamStartFallFlying.get() && startFlySpamLeft > 0) {
-                    if (!mc.player.isOnGround()) {
+                // Keep trying to enter/maintain gliding while airborne
+                if (spamStartFallFlying.get() && !mc.player.isOnGround()) {
+                    if (!gliding) {
+                        sendStartFallFlying(); // continuous recovery attempts
+                    } else if (startFlySpamLeft > 0) {
+                        // optional extra spam window right after jump
                         sendStartFallFlying();
                         startFlySpamLeft--;
                     }
+                }
+
+                // Only use fireworks if actually gliding to ensure thrust applies
+                if (gliding && ticksInPhase % Math.max(1, spamEveryTicks.get()) == 0) {
+                    pressFirework();
                 }
 
                 if (mc.player.getY() >= switchPitchAtY.get()) {
@@ -169,7 +178,13 @@ public class PullUp extends Module {
                     break;
                 }
 
-                if (cd == 0) {
+                // Maintain gliding in cruise too; if lost, try to recover, and pause boosting until gliding resumes
+                boolean gliding = isPlayerGliding(mc.player);
+                if (!gliding && !mc.player.isOnGround() && spamStartFallFlying.get()) {
+                    sendStartFallFlying();
+                }
+
+                if (gliding && cd == 0) {
                     pressFirework();
                     cd = cruiseInterval.get();
                 }
@@ -239,7 +254,7 @@ public class PullUp extends Module {
 
     private static boolean near(double a, double b, double eps) { return Math.abs(a - b) <= eps; }
 
-    // Version-agnostic gliding check (unused in this strategy but kept for future)
+    // Version-agnostic gliding check
     private boolean isPlayerGliding(ClientPlayerEntity p) {
         try {
             Method m = p.getClass().getMethod("isGliding");
