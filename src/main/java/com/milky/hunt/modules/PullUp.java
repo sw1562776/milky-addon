@@ -36,7 +36,7 @@ public class PullUp extends Module {
 
     private final Setting<Double> stage3TargetY = sg.add(new DoubleSetting.Builder()
         .name("stage3-target-y").description("Stop when reaching this Y in Stage 3.")
-        .defaultValue(800.0).min(0).max(4096).sliderRange(64, 10000).build());
+        .defaultValue(1000.0).min(0).max(100000).sliderRange(64, 4096).build());
 
     // -------- Cadence --------
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
