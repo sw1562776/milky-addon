@@ -34,7 +34,7 @@ Meteor Addon For minecraft 1.21.4
 ### About
 This mod isn’t meant to be serious or useful — it’s just 🐮 and friends talking big. (Back on July 30, 🐮 complained about the lack of decent open-source PVP mods for 2b2t.org.) 🐮 has no idea how to code. Realistically, there’s a 99% chance this gets abandoned in three days. But in that glorious 1%, you just might witness 🐮 learn everything from scratch, grinding hard and sprinting full speed toward building a real PVP module. If that sounds fun, stick around — 🐮’s Discord: dandelion_94876.
 
-# Milky Mod
+#
 
 适用于 Minecraft 1.21.4 的 Meteor 插件
 
