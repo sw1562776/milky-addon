@@ -149,7 +149,7 @@ public class PullUp extends Module {
         }
     }
 
-    // --- helpers ---
+    // helpers
 
     private boolean hasElytra() {
         return InvUtils.find(Items.ELYTRA).found();
@@ -164,7 +164,7 @@ public class PullUp extends Module {
         ItemStack chest = mc.player.getInventory().getArmorStack(2);
         if (chest.isOf(Items.ELYTRA)) return;
         FindItemResult ely = InvUtils.find(Items.ELYTRA);
-        if (ely.found()) InvUtils.move().from(ely.slot()).toArmor(2); // 0 boots,1 legs,2 chest,3 head
+        if (ely.found()) InvUtils.move().from(ely.slot()).toArmor(2); // 0 boots, 1 legs, 2 chest, 3 head
     }
 
     private void ensureRocketInMainHand() {
@@ -213,7 +213,8 @@ public class PullUp extends Module {
 
     private void sendLookPacket(float yaw, float pitch) {
         boolean onGround = mc.player.isOnGround();
-        mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, onGround));
+        boolean horizontalCollision = mc.player.horizontalCollision;
+        mc.getNetworkHandler().sendPacket(new PlayerMoveC2SPacket.LookAndOnGround(yaw, pitch, onGround, horizontalCollision));
         mc.player.setYaw(yaw);
         mc.player.setPitch(pitch);
     }
