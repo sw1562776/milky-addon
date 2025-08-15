@@ -7,12 +7,14 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.util.Hand;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Objects;
 
@@ -25,7 +27,7 @@ public class PullUp extends Module {
         .defaultValue(-88.0).min(-90).max(90).sliderRange(-90, 90).build());
 
     private final Setting<Double> switchPitchAtY = sg.add(new DoubleSetting.Builder()
-        .name("switch-pitch-at-y").description("After reaching this Y, switch to cruise pitch and normal boosting.")
+        .name("switch-pitch-at-y").description("After reaching this Y, switch to cruise.")
         .defaultValue(320.0).min(0).max(2000).sliderRange(0, 640).build());
 
     private final Setting<Double> cruisePitch = sg.add(new DoubleSetting.Builder()
@@ -36,7 +38,7 @@ public class PullUp extends Module {
         .name("target-y").description("Stop when reaching this Y.")
         .defaultValue(800.0).min(0).max(4096).sliderRange(64, 1200).build());
 
-    // High-frequency spam (vertical phase)
+    // Vertical phase: high-frequency rockets
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
         .name("pre-spam-ticks").description("Ticks to spam fireworks BEFORE jumping.")
         .defaultValue(10).min(0).max(60).sliderRange(0, 30).build());
@@ -46,14 +48,14 @@ public class PullUp extends Module {
         .defaultValue(2).min(1).max(10).sliderRange(1, 5).build());
 
     private final Setting<Boolean> spamStartFallFlying = sg.add(new BoolSetting.Builder()
-        .name("spam-start-fall-flying").description("Also spam START_FALL_FLYING while airborne.")
+        .name("spam-start-fall-flying").description("Attempt START_FALL_FLYING only while FALLING.")
         .defaultValue(true).build());
 
     private final Setting<Integer> startFlySpamTicks = sg.add(new IntSetting.Builder()
-        .name("start-fly-spam-ticks").description("Extra consecutive ticks to spam START_FALL_FLYING right after jump.")
+        .name("start-fly-spam-ticks").description("Extra FALLING-only attempts right after jump.")
         .defaultValue(12).min(0).max(60).sliderRange(0, 30).visible(spamStartFallFlying::get).build());
 
-    // Cruise (post-320)
+    // Cruise phase
     private final Setting<Integer> cruiseInterval = sg.add(new IntSetting.Builder()
         .name("cruise-interval-ticks").description("Ticks between fireworks after switch Y.")
         .defaultValue(12).min(5).max(40).sliderRange(5, 30).build());
@@ -71,10 +73,14 @@ public class PullUp extends Module {
         .name("always-mainhand-rocket").description("Ensure rockets stay in MAIN hand.")
         .defaultValue(true).build());
 
+    private final Setting<Boolean> nukeRightClickDelay = sg.add(new BoolSetting.Builder()
+        .name("nuke-right-click-delay").description("Force client right-click delay to 0 before firing.")
+        .defaultValue(true).build());
+
     private enum Phase { INIT, EQUIP, ALIGN, PRE_SPAM, JUMP, SPAM_ASCENT, CRUISE, DONE }
     private Phase phase;
     private int ticksInPhase;
-    private int cd;                // cooldown for cruise phase
+    private int cd;
     private int savedSlot = -1;
     private int startFlySpamLeft;
 
@@ -129,10 +135,8 @@ public class PullUp extends Module {
 
             case PRE_SPAM -> {
                 ensureRocketInMainHand();
-                if (ticksInPhase % Math.max(1, spamEveryTicks.get()) == 0) pressFirework();
-                if (ticksInPhase >= preSpamTicks.get()) {
-                    phase = Phase.JUMP; ticksInPhase = 0;
-                }
+                if (ticksInPhase % Math.max(1, spamEveryTicks.get()) == 0) fireIfReady();
+                if (ticksInPhase >= preSpamTicks.get()) { phase = Phase.JUMP; ticksInPhase = 0; }
             }
 
             case JUMP -> {
@@ -146,21 +150,22 @@ public class PullUp extends Module {
                 ensureRocketInMainHand();
 
                 boolean gliding = isPlayerGliding(mc.player);
+                double vy = mc.player.getVelocity().y;
+                boolean falling = vy < -0.02;
 
-                // Keep trying to enter/maintain gliding while airborne
-                if (spamStartFallFlying.get() && !mc.player.isOnGround()) {
-                    if (!gliding) {
-                        sendStartFallFlying(); // continuous recovery attempts
-                    } else if (startFlySpamLeft > 0) {
-                        // optional extra spam window right after jump
-                        sendStartFallFlying();
-                        startFlySpamLeft--;
-                    }
+                // Only try to start/keep gliding when FALLING (never when rising)
+                if (spamStartFallFlying.get() && !mc.player.isOnGround() && !gliding && falling) {
+                    sendStartFallFlying();
+                    if (startFlySpamLeft > 0) startFlySpamLeft--;
+                } else if (gliding && startFlySpamLeft > 0 && falling && spamStartFallFlying.get()) {
+                    // optional extra attempts while still falling
+                    sendStartFallFlying();
+                    startFlySpamLeft--;
                 }
 
-                // Only use fireworks if actually gliding to ensure thrust applies
+                // Only fire rockets when actually gliding
                 if (gliding && ticksInPhase % Math.max(1, spamEveryTicks.get()) == 0) {
-                    pressFirework();
+                    fireIfReady();
                 }
 
                 if (mc.player.getY() >= switchPitchAtY.get()) {
@@ -178,14 +183,16 @@ public class PullUp extends Module {
                     break;
                 }
 
-                // Maintain gliding in cruise too; if lost, try to recover, and pause boosting until gliding resumes
                 boolean gliding = isPlayerGliding(mc.player);
-                if (!gliding && !mc.player.isOnGround() && spamStartFallFlying.get()) {
+                double vy = mc.player.getVelocity().y;
+
+                // Recover gliding only when falling
+                if (!gliding && !mc.player.isOnGround() && spamStartFallFlying.get() && vy < -0.02) {
                     sendStartFallFlying();
                 }
 
                 if (gliding && cd == 0) {
-                    pressFirework();
+                    fireIfReady();
                     cd = cruiseInterval.get();
                 }
             }
@@ -196,7 +203,7 @@ public class PullUp extends Module {
         }
     }
 
-    // helpers
+    // --- helpers ---
 
     private boolean hasElytra() {
         return InvUtils.find(Items.ELYTRA).found();
@@ -243,8 +250,19 @@ public class PullUp extends Module {
         mc.player.setPitch(next); // client-side only
     }
 
-    private void pressFirework() {
+    private void fireIfReady() {
         if (!mc.player.getMainHandStack().isOf(Items.FIREWORK_ROCKET)) return;
+
+        if (nukeRightClickDelay.get()) {
+            try {
+                Field f = MinecraftClient.class.getDeclaredField("itemUseCooldown");
+                f.setAccessible(true);
+                f.setInt(mc, 0);
+            } catch (Throwable ignored) {}
+        }
+
+        if (mc.player.getItemCooldownManager().isCoolingDown(Items.FIREWORK_ROCKET)) return;
+
         mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
     }
 
