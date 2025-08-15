@@ -41,15 +41,15 @@ public class PullUp extends Module {
     // Vertical & angled-climb cadence (no hyper-spam)
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
         .name("pre-spam-ticks").description("Ticks to press fireworks BEFORE jumping.")
-        .defaultValue(0).min(0).max(40).sliderRange(0, 20).build());
+        .defaultValue(10).min(0).max(40).sliderRange(0, 20).build());
 
     private final Setting<Integer> verticalInterval = sg.add(new IntSetting.Builder()
         .name("vertical-interval-ticks").description("Ticks between fireworks during vertical climb (< switch Y).")
-        .defaultValue(8).min(1).max(30).sliderRange(4, 16).build());
+        .defaultValue(4).min(1).max(30).sliderRange(4, 16).build());
 
     private final Setting<Integer> cruiseInterval = sg.add(new IntSetting.Builder()
         .name("angled-interval-ticks").description("Ticks between fireworks during angled climb (≥ switch Y).")
-        .defaultValue(12).min(3).max(500).sliderRange(6, 20).build());
+        .defaultValue(20).min(3).max(500).sliderRange(6, 20).build());
 
     // Reacquire gliding strictly when falling
     private final Setting<Integer> reacquireEveryTicks = sg.add(new IntSetting.Builder()
