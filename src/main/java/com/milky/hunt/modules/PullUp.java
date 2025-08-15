@@ -27,18 +27,18 @@ public class PullUp extends Module {
         .defaultValue(-86.0).min(-90).max(90).sliderRange(-90, 90).build());
 
     private final Setting<Double> switchPitchAtY = sg.add(new DoubleSetting.Builder()
-        .name("switch-pitch-at-y").description("After reaching this Y, switch to cruise.")
+        .name("switch-pitch-at-y").description("After reaching this Y, switch to angled climb.")
         .defaultValue(320.0).min(0).max(2000).sliderRange(0, 640).build());
 
     private final Setting<Double> cruisePitch = sg.add(new DoubleSetting.Builder()
-        .name("cruise-pitch").description("Pitch after passing the switch Y.")
+        .name("angled-pitch").description("Pitch during angled climb (after switch height).")
         .defaultValue(-40.0).min(-90).max(90).sliderRange(-90, 90).build());
 
     private final Setting<Double> targetY = sg.add(new DoubleSetting.Builder()
         .name("target-y").description("Stop when reaching this Y.")
         .defaultValue(800.0).min(0).max(4096).sliderRange(64, 10000).build());
 
-    // Vertical & cruise cadence (no hyper-spam)
+    // Vertical & angled-climb cadence (no hyper-spam)
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
         .name("pre-spam-ticks").description("Ticks to press fireworks BEFORE jumping.")
         .defaultValue(0).min(0).max(40).sliderRange(0, 20).build());
@@ -48,7 +48,7 @@ public class PullUp extends Module {
         .defaultValue(8).min(1).max(30).sliderRange(4, 16).build());
 
     private final Setting<Integer> cruiseInterval = sg.add(new IntSetting.Builder()
-        .name("cruise-interval-ticks").description("Ticks between fireworks after switch Y.")
+        .name("angled-interval-ticks").description("Ticks between fireworks during angled climb (≥ switch Y).")
         .defaultValue(12).min(3).max(500).sliderRange(6, 20).build());
 
     // Reacquire gliding strictly when falling
@@ -86,7 +86,7 @@ public class PullUp extends Module {
     private boolean glidingPrev;  // previous tick
 
     public PullUp() {
-        super(Addon.CATEGORY, "PullUp", "Jump, keep Elytra open, use rockets on a sane cadence to climb vertically then cruise.");
+        super(Addon.CATEGORY, "PullUp", "Jump, keep Elytra open, use rockets on a sane cadence to climb vertically, then transition to an angled climb.");
     }
 
     @Override
@@ -204,7 +204,7 @@ public class PullUp extends Module {
                 boolean airborne = !mc.player.isOnGround();
                 double vy = mc.player.getVelocity().y;
 
-                // reacquire in cruise only when FALLING
+                // reacquire in angled climb only when FALLING
                 if (airborne && !gliding && vy < -0.02 && reacquireCd == 0) {
                     sendStartFallFlying();
                     reacquireCd = Math.max(1, reacquireEveryTicks.get());
@@ -315,7 +315,7 @@ public class PullUp extends Module {
         if (mc.player == null) return null;
         String s = String.format("Y=%.1f/%.0f", mc.player.getY(), targetY.get());
         if (phase == Phase.VERTICAL) s += " | vInt=" + verticalInterval.get();
-        if (phase == Phase.CRUISE) s += " | cInt=" + cruiseInterval.get();
+        if (phase == Phase.CRUISE) s += " | aInt=" + cruiseInterval.get();
         return s;
     }
 }
