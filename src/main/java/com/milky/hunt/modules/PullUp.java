@@ -20,6 +20,7 @@ import java.util.Objects;
 public class PullUp extends Module {
     private final SettingGroup sg = settings.getDefaultGroup();
 
+    // Angles / heights
     private final Setting<Double> startPitch = sg.add(new DoubleSetting.Builder()
         .name("takeoff-pitch")
         .description("Pitch for near-vertical takeoff (degrees).")
@@ -35,16 +36,38 @@ public class PullUp extends Module {
         .description("Pitch after passing the switch Y.")
         .defaultValue(-40.0).min(-90).max(90).sliderRange(-90, 90).build());
 
-    private final Setting<Integer> fireworkInterval = sg.add(new IntSetting.Builder()
-        .name("firework-interval-ticks")
-        .description("Ticks between firework uses while boosting.")
-        .defaultValue(12).min(5).max(40).sliderRange(5, 30).build());
-
     private final Setting<Double> targetY = sg.add(new DoubleSetting.Builder()
         .name("target-y")
         .description("Stop when reaching this Y.")
         .defaultValue(800.0).min(0).max(4096).sliderRange(64, 1200).build());
 
+    // Timing
+    private final Setting<Integer> fireworkInterval = sg.add(new IntSetting.Builder()
+        .name("firework-interval-ticks")
+        .description("Ticks between firework uses while boosting.")
+        .defaultValue(12).min(5).max(40).sliderRange(5, 30).build());
+
+    private final Setting<Integer> minAirTicks = sg.add(new IntSetting.Builder()
+        .name("min-air-ticks")
+        .description("Minimum ticks airborne before attempting to start gliding.")
+        .defaultValue(3).min(0).max(20).sliderRange(0, 10).build());
+
+    private final Setting<Integer> minFallTicks = sg.add(new IntSetting.Builder()
+        .name("min-fall-ticks")
+        .description("Minimum falling ticks before attempting to start gliding.")
+        .defaultValue(2).min(0).max(20).sliderRange(0, 10).build());
+
+    private final Setting<Integer> startFlySpamTicks = sg.add(new IntSetting.Builder()
+        .name("start-fly-spam-ticks")
+        .description("How many consecutive ticks to send START_FALL_FLYING when trying to glide.")
+        .defaultValue(8).min(1).max(40).sliderRange(2, 20).build());
+
+    private final Setting<Integer> firstBoostDelay = sg.add(new IntSetting.Builder()
+        .name("first-boost-delay")
+        .description("Ticks to wait after entering glide before the first firework.")
+        .defaultValue(2).min(0).max(20).sliderRange(0, 10).build());
+
+    // Behavior
     private final Setting<Boolean> smoothRotate = sg.add(new BoolSetting.Builder()
         .name("smooth-rotate")
         .description("Gently rotate each tick.")
@@ -66,6 +89,12 @@ public class PullUp extends Module {
     private int fireworkCd;
     private int savedSlot = -1;
 
+    // Air/glide tracking
+    private int airTicks;
+    private int fallTicks;
+    private int startFlySpamLeft;
+    private int afterGlideDelay;
+
     public PullUp() {
         super(Addon.CATEGORY, "PullUp", "Vertical Elytra auto-takeoff using MAIN-HAND rockets, climb, then level out.");
     }
@@ -75,6 +104,10 @@ public class PullUp extends Module {
         phase = Phase.INIT;
         ticksInPhase = 0;
         fireworkCd = 0;
+        airTicks = 0;
+        fallTicks = 0;
+        startFlySpamLeft = 0;
+        afterGlideDelay = 0;
         if (mc.player != null) savedSlot = mc.player.getInventory().selectedSlot;
     }
 
@@ -82,6 +115,10 @@ public class PullUp extends Module {
     public void onDeactivate() {
         ticksInPhase = 0;
         fireworkCd = 0;
+        airTicks = 0;
+        fallTicks = 0;
+        startFlySpamLeft = 0;
+        afterGlideDelay = 0;
         if (mc.player != null && !keepMainhandRocket.get() && savedSlot >= 0 && savedSlot < 9) {
             mc.player.getInventory().selectedSlot = savedSlot;
         }
@@ -113,14 +150,39 @@ public class PullUp extends Module {
             }
 
             case JUMP -> {
-                if (mc.player.isOnGround()) mc.player.jump();
-                if (!mc.player.isOnGround() && mc.player.getVelocity().y <= 0.05) { phase = Phase.START_FLY; ticksInPhase = 0; }
+                // Track airborne/falling
+                if (mc.player.isOnGround()) {
+                    mc.player.jump();
+                    airTicks = 0;
+                    fallTicks = 0;
+                } else {
+                    airTicks++;
+                    if (mc.player.getVelocity().y < -0.02) fallTicks++; else fallTicks = 0;
+                    if (airTicks >= minAirTicks.get() && fallTicks >= minFallTicks.get()) {
+                        phase = Phase.START_FLY; ticksInPhase = 0;
+                        startFlySpamLeft = startFlySpamTicks.get();
+                    }
+                }
             }
 
             case START_FLY -> {
-                tryStartFallFlying();
-                if (isPlayerGliding(mc.player)) { phase = Phase.BOOST; ticksInPhase = 0; }
-                else if (ticksInPhase > 20) { phase = Phase.JUMP; ticksInPhase = 0; }
+                // Re-check air/fall; if we accidentally touched ground, go back to JUMP
+                if (mc.player.isOnGround()) { phase = Phase.JUMP; ticksInPhase = 0; break; }
+
+                // Spam START_FALL_FLYING for a few ticks while falling
+                if (!isPlayerGliding(mc.player)) {
+                    if (mc.player.getVelocity().y < -0.02 && startFlySpamLeft > 0) {
+                        sendStartFallFlying();
+                        startFlySpamLeft--;
+                    }
+                }
+
+                if (isPlayerGliding(mc.player)) {
+                    afterGlideDelay = firstBoostDelay.get();
+                    phase = Phase.BOOST; ticksInPhase = 0;
+                } else if (ticksInPhase > 40) { // 2s fallback
+                    phase = Phase.JUMP; ticksInPhase = 0;
+                }
             }
 
             case BOOST -> {
@@ -133,13 +195,19 @@ public class PullUp extends Module {
                     break;
                 }
 
-                if (isPlayerGliding(mc.player)) {
+                if (!isPlayerGliding(mc.player)) {
+                    // try to recover gliding if we lost it
+                    if (!mc.player.isOnGround()) sendStartFallFlying();
+                    break;
+                }
+
+                if (afterGlideDelay > 0) {
+                    afterGlideDelay--;
+                } else {
                     if (fireworkCd == 0) {
                         useFireworkMainHand();
                         fireworkCd = fireworkInterval.get();
                     }
-                } else {
-                    tryStartFallFlying();
                 }
             }
 
@@ -205,9 +273,7 @@ public class PullUp extends Module {
         mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
     }
 
-    private void tryStartFallFlying() {
-        if (mc.player.isOnGround()) return;
-        if (isPlayerGliding(mc.player)) return;
+    private void sendStartFallFlying() {
         mc.getNetworkHandler().sendPacket(new ClientCommandC2SPacket(mc.player, ClientCommandC2SPacket.Mode.START_FALL_FLYING));
     }
 
