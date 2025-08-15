@@ -153,17 +153,16 @@ public class PullUp extends Module {
                 double vy = mc.player.getVelocity().y;
                 boolean falling = vy < -0.02;
 
-                // Only try to start/keep gliding when FALLING (never when rising)
+                // Start/maintain gliding only when FALLING (never when rising)
                 if (spamStartFallFlying.get() && !mc.player.isOnGround() && !gliding && falling) {
                     sendStartFallFlying();
                     if (startFlySpamLeft > 0) startFlySpamLeft--;
                 } else if (gliding && startFlySpamLeft > 0 && falling && spamStartFallFlying.get()) {
-                    // optional extra attempts while still falling
                     sendStartFallFlying();
                     startFlySpamLeft--;
                 }
 
-                // Only fire rockets when actually gliding
+                // Fire rockets only when actually gliding
                 if (gliding && ticksInPhase % Math.max(1, spamEveryTicks.get()) == 0) {
                     fireIfReady();
                 }
@@ -186,7 +185,7 @@ public class PullUp extends Module {
                 boolean gliding = isPlayerGliding(mc.player);
                 double vy = mc.player.getVelocity().y;
 
-                // Recover gliding only when falling
+                // Recover gliding only when FALLING
                 if (!gliding && !mc.player.isOnGround() && spamStartFallFlying.get() && vy < -0.02) {
                     sendStartFallFlying();
                 }
@@ -251,7 +250,8 @@ public class PullUp extends Module {
     }
 
     private void fireIfReady() {
-        if (!mc.player.getMainHandStack().isOf(Items.FIREWORK_ROCKET)) return;
+        ItemStack stack = mc.player.getMainHandStack();
+        if (!stack.isOf(Items.FIREWORK_ROCKET)) return;
 
         if (nukeRightClickDelay.get()) {
             try {
@@ -261,7 +261,8 @@ public class PullUp extends Module {
             } catch (Throwable ignored) {}
         }
 
-        if (mc.player.getItemCooldownManager().isCoolingDown(Items.FIREWORK_ROCKET)) return;
+        // Cooldown manager expects ItemStack on your Yarn; skip firing if still cooling down
+        if (mc.player.getItemCooldownManager().isCoolingDown(stack)) return;
 
         mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
     }
