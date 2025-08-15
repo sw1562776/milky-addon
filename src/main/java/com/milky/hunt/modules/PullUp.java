@@ -32,7 +32,7 @@ public class PullUp extends Module {
 
     private final Setting<Double> stage3StartY = sg.add(new DoubleSetting.Builder()
         .name("stage3-start-y").description("When reaching this Y, switch from Stage 2 to Stage 3.")
-        .defaultValue(320.0).min(0).max(2000).sliderRange(0, 640).build());
+        .defaultValue(320.0).min(0).max(2000).sliderRange(0, 512).build());
 
     private final Setting<Double> stage3TargetY = sg.add(new DoubleSetting.Builder()
         .name("stage3-target-y").description("Stop when reaching this Y in Stage 3.")
@@ -46,7 +46,7 @@ public class PullUp extends Module {
     // Stage 1 (fast) → Stage 2 (slow) after ΔY since takeoff
     private final Setting<Integer> stage1Interval = sg.add(new IntSetting.Builder()
         .name("stage1-interval-ticks").description("Rocket interval (ticks) during Stage 1.")
-        .defaultValue(4).min(1).max(30).sliderRange(4, 16).build());
+        .defaultValue(3).min(1).max(30).sliderRange(4, 16).build());
 
     private final Setting<Double> stage2DeltaY = sg.add(new DoubleSetting.Builder()
         .name("stage2-start-delta-y").description("After rising this many blocks from takeoff, switch to Stage 2 cadence.")
