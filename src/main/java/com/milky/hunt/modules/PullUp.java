@@ -24,51 +24,51 @@ public class PullUp extends Module {
     // -------- Stage split & pitches --------
     private final Setting<Double> stage12Pitch = sg.add(new DoubleSetting.Builder()
         .name("stage12-pitch").description("Pitch for Stage 1 & 2 (vertical climb).")
-        .defaultValue(-90.0).min(-90).max(0).build());
+        .defaultValue(-86.0).min(-90).max(90).sliderRange(-90, 90).build());
 
     private final Setting<Double> stage3Pitch = sg.add(new DoubleSetting.Builder()
         .name("stage3-pitch").description("Pitch for Stage 3 (slope / angled climb).")
-        .defaultValue(-60.0).min(-90).max(100000000).build());
+        .defaultValue(-40.0).min(-90).max(90).sliderRange(-90, 90).build());
 
     private final Setting<Double> stage3StartY = sg.add(new DoubleSetting.Builder()
         .name("stage3-start-y").description("When reaching this Y, switch from Stage 2 to Stage 3 (slope).")
-        .defaultValue(320.0).min(0).max(100000000).build());
+        .defaultValue(320.0).min(0).max(2000).sliderRange(0, 512).build());
 
     private final Setting<Double> stage3TargetY = sg.add(new DoubleSetting.Builder()
         .name("stage3-target-y").description("Stop when reaching this Y in Stage 3 (slope).")
-        .defaultValue(1000.0).min(0).max(100000000).build());
+        .defaultValue(1000.0).min(0).max(100000).sliderRange(64, 4096).build());
 
     // -------- Cadence --------
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
         .name("pre-spam-ticks").description("Ticks to press fireworks BEFORE jumping.")
-        .defaultValue(10).min(0).max(40).build());
+        .defaultValue(10).min(0).max(40).sliderRange(0, 20).build());
 
     private final Setting<Integer> stage1Interval = sg.add(new IntSetting.Builder()
         .name("stage1-interval-ticks").description("Rocket interval (ticks) during Stage 1.")
-        .defaultValue(3).min(1).max(60).build());
+        .defaultValue(3).min(1).max(30).sliderRange(4, 16).build());
 
     private final Setting<Double> stage2DeltaY = sg.add(new DoubleSetting.Builder()
         .name("stage2-start-delta-y").description("After rising this many blocks from takeoff, switch to Stage 2 cadence.")
-        .defaultValue(50.0).min(5).max(1000).build());
+        .defaultValue(50.0).min(5).max(500).sliderRange(10, 128).build());
 
     private final Setting<Integer> stage2Interval = sg.add(new IntSetting.Builder()
         .name("stage2-interval-ticks").description("Rocket interval (ticks) during Stage 2.")
-        .defaultValue(10).min(1).max(60).build());
+        .defaultValue(10).min(1).max(60).sliderRange(6, 30).build());
 
     private final Setting<Integer> stage3Interval = sg.add(new IntSetting.Builder()
         .name("stage3-interval-ticks").description("Rocket interval (ticks) during Stage 3 (slope).")
-        .defaultValue(20).min(1).max(600).build());
+        .defaultValue(20).min(3).max(500).sliderRange(6, 20).build());
 
     // -------- Glide reacquire (only when falling) --------
     private final Setting<Integer> reacquireEveryTicks = sg.add(new IntSetting.Builder()
         .name("reacquire-every-ticks").description("When airborne & NOT gliding & falling, try START_FALL_FLYING every N ticks.")
-        .defaultValue(2).min(1).max(20).build());
+        .defaultValue(2).min(1).max(20).sliderRange(1, 10).build());
 
     // -------- Elytra durability guard --------
     private final Setting<Integer> minElytraDurability = sg.add(new IntSetting.Builder()
         .name("elytra-min-durability")
         .description("Minimum remaining durability required at takeoff. In flight, auto-swap to another Elytra if current drops below this.")
-        .defaultValue(8).min(1).max(432).build());
+        .defaultValue(8).min(1).max(432).sliderRange(1, 432).build());
 
     // -------- Behavior --------
     private final Setting<Boolean> smoothRotate = sg.add(new BoolSetting.Builder()
@@ -77,7 +77,7 @@ public class PullUp extends Module {
 
     private final Setting<Double> rotateStep = sg.add(new DoubleSetting.Builder()
         .name("rotate-step").description("Max pitch step per tick when smoothing.")
-        .defaultValue(3.5).min(0.1).max(100).visible(smoothRotate::get).build());
+        .defaultValue(3.5).min(0.5).max(20).sliderRange(1, 10).visible(smoothRotate::get).build());
 
     private final Setting<Boolean> keepMainhandRocket = sg.add(new BoolSetting.Builder()
         .name("always-mainhand-rocket").description("Ensure rockets stay in MAIN hand.")
@@ -86,6 +86,7 @@ public class PullUp extends Module {
     private final Setting<Boolean> nukeRightClickDelay = sg.add(new BoolSetting.Builder()
         .name("nuke-right-click-delay").description("Force client right-click delay to 0 before firing.")
         .defaultValue(false).build());
+
     
     private enum Phase { INIT, EQUIP, ALIGN, PRE_SPAM, JUMP, VERTICAL, SLOPE, DONE }
     private Phase phase;
