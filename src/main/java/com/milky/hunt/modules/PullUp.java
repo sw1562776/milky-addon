@@ -64,11 +64,11 @@ public class PullUp extends Module {
         .name("reacquire-every-ticks").description("When airborne & NOT gliding & falling, try START_FALL_FLYING every N ticks.")
         .defaultValue(2).min(1).max(20).sliderRange(1, 10).build());
 
-    // -------- Elytra durability guard (unified threshold) --------
+    // -------- Elytra durability guard --------
     private final Setting<Integer> minElytraDurability = sg.add(new IntSetting.Builder()
         .name("elytra-min-durability")
         .description("Minimum remaining durability required at takeoff. In flight, auto-swap to another Elytra if current drops below this.")
-        .defaultValue(10).min(1).max(432).sliderRange(1, 432).build());
+        .defaultValue(8).min(1).max(432).sliderRange(1, 432).build());
 
     // -------- Behavior --------
     private final Setting<Boolean> smoothRotate = sg.add(new BoolSetting.Builder()
@@ -99,7 +99,7 @@ public class PullUp extends Module {
     private boolean gliding;
     private boolean glidingPrev;
 
-    // Mark Y when entering Stage 1 (VERTICAL)
+    // mark Y when entering Stage 1 (VERTICAL)
     private double verticalBaseY;
 
     public PullUp() {
@@ -146,7 +146,7 @@ public class PullUp extends Module {
 
         switch (phase) {
             case INIT -> {
-                if (!hasElytraMeetingThreshold()) {
+                if (!hasElytraMeetingThreshold()) { // changed: must meet min durability
                     info("[PullUp] No Elytra meeting min durability (" + minElytraDurability.get() + ").");
                     toggle(); return;
                 }
@@ -155,15 +155,15 @@ public class PullUp extends Module {
             }
 
             case EQUIP -> {
-                equipElytraIfNeeded(); // durability-aware
+                equipElytraIfNeeded();          // changed: durability-aware
                 ensureRocketInMainHand();
                 if (ticksInPhase >= 2) { phase = Phase.ALIGN; ticksInPhase = 0; }
             }
 
             case ALIGN -> {
-                facePitch(stage12Pitch.get()); // Stage 1 & 2 pitch
+                facePitch(stage12Pitch.get()); // Stage 1&2 pitch
                 ensureRocketInMainHand();
-                equipElytraIfNeeded(); // final safety before takeoff
+                equipElytraIfNeeded();
 
                 if (near(mc.player.getPitch(), stage12Pitch.get(), 1.0)) {
                     phase = preSpamTicks.get() > 0 ? Phase.PRE_SPAM : Phase.JUMP;
@@ -188,15 +188,9 @@ public class PullUp extends Module {
             }
 
             case VERTICAL -> {
-                facePitch(stage12Pitch.get()); // Stage 1 & 2
+                facePitch(stage12Pitch.get()); // Stage 1 & Stage 2
                 ensureRocketInMainHand();
-
-                boolean swapped = equipElytraIfNeeded(); // swap if below threshold
-                if (swapped) {
-                    // After swapping Elytra, player is typically falling; attempt to reopen immediately.
-                    reacquireCd = 0;
-                    sendStartFallFlying();
-                }
+                equipElytraIfNeeded();         // NEW: auto-swap in flight if below threshold
 
                 boolean airborne = !mc.player.isOnGround();
                 double vy = mc.player.getVelocity().y;
@@ -223,12 +217,7 @@ public class PullUp extends Module {
             case CRUISE -> {
                 facePitch(stage3Pitch.get()); // Stage 3
                 ensureRocketInMainHand();
-
-                boolean swapped = equipElytraIfNeeded();
-                if (swapped) {
-                    reacquireCd = 0;
-                    sendStartFallFlying();
-                }
+                equipElytraIfNeeded();        // NEW: keep swapping if needed
 
                 if (mc.player.getY() >= stage3TargetY.get()) {
                     facePitch(0);
@@ -256,13 +245,14 @@ public class PullUp extends Module {
         }
     }
 
-    // --- inventory & durability helpers ---
+    // --- helpers ---
 
     private boolean hasRockets() {
         FindItemResult r = InvUtils.find(Items.FIREWORK_ROCKET);
         return r.found() && r.count() > 0;
     }
 
+    // Durability helpers
     private int remainingDurability(ItemStack s) {
         if (s == null || s.isEmpty() || !s.isOf(Items.ELYTRA)) return -1;
         return s.getMaxDamage() - s.getDamage();
@@ -270,7 +260,7 @@ public class PullUp extends Module {
 
     private int findBestElytraSlotAbove(int minRemain) {
         var inv = mc.player.getInventory();
-        int size = inv.size();
+        int size = inv.size(); // main inventory + hotbar
         int best = -1, bestRem = -1;
         for (int i = 0; i < size; i++) {
             ItemStack st = inv.getStack(i);
@@ -291,25 +281,18 @@ public class PullUp extends Module {
         return findBestElytraSlotAbove(min) != -1;
     }
 
-    /**
-     * Ensure an Elytra meeting the threshold is equipped in chest slot.
-     * @return true if a swap occurred this tick.
-     */
-    private boolean equipElytraIfNeeded() {
+    // Durability-aware equip (replaces old logic)
+    private void equipElytraIfNeeded() {
         int min = minElytraDurability.get();
         ItemStack chest = mc.player.getInventory().getArmorStack(2);
 
-        if (remainingDurability(chest) >= min) return false;
+        // If already wearing a good one, keep it
+        if (remainingDurability(chest) >= min) return;
 
+        // Otherwise, equip the best surviving Elytra
         int slot = findBestElytraSlotAbove(min);
-        if (slot != -1) {
-            InvUtils.move().from(slot).toArmor(2);
-            return true;
-        }
-        return false;
+        if (slot != -1) InvUtils.move().from(slot).toArmor(2);
     }
-
-    // --- hand/rotation/firework helpers ---
 
     private void ensureRocketInMainHand() {
         if (!keepMainhandRocket.get()) return;
@@ -361,8 +344,7 @@ public class PullUp extends Module {
 
     private static boolean near(double a, double b, double eps) { return Math.abs(a - b) <= eps; }
 
-    // --- glide detection (version-agnostic) ---
-
+    // Version-agnostic gliding check
     private boolean isPlayerGliding(ClientPlayerEntity p) {
         try {
             Method m = p.getClass().getMethod("isGliding");
