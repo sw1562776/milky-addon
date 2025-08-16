@@ -8,9 +8,9 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.movement.elytrafly.ElytraFly;
 import meteordevelopment.meteorclient.systems.modules.movement.elytrafly.ElytraFlightModes;
+import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
@@ -23,9 +23,15 @@ public class Cruise extends Module {
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
+    private final Module elytraFly = Modules.get().get(ElytraFly.class);
+    private ElytraFlightModes oldElytraFlyMode;
+    @SuppressWarnings("unchecked")
+    private final Setting<ElytraFlightModes> elytraFlyMode =
+        elytraFly != null ? (Setting<ElytraFlightModes>) elytraFly.settings.get("mode") : null;
+
     private final Setting<Mode> mode = sgGeneral.add(new EnumSetting.Builder<Mode>()
         .name("mode")
-        .description("")
+        .description("Powered = AFKVanillaFly; Unpowered = Pitch40Util.")
         .defaultValue(Mode.Powered)
         .onChanged(m -> {
             if (m == Mode.Unpowered) {
@@ -33,7 +39,7 @@ public class Cruise extends Module {
                 if (elytraFlyMode != null) elytraFlyMode.set(ElytraFlightModes.Pitch40);
             } else {
                 if (oldElytraFlyMode != null && elytraFlyMode != null) elytraFlyMode.set(oldElytraFlyMode);
-                if (elytraFly.isActive()) elytraFly.toggle();
+                if (elytraFly != null && elytraFly.isActive()) elytraFly.toggle();
             }
         })
         .build()
@@ -68,7 +74,7 @@ public class Cruise extends Module {
 
     public final Setting<Boolean> autoBoundAdjust = sgGeneral.add(new BoolSetting.Builder()
         .name("Auto Adjust Bounds")
-        .description("Adjusts your bounds to keep gaining height (e.g., after reconnect/lag).")
+        .description("Adjust bounds to keep climbing (useful after reconnect/lag).")
         .defaultValue(true)
         .visible(() -> mode.get() == Mode.Unpowered)
         .build()
@@ -85,7 +91,7 @@ public class Cruise extends Module {
 
     public final Setting<Boolean> autoFirework = sgGeneral.add(new BoolSetting.Builder()
         .name("Auto Firework")
-        .description("Uses a firework automatically if your upward velocity is too low.")
+        .description("Automatically uses a firework if upward velocity is too low.")
         .defaultValue(true)
         .visible(() -> mode.get() == Mode.Unpowered)
         .build()
@@ -119,7 +125,7 @@ public class Cruise extends Module {
     private final Setting<Integer> minElytraDurability = sgGeneral.add(new IntSetting.Builder()
         .name("Min Elytra Durability")
         .description("If current Elytra has less than this remaining durability, attempt to replace it.")
-        .defaultValue(10) // per user's requirement
+        .defaultValue(10)
         .sliderRange(1, 432)
         .visible(autoReplaceElytra::get)
         .build()
@@ -129,24 +135,16 @@ public class Cruise extends Module {
     private boolean powered_launched = false;
     private double powered_yTarget = -1;
     private float powered_targetPitch = 0;
-
-    private final Module elytraFly = Modules.get().get(ElytraFly.class);
-    private ElytraFlightModes oldElytraFlyMode;
-    @SuppressWarnings("unchecked")
-    private final Setting<ElytraFlightModes> elytraFlyMode =
-        (Setting<ElytraFlightModes>) elytraFly.settings.get("mode");
-
     private int unpowered_fireworkCooldown = 0;
     private boolean unpowered_goingUp = true;
     private int unpowered_elytraSwapSlot = -1;
-
     private int reopenTicks = 0;
 
     public Cruise() {
         super(Addon.CATEGORY, "Cruise",
-            "Hybrid Elytra cruise: Powered (AFKVanillaFly) or Unpowered (Pitch40/Pitch climb helper).");
+            "Hybrid Elytra cruise: Powered (AFKVanillaFly) or Unpowered (Pitch40 helper).");
     }
-
+    
     @Override
     public void onActivate() {
         powered_launched = false;
@@ -169,12 +167,8 @@ public class Cruise extends Module {
     @Override
     public void onDeactivate() {
         if (mode.get() == Mode.Unpowered) {
-            if (elytraFly.isActive()) {
-                elytraFly.toggle();
-            }
-            if (oldElytraFlyMode != null && elytraFlyMode != null) {
-                elytraFlyMode.set(oldElytraFlyMode);
-            }
+            if (elytraFly != null && elytraFly.isActive()) elytraFly.toggle();
+            if (oldElytraFlyMode != null && elytraFlyMode != null) elytraFlyMode.set(oldElytraFlyMode);
         }
     }
 
@@ -254,9 +248,9 @@ public class Cruise extends Module {
     }
 
     private void powered_tryUseFirework() {
-        var hotbar = InvUtils.findInHotbar(Items.FIREWORK_ROCKET);
+        FindItemResult hotbar = InvUtils.findInHotbar(Items.FIREWORK_ROCKET);
         if (!hotbar.found()) {
-            var inv = InvUtils.find(Items.FIREWORK_ROCKET);
+            FindItemResult inv = InvUtils.find(Items.FIREWORK_ROCKET);
             if (inv.found()) {
                 int hotbarSlot = findEmptyHotbarSlot();
                 if (hotbarSlot != -1) {
@@ -282,7 +276,7 @@ public class Cruise extends Module {
     }
 
     private void tickUnpowered() {
-        if (elytraFly.isActive()) {
+        if (elytraFly != null && elytraFly.isActive()) {
             if (unpowered_fireworkCooldown > 0) unpowered_fireworkCooldown--;
 
             if (unpowered_elytraSwapSlot != -1) {
@@ -308,6 +302,7 @@ public class Cruise extends Module {
                         int launchStatus = firework(mc, false);
                         if (launchStatus >= 0) {
                             unpowered_fireworkCooldown = fireworkCooldownTicks.get();
+                            // If Utils.firework swapped to a hotbar slot, we need to swap back next tick.
                             if (launchStatus != 200) unpowered_elytraSwapSlot = launchStatus;
                         }
                     }
@@ -321,42 +316,48 @@ public class Cruise extends Module {
             if (!mc.player.getAbilities().allowFlying) {
                 if (!hasEligibleElytraAvailable()) return;
 
-                elytraFly.toggle();
-                resetBoundsToCurrent();
+                if (elytraFly != null) {
+                    elytraFly.toggle();
+                    resetBoundsToCurrent();
+                }
             }
         }
     }
 
     @SuppressWarnings("unchecked")
     private double getUpperBounds() {
-        return (double) ((Setting<Double>) elytraFly.settings.get("pitch40-upper-bounds")).get();
+        return elytraFly != null
+            ? (double) ((Setting<Double>) elytraFly.settings.get("pitch40-upper-bounds")).get()
+            : Double.MAX_VALUE;
     }
 
     @SuppressWarnings("unchecked")
     private double getLowerBounds() {
-        return (double) ((Setting<Double>) elytraFly.settings.get("pitch40-lower-bounds")).get();
+        return elytraFly != null
+            ? (double) ((Setting<Double>) elytraFly.settings.get("pitch40-lower-bounds")).get()
+            : -Double.MAX_VALUE;
     }
 
     @SuppressWarnings("unchecked")
     private void resetBoundsToCurrent() {
+        if (elytraFly == null) return;
         double base = mc.player.getY() - 5;
         ((Setting<Double>) elytraFly.settings.get("pitch40-upper-bounds")).set(base);
         ((Setting<Double>) elytraFly.settings.get("pitch40-lower-bounds")).set(base - boundGap.get());
     }
 
     private boolean hasEligibleElytraAvailable() {
-        ItemStack chest = mc.player.getEquippedStack(EquipmentSlot.CHEST);
+        ItemStack chest = mc.player.getInventory().getArmorStack(2);
         if (isHealthyElytra(chest)) return true;
-
         return findBestElytraSlot() != -1;
     }
 
     private boolean isHealthyElytra(ItemStack stack) {
-        if (stack == null || !stack.isOf(Items.ELYTRA)) return false;
+        if (stack == null || stack.isEmpty() || !stack.isOf(Items.ELYTRA)) return false;
         int remaining = stack.getMaxDamage() - stack.getDamage();
         return remaining >= minElytraDurability.get();
     }
-    
+
     private int findBestElytraSlot() {
         int bestSlot = -1;
         int bestRemain = -1;
@@ -375,13 +376,13 @@ public class Cruise extends Module {
     }
 
     private void maybeReplaceElytra() {
-        ItemStack chest = mc.player.getEquippedStack(EquipmentSlot.CHEST);
+        ItemStack chest = mc.player.getInventory().getArmorStack(2);
         if (isHealthyElytra(chest)) return;
 
         int slot = findBestElytraSlot();
         if (slot == -1) return;
 
-        InvUtils.move().from(slot).toArmor(EquipmentSlot.CHEST);
+        InvUtils.move().from(slot).toArmor(2);
 
         reopenTicks = 3;
     }
