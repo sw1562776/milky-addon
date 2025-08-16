@@ -24,19 +24,19 @@ public class PullUp extends Module {
     // -------- Stage split & pitches --------
     private final Setting<Double> stage12Pitch = sg.add(new DoubleSetting.Builder()
         .name("stage12-pitch").description("Pitch for Stage 1 & 2 (vertical climb).")
-        .defaultValue(-86.0).min(-90).max(90).sliderRange(-90, 90).build());
+        .defaultValue(-90.0).min(-90).max(0).sliderRange(-90, 90).build());
 
     private final Setting<Double> stage3Pitch = sg.add(new DoubleSetting.Builder()
         .name("stage3-pitch").description("Pitch for Stage 3 (slope / angled climb).")
-        .defaultValue(-40.0).min(-90).max(90).sliderRange(-90, 90).build());
+        .defaultValue(-60.0).min(-90).max(0).sliderRange(-90, 90).build());
 
     private final Setting<Double> stage3StartY = sg.add(new DoubleSetting.Builder()
         .name("stage3-start-y").description("When reaching this Y, switch from Stage 2 to Stage 3 (slope).")
-        .defaultValue(320.0).min(0).max(2000).sliderRange(0, 512).build());
+        .defaultValue(320.0).min(0).max(100000000).sliderRange(0, 512).build());
 
     private final Setting<Double> stage3TargetY = sg.add(new DoubleSetting.Builder()
         .name("stage3-target-y").description("Stop when reaching this Y in Stage 3 (slope).")
-        .defaultValue(1000.0).min(0).max(100000).sliderRange(64, 4096).build());
+        .defaultValue(1000.0).min(0).max(100000000).sliderRange(64, 4096).build());
 
     // -------- Cadence --------
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
@@ -45,7 +45,7 @@ public class PullUp extends Module {
 
     private final Setting<Integer> stage1Interval = sg.add(new IntSetting.Builder()
         .name("stage1-interval-ticks").description("Rocket interval (ticks) during Stage 1.")
-        .defaultValue(3).min(1).max(30).sliderRange(4, 16).build());
+        .defaultValue(3).min(1).max(30).sliderRange(1, 16).build());
 
     private final Setting<Double> stage2DeltaY = sg.add(new DoubleSetting.Builder()
         .name("stage2-start-delta-y").description("After rising this many blocks from takeoff, switch to Stage 2 cadence.")
@@ -77,7 +77,7 @@ public class PullUp extends Module {
 
     private final Setting<Double> rotateStep = sg.add(new DoubleSetting.Builder()
         .name("rotate-step").description("Max pitch step per tick when smoothing.")
-        .defaultValue(3.5).min(0.5).max(20).sliderRange(1, 10).visible(smoothRotate::get).build());
+        .defaultValue(3).min(0.5).max(20).sliderRange(1, 10).visible(smoothRotate::get).build());
 
     private final Setting<Boolean> keepMainhandRocket = sg.add(new BoolSetting.Builder()
         .name("always-mainhand-rocket").description("Ensure rockets stay in MAIN hand.")
