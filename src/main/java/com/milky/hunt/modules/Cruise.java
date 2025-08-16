@@ -37,7 +37,7 @@ public class Cruise extends Module {
     private final Setting<Integer> minElytraDurability = sg.add(new IntSetting.Builder()
         .name("elytra-min-durability")
         .description("Minimum remaining durability to keep wearing the current Elytra. Below this value, a better Elytra will be auto-equipped if available.")
-        .defaultValue(10)
+        .defaultValue(8)
         .min(1)
         .max(432)
         .sliderRange(1, 432)
