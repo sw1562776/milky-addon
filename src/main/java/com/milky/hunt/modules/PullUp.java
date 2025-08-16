@@ -24,51 +24,51 @@ public class PullUp extends Module {
     // -------- Stage split & pitches --------
     private final Setting<Double> stage12Pitch = sg.add(new DoubleSetting.Builder()
         .name("stage12-pitch").description("Pitch for Stage 1 & 2 (vertical climb).")
-        .defaultValue(-86.0).min(-90).max(90).sliderRange(-90, 90).build());
+        .defaultValue(-90.0).min(-90).max(0).build());
 
     private final Setting<Double> stage3Pitch = sg.add(new DoubleSetting.Builder()
-        .name("stage3-pitch").description("Pitch for Stage 3 (angled climb).")
-        .defaultValue(-40.0).min(-90).max(90).sliderRange(-90, 90).build());
+        .name("stage3-pitch").description("Pitch for Stage 3 (slope / angled climb).")
+        .defaultValue(-40.0).min(-90).max(0).build());
 
     private final Setting<Double> stage3StartY = sg.add(new DoubleSetting.Builder()
-        .name("stage3-start-y").description("When reaching this Y, switch from Stage 2 to Stage 3.")
-        .defaultValue(320.0).min(0).max(2000).sliderRange(0, 512).build());
+        .name("stage3-start-y").description("When reaching this Y, switch from Stage 2 to Stage 3 (slope).")
+        .defaultValue(320.0).build());
 
     private final Setting<Double> stage3TargetY = sg.add(new DoubleSetting.Builder()
-        .name("stage3-target-y").description("Stop when reaching this Y in Stage 3.")
-        .defaultValue(1000.0).min(0).max(100000).sliderRange(64, 4096).build());
+        .name("stage3-target-y").description("Stop when reaching this Y in Stage 3 (slope).")
+        .defaultValue(1000.0).build());
 
     // -------- Cadence --------
     private final Setting<Integer> preSpamTicks = sg.add(new IntSetting.Builder()
         .name("pre-spam-ticks").description("Ticks to press fireworks BEFORE jumping.")
-        .defaultValue(10).min(0).max(40).sliderRange(0, 20).build());
+        .defaultValue(10).min(0).build());
 
     private final Setting<Integer> stage1Interval = sg.add(new IntSetting.Builder()
         .name("stage1-interval-ticks").description("Rocket interval (ticks) during Stage 1.")
-        .defaultValue(3).min(1).max(30).sliderRange(4, 16).build());
+        .defaultValue(3).min(1).build());
 
     private final Setting<Double> stage2DeltaY = sg.add(new DoubleSetting.Builder()
         .name("stage2-start-delta-y").description("After rising this many blocks from takeoff, switch to Stage 2 cadence.")
-        .defaultValue(50.0).min(5).max(500).sliderRange(10, 128).build());
+        .defaultValue(50.0).min(30).build());
 
     private final Setting<Integer> stage2Interval = sg.add(new IntSetting.Builder()
         .name("stage2-interval-ticks").description("Rocket interval (ticks) during Stage 2.")
-        .defaultValue(10).min(1).max(60).sliderRange(6, 30).build());
+        .defaultValue(10).min(1).max(60).build());
 
     private final Setting<Integer> stage3Interval = sg.add(new IntSetting.Builder()
-        .name("stage3-interval-ticks").description("Rocket interval (ticks) during Stage 3.")
-        .defaultValue(20).min(3).max(500).sliderRange(6, 20).build());
+        .name("stage3-interval-ticks").description("Rocket interval (ticks) during Stage 3 (slope).")
+        .defaultValue(20).min(1).build());
 
     // -------- Glide reacquire (only when falling) --------
     private final Setting<Integer> reacquireEveryTicks = sg.add(new IntSetting.Builder()
         .name("reacquire-every-ticks").description("When airborne & NOT gliding & falling, try START_FALL_FLYING every N ticks.")
-        .defaultValue(2).min(1).max(20).sliderRange(1, 10).build());
+        .defaultValue(2).min(0).build());
 
     // -------- Elytra durability guard --------
     private final Setting<Integer> minElytraDurability = sg.add(new IntSetting.Builder()
         .name("elytra-min-durability")
         .description("Minimum remaining durability required at takeoff. In flight, auto-swap to another Elytra if current drops below this.")
-        .defaultValue(8).min(1).max(432).sliderRange(1, 432).build());
+        .defaultValue(8).min(1).max(432).build());
 
     // -------- Behavior --------
     private final Setting<Boolean> smoothRotate = sg.add(new BoolSetting.Builder()
@@ -77,7 +77,7 @@ public class PullUp extends Module {
 
     private final Setting<Double> rotateStep = sg.add(new DoubleSetting.Builder()
         .name("rotate-step").description("Max pitch step per tick when smoothing.")
-        .defaultValue(3.5).min(0.5).max(20).sliderRange(1, 10).visible(smoothRotate::get).build());
+        .defaultValue(3.5).min(0.5).max(20).sliderRange(1, 20).visible(smoothRotate::get).build());
 
     private final Setting<Boolean> keepMainhandRocket = sg.add(new BoolSetting.Builder()
         .name("always-mainhand-rocket").description("Ensure rockets stay in MAIN hand.")
@@ -86,14 +86,14 @@ public class PullUp extends Module {
     private final Setting<Boolean> nukeRightClickDelay = sg.add(new BoolSetting.Builder()
         .name("nuke-right-click-delay").description("Force client right-click delay to 0 before firing.")
         .defaultValue(false).build());
-
-    private enum Phase { INIT, EQUIP, ALIGN, PRE_SPAM, JUMP, VERTICAL, CRUISE, DONE }
+    
+    private enum Phase { INIT, EQUIP, ALIGN, PRE_SPAM, JUMP, VERTICAL, SLOPE, DONE }
     private Phase phase;
     private int ticksInPhase;
     private int savedSlot = -1;
 
     private int verticalCd;
-    private int cruiseCd;
+    private int slopeCd;
     private int reacquireCd;
 
     private boolean gliding;
@@ -104,7 +104,7 @@ public class PullUp extends Module {
 
     public PullUp() {
         super(Addon.CATEGORY, "PullUp",
-            "Stage 1/2: vertical climb with two cadences; Stage 3: angled climb. Keeps Elytra open and uses rockets on a sane cadence.");
+            "Stage 1&2: vertical climb with two cadences; Stage 3: slope (angled) climb. Keeps Elytra open and uses rockets on a sane cadence.");
     }
 
     @Override
@@ -112,7 +112,7 @@ public class PullUp extends Module {
         phase = Phase.INIT;
         ticksInPhase = 0;
         verticalCd = 0;
-        cruiseCd = 0;
+        slopeCd = 0;
         reacquireCd = 0;
         gliding = glidingPrev = false;
         verticalBaseY = Double.NaN;
@@ -123,7 +123,7 @@ public class PullUp extends Module {
     public void onDeactivate() {
         ticksInPhase = 0;
         verticalCd = 0;
-        cruiseCd = 0;
+        slopeCd = 0;
         reacquireCd = 0;
         gliding = glidingPrev = false;
         verticalBaseY = Double.NaN;
@@ -138,7 +138,7 @@ public class PullUp extends Module {
 
         ticksInPhase++;
         if (verticalCd > 0) verticalCd--;
-        if (cruiseCd > 0) cruiseCd--;
+        if (slopeCd > 0) slopeCd--;
         if (reacquireCd > 0) reacquireCd--;
 
         glidingPrev = gliding;
@@ -146,7 +146,7 @@ public class PullUp extends Module {
 
         switch (phase) {
             case INIT -> {
-                if (!hasElytraMeetingThreshold()) { // changed: must meet min durability
+                if (!hasElytraMeetingThreshold()) { // must meet min durability
                     info("[PullUp] No Elytra meeting min durability (" + minElytraDurability.get() + ").");
                     toggle(); return;
                 }
@@ -155,7 +155,7 @@ public class PullUp extends Module {
             }
 
             case EQUIP -> {
-                equipElytraIfNeeded();          // changed: durability-aware
+                equipElytraIfNeeded();          // durability-aware
                 ensureRocketInMainHand();
                 if (ticksInPhase >= 2) { phase = Phase.ALIGN; ticksInPhase = 0; }
             }
@@ -190,7 +190,7 @@ public class PullUp extends Module {
             case VERTICAL -> {
                 facePitch(stage12Pitch.get()); // Stage 1 & Stage 2
                 ensureRocketInMainHand();
-                equipElytraIfNeeded();         // NEW: auto-swap in flight if below threshold
+                equipElytraIfNeeded();         // auto-swap in flight if below threshold
 
                 boolean airborne = !mc.player.isOnGround();
                 double vy = mc.player.getVelocity().y;
@@ -210,14 +210,14 @@ public class PullUp extends Module {
                 }
 
                 if (mc.player.getY() >= stage3StartY.get()) {
-                    phase = Phase.CRUISE; ticksInPhase = 0;
+                    phase = Phase.SLOPE; ticksInPhase = 0; // enter slope (angled) climb
                 }
             }
 
-            case CRUISE -> {
-                facePitch(stage3Pitch.get()); // Stage 3
+            case SLOPE -> { // Stage 3: slope / angled climb
+                facePitch(stage3Pitch.get());
                 ensureRocketInMainHand();
-                equipElytraIfNeeded();        // NEW: keep swapping if needed
+                equipElytraIfNeeded();        // keep swapping if needed
 
                 if (mc.player.getY() >= stage3TargetY.get()) {
                     facePitch(0);
@@ -233,9 +233,9 @@ public class PullUp extends Module {
                     reacquireCd = Math.max(1, reacquireEveryTicks.get());
                 }
 
-                if (gliding && cruiseCd == 0) {
+                if (gliding && slopeCd == 0) {
                     fireIfReady();
-                    cruiseCd = Math.max(1, stage3Interval.get());
+                    slopeCd = Math.max(1, stage3Interval.get());
                 }
             }
 
@@ -373,7 +373,7 @@ public class PullUp extends Module {
     }
 
     private int currentStage() {
-        if (phase == Phase.CRUISE) return 3;
+        if (phase == Phase.SLOPE) return 3;
         if (phase == Phase.VERTICAL) {
             double rise = Double.isNaN(verticalBaseY) ? 0.0 : (mc.player.getY() - verticalBaseY);
             return rise >= stage2DeltaY.get() ? 2 : 1;
