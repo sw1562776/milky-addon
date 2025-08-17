@@ -646,8 +646,11 @@ public class BoostedBounce extends Module {
         World w = p.getWorld();
         Box bb = p.getBoundingBox();
 
-        Direction facing = p.getHorizontalFacing();
-        Vec3d fwd = new Vec3d(facing.getOffsetX(), 0, facing.getOffsetZ());
+        float facingdeg = p.getYaw();    
+        double snappedDeg = Math.round(facingdeg / 45.0) * 45.0;
+        double RadianDeg = Math.toRadians(snappedDeg);
+
+        Vec3d fwd = new Vec3d(-Math.sin(RadianDeg), 0, Math.cos(RadianDeg));
 
         double probe = 0.62;
         double[] ys = new double[] { bb.minY + 0.2, (bb.minY + bb.maxY) * 0.5, bb.maxY - 0.1 };
@@ -669,19 +672,17 @@ public class BoostedBounce extends Module {
         return s.isFullCube(w, pos) && s.isSolidBlock(w, pos);
     }
 
-    // --- Virtual path yaw: snap to nearest 45° ONLY for Baritone pathing ---
-    private static final double PATH_SNAP_DEG = 45.0; // set to 90.0 if you only want axis-aligned highways
+    // --- snap to nearest 45° ONLY Baritone pathing ---
 
-    private static double roundAngle(double angleDeg, double stepDeg) {
+    private static double roundAngle(double angleDeg) {
         // normalize to [0,360)
         double a = ((angleDeg % 360.0) + 360.0) % 360.0;
-        double snapped = Math.round(a / stepDeg) * stepDeg;
+        double snapped = Math.round(a / 45.0) * 45.0;
         // avoid returning 360
         return ((snapped % 360.0) + 360.0) % 360.0;
     }
 
-    /** Yaw used for Baritone pathing only (virtual snapped angle). */
     private double pathYaw() {
-        return roundAngle(yaw.get(), PATH_SNAP_DEG);
+        return roundAngle(yaw.get());
     }
 }
