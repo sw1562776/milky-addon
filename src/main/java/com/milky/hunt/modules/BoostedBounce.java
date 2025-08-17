@@ -19,6 +19,7 @@ import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.MovementType;
@@ -32,8 +33,11 @@ import com.milky.hunt.Addon;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
 
 import java.util.List;
 
@@ -56,6 +60,15 @@ public class BoostedBounce extends Module {
         .description("Greatly increases speed by cancelling Y momentum.")
         .defaultValue(false)
         .visible(bounce::get)
+        .build()
+    );
+
+    // New: Only While Colliding
+    private final Setting<Boolean> onlyWhileColliding = sgGeneral.add(new BoolSetting.Builder()
+        .name("Only While Colliding")
+        .description("Only enables motion y boost if colliding with a wall.")
+        .defaultValue(true)
+        .visible(() -> bounce.get() && motionYBoost.get())
         .build()
     );
 
@@ -298,6 +311,9 @@ public class BoostedBounce extends Module {
     private void onPlayerMove(PlayerMoveEvent event) {
         if (mc.player == null || event.type != MovementType.SELF || !enabled() || !motionYBoost.get() || !bounce.get()) return;
 
+        // Only While Colliding gate
+        if (onlyWhileColliding.get() && !mc.player.horizontalCollision) return;
+
         if (lastPos != null)
         {
             double speedBps = mc.player.getPos().subtract(lastPos).multiply(20, 0, 20).length();
@@ -400,11 +416,16 @@ public class BoostedBounce extends Module {
                 lastUnstuckPos = mc.player.getPos();
             }
 
-            if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 && // > 100 check needed bc server sends queue coordinates when joining in first tick causing goal coordinates to be set to (0, 0)
-                (mc.player.getY() < targetY.get() || mc.player.getY() > targetY.get() + 2 || mc.player.horizontalCollision // collisions / out of highway
-                || (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get()) // portal trap detection
-                || waitingForChunksToLoad // waiting for chunks to load
-                || stuckTimer > 50))
+            if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 && // > 100: queue coords on join
+                (
+                    mc.player.getY() < targetY.get()
+                    || mc.player.getY() > targetY.get() + 2
+                    // Only treat HARD front block as obstacle; side-graze is okay
+                    || (mc.player.horizontalCollision && isFrontBlocked(mc.player))
+                    || (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get())
+                    || waitingForChunksToLoad
+                    || stuckTimer > 50
+                ))
             {
                 waitingForChunksToLoad = false;
                 paused = true;
@@ -425,26 +446,27 @@ public class BoostedBounce extends Module {
                         BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(goal));
                         return;
                     }
-                    Vec3d unitYawVec = yawToDirection(yaw.get());
+                    // Use snapped virtual yaw only for pathing
+                    Vec3d unitYawVec = yawToDirection(pathYaw());
                     Vec3d travelVec = mc.player.getPos().subtract(startPos.get().toCenterPos());
 
                     double parallelCurrPosDot = travelVec.multiply(new Vec3d(1, 0, 1)).dotProduct(unitYawVec);
                     Vec3d parallelCurrPosComponent = unitYawVec.multiply(parallelCurrPosDot);
 
                     Vec3d pos = startPos.get().toCenterPos().add(parallelCurrPosComponent);
-                    pos = positionInDirection(pos, yaw.get(), currDistance);
+                    pos = positionInDirection(pos, pathYaw(), currDistance);
 
                     goal = new BlockPos((int)(Math.floor(pos.x)), targetY.get(), (int)Math.floor(pos.z));
                     currDistance++;
 
-                    // Blocks in unloaded chunks are void air, for some reason checking if the chunk is loaded was always true, so I check this instead
+                    // Blocks in unloaded chunks are void air
                     if (mc.world.getBlockState(goal).getBlock() == Blocks.VOID_AIR)
                     {
                         waitingForChunksToLoad = true;
                         return;
                     }
                 }
-                // avoid pathing on air cause baritone freaks out, and dont path into portals in case a mod is avoiding portals
+                // avoid pathing on air; avoid portals; require air for headroom
                 while (!mc.world.getBlockState(goal.down()).isSolidBlock(mc.world, goal.down()) ||
                     mc.world.getBlockState(goal).getBlock() == Blocks.NETHER_PORTAL ||
                     !mc.world.getBlockState(goal).isAir());
@@ -535,7 +557,7 @@ public class BoostedBounce extends Module {
     }
 
     // 38 is the meteor mapping for chestplate
-    // serverside uses default mappings: https://imgs.search.brave.com/cyvAxjIhLweeF1qeRXpC_8ESRlImhUmMGWbV_n2to_A/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jNGsz/LmdpdGh1Yi5pby93/aWtpLnZnL2ltYWdl/cy8xLzEzL0ludmVu/dG9yeS1zbG90cy5w/bmc
+    // serverside uses default mappings: https://c4k3.github.io/wiki.vg/images/1/13/Inventory-slots.png
     private void swapToItem(int slot) {
         ItemStack chestItem = mc.player.getInventory().getStack(38);
         ItemStack hotbarSwapItem = mc.player.getInventory().getStack(slot);
@@ -562,8 +584,8 @@ public class BoostedBounce extends Module {
         mc.player.networkHandler.sendPacket(new ClickSlotC2SPacket(
             syncId,
             stateId,
-            6,                 // slotNum
-            buttonNum,   // the slot number thats being swapped
+            6,                 // chest slot
+            buttonNum,         // hotbar slot to swap with
             SlotActionType.SWAP,
             new ItemStack(Items.AIR),
             changedSlots
@@ -579,7 +601,8 @@ public class BoostedBounce extends Module {
         BlockPos centerPos = pos.getCenterAtY(targetY.get());
 
         // Check if chunk is on the players path
-        Vec3d moveDir = yawToDirection(yaw.get());
+        // Use snapped virtual yaw for portal scan direction
+        Vec3d moveDir = yawToDirection(pathYaw());
         double distanceToHighway = distancePointToDirection(Vec3d.of(centerPos), moveDir, mc.player.getPos());
 
         if (distanceToHighway > 21) return;
@@ -594,11 +617,11 @@ public class BoostedBounce extends Module {
 
                     if (distancePointToDirection(Vec3d.of(position), moveDir, mc.player.getPos()) > portalScanWidth.get()) continue;
 
-                    if (mc.world.getBlockState(position).getBlock().equals(Blocks.NETHER_PORTAL)) // TODO: This position could be unloaded
+                    if (mc.world.getBlockState(position).getBlock().equals(Blocks.NETHER_PORTAL)) // TODO: could be unloaded
                     {
                         BlockPos posBehind = new BlockPos((int)Math.floor(position.getX() + moveDir.x), position.getY(), (int) Math.floor(position.getZ() + moveDir.z));
 
-                        // Trap is detected when a portal has a solid block or another portal behind it
+                        // Trap when portal has solid or another portal right behind
                         if (mc.world.getBlockState(posBehind).isSolidBlock(mc.world, posBehind) ||
                             mc.world.getBlockState(posBehind).getBlock() == Blocks.NETHER_PORTAL)
                         {
@@ -614,5 +637,51 @@ public class BoostedBounce extends Module {
                 }
             }
         }
+    }
+
+    // ---- Inline: front collision (hard block) check ----
+    private static boolean isFrontBlocked(net.minecraft.entity.player.PlayerEntity p) {
+        if (p == null || p.isRemoved()) return false;
+
+        World w = p.getWorld();
+        Box bb = p.getBoundingBox();
+
+        Direction facing = p.getHorizontalFacing();
+        Vec3d fwd = new Vec3d(facing.getOffsetX(), 0, facing.getOffsetZ());
+
+        double probe = 0.62;
+        double[] ys = new double[] { bb.minY + 0.2, (bb.minY + bb.maxY) * 0.5, bb.maxY - 0.1 };
+
+        for (double y : ys) {
+            BlockPos pos = BlockPos.ofFloored(
+                p.getX() + fwd.x * probe,
+                y,
+                p.getZ() + fwd.z * probe
+            );
+            if (isHard(w.getBlockState(pos), w, pos)) return true;
+        }
+        return false;
+    }
+
+    private static boolean isHard(BlockState s, World w, BlockPos pos) {
+        if (s.isAir()) return false;
+        if (s.isOf(Blocks.NETHER_PORTAL)) return true;
+        return s.isFullCube(w, pos) && s.isSolidBlock(w, pos);
+    }
+
+    // --- Virtual path yaw: snap to nearest 45° ONLY for Baritone pathing ---
+    private static final double PATH_SNAP_DEG = 45.0; // set to 90.0 if you only want axis-aligned highways
+
+    private static double roundAngle(double angleDeg, double stepDeg) {
+        // normalize to [0,360)
+        double a = ((angleDeg % 360.0) + 360.0) % 360.0;
+        double snapped = Math.round(a / stepDeg) * stepDeg;
+        // avoid returning 360
+        return ((snapped % 360.0) + 360.0) % 360.0;
+    }
+
+    /** Yaw used for Baritone pathing only (virtual snapped angle). */
+    private double pathYaw() {
+        return roundAngle(yaw.get(), PATH_SNAP_DEG);
     }
 }
