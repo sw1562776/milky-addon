@@ -34,6 +34,7 @@ public class Addon extends MeteorAddon {
 
         Modules.get().add(new PullUp());
         Modules.get().add(new Cruise());
+        Modules.get().add(new BoostedBounce());
 
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
