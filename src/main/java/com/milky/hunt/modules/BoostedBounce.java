@@ -226,34 +226,6 @@ public class BoostedBounce extends Module {
     private Vec3d lastUnstuckPos;
     private int stuckTimer = 0;
 
-    private double obsLastHSpeed = 0.0;
-    private int    obsSoftFrames = 0;
-
-    private void obsRememberSpeed() {
-        obsLastHSpeed = mc.player.getVelocity().multiply(1, 0, 1).length();
-    }
-
-    private boolean collidedSoftlyApprox(Vec3d forwardDir) {
-        if (!mc.player.horizontalCollision) {
-            obsSoftFrames = 0;
-            return false;
-        }
-        Vec3d hv = mc.player.getVelocity().multiply(1, 0, 1);
-        double curr = hv.length();
-
-        double dirDot = 0.0;
-        if (curr > 1e-6) dirDot = hv.normalize().dotProduct(forwardDir);
-
-        boolean noBigDrop = (obsLastHSpeed - curr) <= 0.12;
-        boolean notHeadOn = dirDot <= 0.5;
-
-        if (noBigDrop || notHeadOn) obsSoftFrames++;
-        else obsSoftFrames = 0;
-
-        return obsSoftFrames >= 2;
-    }
-    // -----------------------------------------------------------------------
-
     @EventHandler
     private void onReceivePacket(PacketEvent.Receive event)
     {
@@ -281,8 +253,6 @@ public class BoostedBounce extends Module {
         lastPos = mc.player.getPos();
         lastUnstuckPos = mc.player.getPos();
         stuckTimer = 0;
-
-        obsRememberSpeed();
 
         // I don't know any other way to fix this stupid shit
         if (bounce.get() && mc.player.getPos().multiply(1, 0, 1).length() >= 100)
@@ -411,14 +381,12 @@ public class BoostedBounce extends Module {
             else if (tempPath != null)
             {
                 BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(tempPath));
-                obsRememberSpeed();
                 return;
             }
 
             // if still pathing, wait for that to complete
             if (highwayObstaclePasser.get() && BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().getGoal() != null)
             {
-                obsRememberSpeed();
                 return;
             }
 
@@ -432,11 +400,8 @@ public class BoostedBounce extends Module {
                 lastUnstuckPos = mc.player.getPos();
             }
 
-            Vec3d highwayDir = yawToDirection(yaw.get());
-
             if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 && // > 100 check needed bc server sends queue coordinates when joining in first tick causing goal coordinates to be set to (0, 0)
-                (mc.player.getY() < targetY.get() || mc.player.getY() > targetY.get() + 2
-                || (mc.player.horizontalCollision && !collidedSoftlyApprox(highwayDir))
+                (mc.player.getY() < targetY.get() || mc.player.getY() > targetY.get() + 2 || mc.player.horizontalCollision // collisions / out of highway
                 || (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get()) // portal trap detection
                 || waitingForChunksToLoad // waiting for chunks to load
                 || stuckTimer > 50))
@@ -458,7 +423,6 @@ public class BoostedBounce extends Module {
                     {
                         tempPath = goal;
                         BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(goal));
-                        obsRememberSpeed();
                         return;
                     }
                     Vec3d unitYawVec = yawToDirection(yaw.get());
@@ -477,7 +441,6 @@ public class BoostedBounce extends Module {
                     if (mc.world.getBlockState(goal).getBlock() == Blocks.VOID_AIR)
                     {
                         waitingForChunksToLoad = true;
-                        obsRememberSpeed();
                         return;
                     }
                 }
@@ -511,8 +474,6 @@ public class BoostedBounce extends Module {
                     mc.player.setPitch(pitch.get().floatValue());
                 }
             }
-
-            obsRememberSpeed();
         }
 
         if (enabled())
