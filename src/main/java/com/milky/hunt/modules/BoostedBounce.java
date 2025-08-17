@@ -60,7 +60,6 @@ public class BoostedBounce extends Module {
         .build()
     );
 
-    // NEW: only clear Y momentum when actually colliding with a wall
     private final Setting<Boolean> onlyWhileColliding = sgGeneral.add(new BoolSetting.Builder()
         .name("Only While Colliding")
         .description("Only enables motion y boost if colliding with a wall.")
@@ -113,7 +112,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Boolean> useCustomYaw = sgGeneral.add(new BoolSetting.Builder()
         .name("Use Custom Yaw")
-        .description("Enable this if you want to use a yaw that isn't a factor of 45.")
+        .description("Enable this if you want to use a yaw that isn't a factor of 45. WARNING: This affects the baritone goal for obstacle passer; use Rotations if you only want a yaw lock.")
         .defaultValue(false)
         .visible(bounce::get)
         .build()
@@ -121,7 +120,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Double> yaw = sgGeneral.add(new DoubleSetting.Builder()
         .name("Yaw")
-        .description("The yaw to set when bounce is enabled. This is auto set to the closest 45 deg angle to you unless Use Custom Yaw is enabled.")
+        .description("Yaw to set when bounce is enabled. Auto-snaps to nearest 45° unless Use Custom Yaw is enabled.")
         .defaultValue(0.0)
         .sliderRange(0, 359)
         .visible(() -> bounce.get() && useCustomYaw.get())
@@ -138,7 +137,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Boolean> useCustomStartPos = sgObstaclePasser.add(new BoolSetting.Builder()
         .name("Use Custom Start Position")
-        .description("Enable and set this ONLY if you are on a ringroad or don't want to be locked to a highway. Otherwise (0, 0) is the start position and will be automatically used.")
+        .description("Enable and set ONLY on ringroads or off-highway; otherwise (0,0) is used.")
         .defaultValue(false)
         .visible(() -> bounce.get() && highwayObstaclePasser.get())
         .build()
@@ -146,7 +145,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<BlockPos> startPos = sgObstaclePasser.add(new BlockPosSetting.Builder()
         .name("Start Position")
-        .description("The start position to use when using a custom start position.")
+        .description("Start position when using a custom start position.")
         .defaultValue(new BlockPos(0,0,0))
         .visible(() -> bounce.get() && highwayObstaclePasser.get() && useCustomStartPos.get())
         .build()
@@ -154,7 +153,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Boolean> awayFromStartPos = sgObstaclePasser.add(new BoolSetting.Builder()
         .name("Away From Start Position")
-        .description("If true, will go away from the start position instead of towards it. The start pos is (0,0) if it is not set to a custom start pos.")
+        .description("Go away from start position instead of towards it.")
         .defaultValue(true)
         .visible(() -> bounce.get() && highwayObstaclePasser.get())
         .build()
@@ -162,7 +161,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Double> distance = sgObstaclePasser.add(new DoubleSetting.Builder()
         .name("Distance")
-        .description("The distance to set the baritone goal for path realignment.")
+        .description("Distance for baritone goal when realigning.")
         .defaultValue(10.0)
         .visible(() -> bounce.get() && highwayObstaclePasser.get())
         .build()
@@ -170,7 +169,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Integer> targetY = sgObstaclePasser.add(new IntSetting.Builder()
         .name("Y Level")
-        .description("The Y level to bounce at. This must be correct or bounce will not start properly.")
+        .description("Y level to bounce at; must be correct or bounce won't start.")
         .defaultValue(120)
         .visible(() -> bounce.get() && highwayObstaclePasser.get())
         .build()
@@ -178,7 +177,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Boolean> avoidPortalTraps = sgObstaclePasser.add(new BoolSetting.Builder()
         .name("Avoid Portal Traps")
-        .description("Will attempt to detect portal traps on chunk load and avoid them.")
+        .description("Detect portal traps on chunk load and avoid them.")
         .defaultValue(false)
         .visible(() -> bounce.get() && highwayObstaclePasser.get())
         .build()
@@ -186,7 +185,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Double> portalAvoidDistance = sgObstaclePasser.add(new DoubleSetting.Builder()
         .name("Portal Avoid Distance")
-        .description("The distance to a portal trap where the obstacle passer will takeover and go around it.")
+        .description("Distance threshold to take over and go around a portal trap.")
         .defaultValue(20)
         .min(0)
         .sliderMax(50)
@@ -196,7 +195,7 @@ public class BoostedBounce extends Module {
 
     private final Setting<Integer> portalScanWidth = sgObstaclePasser.add(new IntSetting.Builder()
         .name("Portal Scan Width")
-        .description("The width on the axis of the highway that will be scanned for portal traps.")
+        .description("Highway-axis scan half-width for portal traps.")
         .defaultValue(5)
         .min(3)
         .sliderMax(10)
@@ -206,14 +205,14 @@ public class BoostedBounce extends Module {
 
     private final Setting<Boolean> fakeFly = sgGeneral.add(new BoolSetting.Builder()
         .name("Chestplate / Fakefly")
-        .description("Lets you fly using a chestplate to use almost 0 elytra durability. Must have elytra in hotbar.")
+        .description("Fly using a chestplate to save elytra durability. Elytra must be in hotbar.")
         .defaultValue(false)
         .build()
     );
 
     private final Setting<Boolean> toggleElytra = sgGeneral.add(new BoolSetting.Builder()
         .name("Toggle Elytra")
-        .description("Equips an elytra on activate, and a chestplate on deactivate.")
+        .description("Equip elytra on activate and chestplate on deactivate.")
         .defaultValue(false)
         .visible(() -> !fakeFly.get())
         .build()
@@ -223,7 +222,7 @@ public class BoostedBounce extends Module {
         super(
             Addon.CATEGORY,
             "BoostedBounce",
-            "Bounce efly with soft-collision-aware obstacle handling."
+            "Elytra bounce efly with soft-collision-aware obstacle handling (1.21.4 compatible)."
         );
     }
 
@@ -263,9 +262,11 @@ public class BoostedBounce extends Module {
             if (BaritoneAPI.getProvider().getPrimaryBaritone().getElytraProcess().currentDestination() == null) {
                 BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoal(null);
             }
+
             if (!useCustomStartPos.get()) {
                 startPos.set(new BlockPos(0, 0, 0));
             }
+
             if (!useCustomYaw.get()) {
                 if (mc.player.getBlockPos().getSquaredDistance(startPos.get()) < 10_000 || !highwayObstaclePasser.get()) {
                     double playerAngleNormalized = angleOnAxis(mc.player.getYaw());
@@ -287,7 +288,6 @@ public class BoostedBounce extends Module {
     private void onPlayerMove(PlayerMoveEvent event) {
         if (mc.player == null || event.type != MovementType.SELF || !enabled() || !motionYBoost.get() || !bounce.get()) return;
 
-        // NEW: only act when actually colliding, if the setting is enabled
         if (onlyWhileColliding.get() && !mc.player.horizontalCollision) return;
 
         if (lastPos != null) {
@@ -303,6 +303,7 @@ public class BoostedBounce extends Module {
                 mc.player.setVelocity(mc.player.getVelocity().x, 0.0, mc.player.getVelocity().z);
             }
         }
+
         lastPos = mc.player.getPos();
     }
 
@@ -325,8 +326,13 @@ public class BoostedBounce extends Module {
         }
     }
 
+    // 5 chunks forwards
     private final double maxDistance = 16 * 5;
+
+    // a path used when there are no valid blocks in range.
+    // it will instead path to this and then when it gets close it will look for a valid block again
     private BlockPos tempPath = null;
+
     private boolean waitingForChunksToLoad;
 
     @EventHandler
@@ -352,6 +358,7 @@ public class BoostedBounce extends Module {
                 return;
             }
 
+            // if still pathing, wait for that to complete
             if (highwayObstaclePasser.get() && BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().getGoal() != null) {
                 return;
             }
@@ -365,16 +372,15 @@ public class BoostedBounce extends Module {
 
             if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 &&
                 (mc.player.getY() < targetY.get() || mc.player.getY() > targetY.get() + 2
-                 // NEW: ignore soft collisions
-                 || (mc.player.horizontalCollision && !mc.player.collidedSoftly)
-                 || (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get())
-                 || waitingForChunksToLoad
-                 || stuckTimer > 50)) {
+                || (mc.player.horizontalCollision && !mc.player.collidedSoftly) // collisions / out of highway (ignore soft collide)
+                || (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get())
+                || waitingForChunksToLoad
+                || stuckTimer > 50)) {
 
                 waitingForChunksToLoad = false;
                 paused = true;
                 BlockPos goal = mc.player.getBlockPos();
-                double currDistance = distance.get();
+                double currDistance = distance.get(); // Keep checking farther distances until a goal is found that has a block beneath it
 
                 if (portalTrap != null) {
                     currDistance += mc.player.getPos().distanceTo(portalTrap.toCenterPos());
@@ -400,17 +406,20 @@ public class BoostedBounce extends Module {
                     goal = new BlockPos((int)(Math.floor(pos.x)), targetY.get(), (int)Math.floor(pos.z));
                     currDistance++;
 
+                    // Blocks in unloaded chunks are void air
                     if (mc.world.getBlockState(goal).getBlock() == Blocks.VOID_AIR) {
                         waitingForChunksToLoad = true;
                         return;
                     }
                 }
+                // avoid pathing on air / portals / non-air goal block
                 while (!mc.world.getBlockState(goal.down()).isSolidBlock(mc.world, goal.down())
                     || mc.world.getBlockState(goal).getBlock() == Blocks.NETHER_PORTAL
                     || !mc.world.getBlockState(goal).isAir());
 
                 BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(goal));
             } else {
+                // keep jumping
                 paused = false;
                 if (!enabled()) return;
 
@@ -420,8 +429,13 @@ public class BoostedBounce extends Module {
                     }
                 }
 
-                if (lockYaw.get()) mc.player.setYaw(yaw.get().floatValue());
-                if (lockPitch.get()) mc.player.setPitch(pitch.get().floatValue());
+                // set yaw and pitch
+                if (lockYaw.get()) {
+                    mc.player.setYaw(yaw.get().floatValue());
+                }
+                if (lockPitch.get()) {
+                    mc.player.setPitch(pitch.get().floatValue());
+                }
             }
         }
 
@@ -435,8 +449,7 @@ public class BoostedBounce extends Module {
     }
 
     public boolean enabled() {
-        return this.isActive() && !paused && mc.player != null &&
-            (fakeFly.get() || mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().equals(Items.ELYTRA));
+        return this.isActive() && !paused && mc.player != null && (fakeFly.get() || mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().equals(Items.ELYTRA));
     }
 
     private void doGrimEflyStuff() {
@@ -444,19 +457,19 @@ public class BoostedBounce extends Module {
         if (!itemResult.found()) return;
 
         swapToItem(itemResult.slot());
+
         sendStartFlyingPacket();
 
         if (bounce.get() && mc.player.isOnGround() && (!motionYBoost.get() || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < speed.get())) {
             mc.player.jump();
         }
+
         swapToItem(itemResult.slot());
     }
 
     @EventHandler
     private void onPlaySound(PlaySoundEvent event) {
-        // Only mute when fakeFly is enabled (matches newer behavior)
         if (!fakeFly.get()) return;
-
         List<Identifier> armorEquipSounds = List.of(
             Identifier.of("minecraft:item.armor.equip_generic"),
             Identifier.of("minecraft:item.armor.equip_netherite"),
@@ -476,16 +489,17 @@ public class BoostedBounce extends Module {
         }
     }
 
+    // === 1.21.4-compatible SWAP ===
     // Slot 38 = chest slot (client inventory index)
-    private void swapToItem(int slot) {
+    private void swapToItem(int hotbarSlot) {
         ItemStack chestItem = mc.player.getInventory().getStack(38);
-        ItemStack hotbarSwapItem = mc.player.getInventory().getStack(slot);
+        ItemStack hotbarSwapItem = mc.player.getInventory().getStack(hotbarSlot);
 
         Int2ObjectMap<ItemStack> changedSlots = new Int2ObjectOpenHashMap<>();
-        changedSlots.put(6, hotbarSwapItem);
-        changedSlots.put(slot + 36, chestItem);
+        changedSlots.put(6, hotbarSwapItem);           // slot 6 = chest slot in ClickSlot packet space
+        changedSlots.put(hotbarSlot + 36, chestItem);  // hotbar N -> inventory slot 36+N
 
-        sendSwapPacket(changedSlots, slot);
+        sendSwapPacket(changedSlots, hotbarSlot);
     }
 
     private void sendStartFlyingPacket() {
@@ -504,8 +518,8 @@ public class BoostedBounce extends Module {
         mc.player.networkHandler.sendPacket(new ClickSlotC2SPacket(
             syncId,
             stateId,
-            6,               // slotNum (chest slot)
-            buttonNum,       // the hotbar slot being swapped with slot 6
+            6,                 // slotNum (server expects chest slot here)
+            buttonNum,         // hotbar slot being swapped with slot 6
             SlotActionType.SWAP,
             new ItemStack(Items.AIR),
             changedSlots
@@ -519,8 +533,10 @@ public class BoostedBounce extends Module {
 
         BlockPos centerPos = pos.getCenterAtY(targetY.get());
 
+        // Check if chunk is on the player's path
         Vec3d moveDir = yawToDirection(yaw.get());
         double distanceToHighway = distancePointToDirection(Vec3d.of(centerPos), moveDir, mc.player.getPos());
+
         if (distanceToHighway > 21) return;
 
         for (int x = 0; x < 16; x++) {
@@ -531,10 +547,11 @@ public class BoostedBounce extends Module {
                     if (distancePointToDirection(Vec3d.of(position), moveDir, mc.player.getPos()) > portalScanWidth.get()) continue;
 
                     if (mc.world.getBlockState(position).getBlock().equals(Blocks.NETHER_PORTAL)) {
-                        BlockPos posBehind = new BlockPos((int)Math.floor(position.getX() + moveDir.x), position.getY(), (int)Math.floor(position.getZ() + moveDir.z));
+                        BlockPos posBehind = new BlockPos((int)Math.floor(position.getX() + moveDir.x), position.getY(), (int) Math.floor(position.getZ() + moveDir.z));
 
-                        if (mc.world.getBlockState(posBehind).isSolidBlock(mc.world, posBehind)
-                            || mc.world.getBlockState(posBehind).getBlock() == Blocks.NETHER_PORTAL) {
+                        // Trap is detected when a portal has a solid block or another portal behind it
+                        if (mc.world.getBlockState(posBehind).isSolidBlock(mc.world, posBehind) ||
+                            mc.world.getBlockState(posBehind).getBlock() == Blocks.NETHER_PORTAL) {
                             if (portalTrap == null || (
                                 portalTrap.getSquaredDistance(posBehind) > 100 &&
                                 mc.player.getBlockPos().getSquaredDistance(posBehind) < mc.player.getBlockPos().getSquaredDistance(portalTrap)
