@@ -18,6 +18,9 @@
       "com.milky.hunt.Addon"
     ]
   },
+  "mixins": [
+    "milky-mod.mixins.json"
+  ],
   "custom": {
     "meteor-client:color": "225,25,25"
   },
