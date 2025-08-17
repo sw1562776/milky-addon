@@ -226,24 +226,43 @@ public class BoostedBounce extends Module {
     private Vec3d lastUnstuckPos;
     private int stuckTimer = 0;
 
-    private double lastHSpeed = 0.0;
-    private void updateLastHSpeed() {
-        lastHSpeed = mc.player.getVelocity().multiply(1, 0, 1).length();
+    private double obsLastHSpeed = 0.0;
+    private int    obsSoftFrames = 0;
+
+    private void obsRememberSpeed() {
+        obsLastHSpeed = mc.player.getVelocity().multiply(1, 0, 1).length();
     }
-    private boolean isHardHorizontalCollision() {
-        if (!mc.player.horizontalCollision) return false;
-        double curr = mc.player.getVelocity().multiply(1, 0, 1).length();
-        return (curr < 0.08 && lastHSpeed - curr > 0.07);
+
+    private boolean collidedSoftlyApprox(Vec3d forwardDir) {
+        if (!mc.player.horizontalCollision) {
+            obsSoftFrames = 0;
+            return false;
+        }
+        Vec3d hv = mc.player.getVelocity().multiply(1, 0, 1);
+        double curr = hv.length();
+
+        double dirDot = 0.0;
+        if (curr > 1e-6) dirDot = hv.normalize().dotProduct(forwardDir);
+
+        boolean noBigDrop = (obsLastHSpeed - curr) <= 0.12;
+        boolean notHeadOn = dirDot <= 0.5;
+
+        if (noBigDrop || notHeadOn) obsSoftFrames++;
+        else obsSoftFrames = 0;
+
+        return obsSoftFrames >= 2;
     }
-    // ----------------------------------------------------
+    // -----------------------------------------------------------------------
 
     @EventHandler
     private void onReceivePacket(PacketEvent.Receive event)
     {
-        if (event.packet instanceof PlayerPositionLookS2CPacket) {
-            // onActivate();
+        if (event.packet instanceof PlayerPositionLookS2CPacket packet)
+        {
+//            onActivate();
         }
-        else if (event.packet instanceof CloseScreenS2CPacket) {
+        else if (event.packet instanceof CloseScreenS2CPacket)
+        {
             event.cancel();
         }
     }
@@ -262,9 +281,10 @@ public class BoostedBounce extends Module {
         lastPos = mc.player.getPos();
         lastUnstuckPos = mc.player.getPos();
         stuckTimer = 0;
-        updateLastHSpeed();
 
-        // 与原版一致的 yaw/起点初始化
+        obsRememberSpeed();
+
+        // I don't know any other way to fix this stupid shit
         if (bounce.get() && mc.player.getPos().multiply(1, 0, 1).length() >= 100)
         {
             if (BaritoneAPI.getProvider().getPrimaryBaritone().getElytraProcess().currentDestination() == null)
@@ -279,6 +299,7 @@ public class BoostedBounce extends Module {
 
             if (!useCustomYaw.get())
             {
+                // If less than 100 blocks from the start pos, angle calculation may be wrong, so just use players yaw
                 if (mc.player.getBlockPos().getSquaredDistance(startPos.get()) < 10_000 || !highwayObstaclePasser.get())
                 {
                     double playerAngleNormalized = angleOnAxis(mc.player.getYaw());
@@ -286,6 +307,7 @@ public class BoostedBounce extends Module {
                 }
                 else
                 {
+                    // Otherwise use the angle from the starting position to the players position
                     BlockPos directionVec = mc.player.getBlockPos().subtract(startPos.get());
                     double angle = Math.toDegrees(Math.atan2(-directionVec.getX(), directionVec.getZ()));
                     double angleNormalized = angleOnAxis(angle);
@@ -293,6 +315,7 @@ public class BoostedBounce extends Module {
                     {
                         angleNormalized += 180;
                     }
+
                     yaw.set(angleNormalized);
                 }
             }
@@ -354,6 +377,7 @@ public class BoostedBounce extends Module {
     private final double maxDistance = 16 * 5;
 
     // a path used when there are no valid blocks in range.
+    // it will instead path to this and then when it gets close it will look for a valid block again
     private BlockPos tempPath = null;
 
     private boolean waitingForChunksToLoad;
@@ -387,14 +411,14 @@ public class BoostedBounce extends Module {
             else if (tempPath != null)
             {
                 BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(tempPath));
-                updateLastHSpeed();
+                obsRememberSpeed();
                 return;
             }
 
             // if still pathing, wait for that to complete
             if (highwayObstaclePasser.get() && BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().getGoal() != null)
             {
-                updateLastHSpeed();
+                obsRememberSpeed();
                 return;
             }
 
@@ -408,12 +432,14 @@ public class BoostedBounce extends Module {
                 lastUnstuckPos = mc.player.getPos();
             }
 
-            if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 &&
-                (mc.player.getY() < targetY.get() || mc.player.getY() > targetY.get() + 2 ||
-                 isHardHorizontalCollision() ||
-                 (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get()) ||
-                 waitingForChunksToLoad ||
-                 stuckTimer > 50))
+            Vec3d highwayDir = yawToDirection(yaw.get());
+
+            if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 && // > 100 check needed bc server sends queue coordinates when joining in first tick causing goal coordinates to be set to (0, 0)
+                (mc.player.getY() < targetY.get() || mc.player.getY() > targetY.get() + 2
+                || (mc.player.horizontalCollision && !collidedSoftlyApprox(highwayDir))
+                || (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get()) // portal trap detection
+                || waitingForChunksToLoad // waiting for chunks to load
+                || stuckTimer > 50))
             {
                 waitingForChunksToLoad = false;
                 paused = true;
@@ -432,7 +458,7 @@ public class BoostedBounce extends Module {
                     {
                         tempPath = goal;
                         BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(goal));
-                        updateLastHSpeed();
+                        obsRememberSpeed();
                         return;
                     }
                     Vec3d unitYawVec = yawToDirection(yaw.get());
@@ -447,14 +473,15 @@ public class BoostedBounce extends Module {
                     goal = new BlockPos((int)(Math.floor(pos.x)), targetY.get(), (int)Math.floor(pos.z));
                     currDistance++;
 
-                    // Blocks in unloaded chunks are void air
+                    // Blocks in unloaded chunks are void air, for some reason checking if the chunk is loaded was always true, so I check this instead
                     if (mc.world.getBlockState(goal).getBlock() == Blocks.VOID_AIR)
                     {
                         waitingForChunksToLoad = true;
-                        updateLastHSpeed();
+                        obsRememberSpeed();
                         return;
                     }
                 }
+                // avoid pathing on air cause baritone freaks out, and dont path into portals in case a mod is avoiding portals
                 while (!mc.world.getBlockState(goal.down()).isSolidBlock(mc.world, goal.down()) ||
                     mc.world.getBlockState(goal).getBlock() == Blocks.NETHER_PORTAL ||
                     !mc.world.getBlockState(goal).isAir());
@@ -464,7 +491,7 @@ public class BoostedBounce extends Module {
             {
                 // keep jumping
                 paused = false;
-                if (!enabled()) { updateLastHSpeed(); return; }
+                if (!enabled()) return;
 
                 if (!fakeFly.get())
                 {
@@ -484,6 +511,8 @@ public class BoostedBounce extends Module {
                     mc.player.setPitch(pitch.get().floatValue());
                 }
             }
+
+            obsRememberSpeed();
         }
 
         if (enabled())
@@ -497,8 +526,6 @@ public class BoostedBounce extends Module {
                 sendStartFlyingPacket();
             }
         }
-
-        updateLastHSpeed();
     }
 
     public boolean enabled()
@@ -547,6 +574,7 @@ public class BoostedBounce extends Module {
     }
 
     // 38 is the meteor mapping for chestplate
+    // serverside uses default mappings: https://imgs.search.brave.com/cyvAxjIhLweeF1qeRXpC_8ESRlImhUmMGWbV_n2to_A/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jNGszLmdpdGh1Yi5pby93aWtpLnZnL2ltYWdlcy8xLzEzL0ludmVudG9yeS1zbG90cy5wbmc
     private void swapToItem(int slot) {
         ItemStack chestItem = mc.player.getInventory().getStack(38);
         ItemStack hotbarSwapItem = mc.player.getInventory().getStack(slot);
@@ -574,7 +602,7 @@ public class BoostedBounce extends Module {
             syncId,
             stateId,
             6,                 // slotNum
-            buttonNum,         // the slot number thats being swapped
+            buttonNum,   // the slot number thats being swapped
             SlotActionType.SWAP,
             new ItemStack(Items.AIR),
             changedSlots
