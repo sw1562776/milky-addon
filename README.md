@@ -3,7 +3,7 @@ Meteor Addon For minecraft 1.21.4
 
 ⚠️ This mod may include copy-pasted code from existing Meteor addons, including Jeff Mod, Meteorist, and others.
 
-### Current Modules
+### Original Modules
 - AutoGolem
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
 - AutoInvertedY
