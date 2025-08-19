@@ -27,10 +27,10 @@ Meteor Addon For minecraft 1.21.4
 ### In Progress
 - PullUp
   - Automatically takes off from the ground and climbs to your target altitude.
- 
-### Candidate feature
 - PitStop
   - Lands automatically for a quick restock before you head back out.
+ 
+### Candidate feature
 - RightClickBlock
   - Automatically interacts with blocks in range.
 
