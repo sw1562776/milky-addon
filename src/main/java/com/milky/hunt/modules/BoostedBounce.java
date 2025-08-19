@@ -23,12 +23,12 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.MovementType;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.*;
 import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
-
 import com.milky.hunt.Addon;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Identifier;
@@ -38,37 +38,27 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
-
 import java.util.List;
-
 import static com.milky.hunt.Utils.*;
 
 public class BoostedBounce extends Module {
-
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgObstaclePasser = settings.createGroup("Obstacle Passer");
 
-    private final Setting<Boolean> bounce = sgGeneral.add(new BoolSetting.Builder()
-        .name("Bounce")
-        .description("Automatically does bounce efly.")
-        .defaultValue(false)
-        .build()
-    );
+    // bounce option removed — always on while module is active
 
     private final Setting<Boolean> motionYBoost = sgGeneral.add(new BoolSetting.Builder()
         .name("Motion Y Boost")
         .description("Greatly increases speed by cancelling Y momentum.")
         .defaultValue(false)
-        .visible(bounce::get)
         .build()
     );
 
-    // New: Only While Colliding
     private final Setting<Boolean> onlyWhileColliding = sgGeneral.add(new BoolSetting.Builder()
         .name("Only While Colliding")
         .description("Only enables motion y boost if colliding with a wall.")
         .defaultValue(true)
-        .visible(() -> bounce.get() && motionYBoost.get())
+        .visible(motionYBoost::get)
         .build()
     );
 
@@ -76,7 +66,7 @@ public class BoostedBounce extends Module {
         .name("Tunnel Bounce")
         .description("Allows you to bounce in 1x2 tunnels. This should not be on if you are not in a tunnel.")
         .defaultValue(false)
-        .visible(() -> bounce.get() && motionYBoost.get())
+        .visible(motionYBoost::get)
         .build()
     );
 
@@ -85,7 +75,7 @@ public class BoostedBounce extends Module {
         .description("The speed in blocks per second to keep you at.")
         .defaultValue(100.0)
         .sliderRange(20, 250)
-        .visible(() -> bounce.get() && motionYBoost.get())
+        .visible(motionYBoost::get)
         .build()
     );
 
@@ -93,7 +83,6 @@ public class BoostedBounce extends Module {
         .name("Lock Pitch")
         .description("Whether to lock your pitch when bounce is enabled.")
         .defaultValue(true)
-        .visible(bounce::get)
         .build()
     );
 
@@ -102,7 +91,7 @@ public class BoostedBounce extends Module {
         .description("The pitch to set when bounce is enabled.")
         .defaultValue(90.0)
         .sliderRange(-90, 90)
-        .visible(() -> bounce.get() && lockPitch.get())
+        .visible(lockPitch::get)
         .build()
     );
 
@@ -110,7 +99,6 @@ public class BoostedBounce extends Module {
         .name("Lock Yaw")
         .description("Whether to lock your yaw when bounce is enabled.")
         .defaultValue(false)
-        .visible(bounce::get)
         .build()
     );
 
@@ -118,7 +106,6 @@ public class BoostedBounce extends Module {
         .name("Use Custom Yaw")
         .description("Enable this if you want to use a yaw that isn't a factor of 45.")
         .defaultValue(false)
-        .visible(bounce::get)
         .build()
     );
 
@@ -127,7 +114,7 @@ public class BoostedBounce extends Module {
         .description("The yaw to set when bounce is enabled. This is auto set to the closest 45 deg angle to you unless Use Custom Yaw is enabled.")
         .defaultValue(0.0)
         .sliderRange(0, 359)
-        .visible(() -> bounce.get() && useCustomYaw.get())
+        .visible(useCustomYaw::get)
         .build()
     );
 
@@ -135,7 +122,6 @@ public class BoostedBounce extends Module {
         .name("Highway Obstacle Passer")
         .description("Uses baritone to pass obstacles.")
         .defaultValue(false)
-        .visible(bounce::get)
         .build()
     );
 
@@ -143,7 +129,7 @@ public class BoostedBounce extends Module {
         .name("Use Custom Start Position")
         .description("Enable and set this ONLY if you are on a ringroad or don't want to be locked to a highway. Otherwise (0, 0) is the start position and will be automatically used.")
         .defaultValue(false)
-        .visible(() -> bounce.get() && highwayObstaclePasser.get())
+        .visible(highwayObstaclePasser::get)
         .build()
     );
 
@@ -151,7 +137,7 @@ public class BoostedBounce extends Module {
         .name("Start Position")
         .description("The start position to use when using a custom start position.")
         .defaultValue(new BlockPos(0,0,0))
-        .visible(() -> bounce.get() && highwayObstaclePasser.get() && useCustomStartPos.get())
+        .visible(() -> highwayObstaclePasser.get() && useCustomStartPos.get())
         .build()
     );
 
@@ -159,7 +145,7 @@ public class BoostedBounce extends Module {
         .name("Away From Start Position")
         .description("If true, will go away from the start position instead of towards it. The start pos is (0,0) if it is not set to a custom start pos.")
         .defaultValue(true)
-        .visible(() -> bounce.get() && highwayObstaclePasser.get())
+        .visible(highwayObstaclePasser::get)
         .build()
     );
 
@@ -167,7 +153,7 @@ public class BoostedBounce extends Module {
         .name("Distance")
         .description("The distance to set the baritone goal for path realignment.")
         .defaultValue(10.0)
-        .visible(() -> bounce.get() && highwayObstaclePasser.get())
+        .visible(highwayObstaclePasser::get)
         .build()
     );
 
@@ -175,7 +161,7 @@ public class BoostedBounce extends Module {
         .name("Y Level")
         .description("The Y level to bounce at. This must be correct or bounce will not start properly.")
         .defaultValue(120)
-        .visible(() -> bounce.get() && highwayObstaclePasser.get())
+        .visible(() -> highwayObstaclePasser.get() && !useCustomStartPos.get())
         .build()
     );
 
@@ -183,7 +169,7 @@ public class BoostedBounce extends Module {
         .name("Avoid Portal Traps")
         .description("Will attempt to detect portal traps on chunk load and avoid them.")
         .defaultValue(false)
-        .visible(() -> bounce.get() && highwayObstaclePasser.get())
+        .visible(highwayObstaclePasser::get)
         .build()
     );
 
@@ -193,7 +179,7 @@ public class BoostedBounce extends Module {
         .defaultValue(20)
         .min(0)
         .sliderMax(50)
-        .visible(() -> bounce.get() && highwayObstaclePasser.get() && avoidPortalTraps.get())
+        .visible(() -> highwayObstaclePasser.get() && avoidPortalTraps.get())
         .build()
     );
 
@@ -203,7 +189,7 @@ public class BoostedBounce extends Module {
         .defaultValue(5)
         .min(3)
         .sliderMax(10)
-        .visible(() -> bounce.get() && highwayObstaclePasser.get() && avoidPortalTraps.get())
+        .visible(() -> highwayObstaclePasser.get() && avoidPortalTraps.get())
         .build()
     );
 
@@ -222,12 +208,52 @@ public class BoostedBounce extends Module {
         .build()
     );
 
+    // --- Auto replace Elytra when durability is low ---
+    private final Setting<Boolean> autoReplaceElytra = sgGeneral.add(new BoolSetting.Builder()
+        .name("Auto Replace Elytra")
+        .description("Automatically replace Elytra when durability falls below threshold.")
+        .defaultValue(true)
+        .build()
+    );
+
+    private final Setting<Integer> minElytraDurability = sgGeneral.add(new IntSetting.Builder()
+        .name("Min Elytra Durability")
+        .description("If current Elytra has less than this remaining durability, attempt to replace it.")
+        .defaultValue(10)
+        .sliderRange(1, 432)
+        .visible(autoReplaceElytra::get)
+        .build()
+    );
+
+    // --- Auto wear Gold armor (helmet/leggings/boots) ---
+    private final Setting<Boolean> autoWearGold = sgGeneral.add(new BoolSetting.Builder()
+        .name("Auto Wear Gold")
+        .description("Automatically wear selected gold armor pieces above a minimum durability.")
+        .defaultValue(false)
+        .build()
+    );
+
+    private final Setting<Integer> minGoldDurability = sgGeneral.add(new IntSetting.Builder()
+        .name("Min Gold Durability")
+        .description("If equipped gold piece has less than this remaining durability, replace it.")
+        .defaultValue(10)
+        .sliderRange(1, 100)
+        .visible(autoWearGold::get)
+        .build()
+    );
+
+    private final Setting<List<Item>> goldPieces = sgGeneral.add(new ItemListSetting.Builder()
+        .name("Gold Pieces")
+        .description("Choose which gold armor types to maintain: helmet, leggings, boots.")
+        // Restrict the selectable items in the GUI to ONLY these three
+        .filter(it -> it == Items.GOLDEN_HELMET || it == Items.GOLDEN_LEGGINGS || it == Items.GOLDEN_BOOTS)
+        .defaultValue(List.of(Items.GOLDEN_HELMET, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS))
+        .visible(autoWearGold::get)
+        .build()
+    );
+
     public BoostedBounce() {
-        super(
-            Addon.CATEGORY,
-            "BoostedBounce",
-            "Elytra fly with some more features."
-        );
+        super(Addon.CATEGORY, "BoostedBounce", "Elytra fly with some more features.");
     }
 
     private boolean startSprinting;
@@ -239,22 +265,30 @@ public class BoostedBounce extends Module {
     private Vec3d lastUnstuckPos;
     private int stuckTimer = 0;
 
+    private Vec3d lastPos;
+
+    // 5 chunks forwards
+    private final double maxDistance = 16 * 5;
+
+    // a path used when there are no valid blocks in range.
+    private BlockPos tempPath = null;
+
+    private boolean waitingForChunksToLoad;
+
+    // re-send fall-flying a few ticks after swapping Elytra
+    private int reopenTicks = 0;
+
     @EventHandler
-    private void onReceivePacket(PacketEvent.Receive event)
-    {
-        if (event.packet instanceof PlayerPositionLookS2CPacket packet)
-        {
-//            onActivate();
-        }
-        else if (event.packet instanceof CloseScreenS2CPacket)
-        {
+    private void onReceivePacket(PacketEvent.Receive event) {
+        if (event.packet instanceof PlayerPositionLookS2CPacket) {
+            // no-op
+        } else if (event.packet instanceof CloseScreenS2CPacket) {
             event.cancel();
         }
     }
 
     @Override
-    public void onActivate()
-    {
+    public void onActivate() {
         if (mc.player == null || mc.player.getAbilities().allowFlying) return;
 
         startSprinting = mc.player.isSprinting();
@@ -267,66 +301,44 @@ public class BoostedBounce extends Module {
         lastUnstuckPos = mc.player.getPos();
         stuckTimer = 0;
 
-        // I don't know any other way to fix this stupid shit
-        if (bounce.get() && mc.player.getPos().multiply(1, 0, 1).length() >= 100)
-        {
-            if (BaritoneAPI.getProvider().getPrimaryBaritone().getElytraProcess().currentDestination() == null)
-            {
+        if (mc.player.getPos().multiply(1, 0, 1).length() >= 100) {
+            if (BaritoneAPI.getProvider().getPrimaryBaritone().getElytraProcess().currentDestination() == null) {
                 BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoal(null);
             }
 
-            if (!useCustomStartPos.get())
-            {
+            if (!useCustomStartPos.get()) {
                 startPos.set(new BlockPos(0, 0, 0));
             }
 
-            if (!useCustomYaw.get())
-            {
-                // If less than 100 blocks from the start pos, angle calculation may be wrong, so just use players yaw
-                if (mc.player.getBlockPos().getSquaredDistance(startPos.get()) < 10_000 || !highwayObstaclePasser.get())
-                {
+            if (!useCustomYaw.get()) {
+                if (mc.player.getBlockPos().getSquaredDistance(startPos.get()) < 10_000 || !highwayObstaclePasser.get()) {
                     double playerAngleNormalized = angleOnAxis(mc.player.getYaw());
                     yaw.set(playerAngleNormalized);
-                }
-                else
-                {
-                    // Otherwise use the angle from the starting position to the players position
+                } else {
                     BlockPos directionVec = mc.player.getBlockPos().subtract(startPos.get());
                     double angle = Math.toDegrees(Math.atan2(-directionVec.getX(), directionVec.getZ()));
                     double angleNormalized = angleOnAxis(angle);
-                    if (!awayFromStartPos.get())
-                    {
-                        angleNormalized += 180;
-                    }
-
+                    if (!awayFromStartPos.get()) angleNormalized += 180;
                     yaw.set(angleNormalized);
                 }
             }
         }
     }
 
-    private Vec3d lastPos;
-
     @EventHandler
     private void onPlayerMove(PlayerMoveEvent event) {
-        if (mc.player == null || event.type != MovementType.SELF || !enabled() || !motionYBoost.get() || !bounce.get()) return;
+        if (mc.player == null || event.type != MovementType.SELF || !enabled() || !motionYBoost.get()) return;
 
-        // Only While Colliding gate
         if (onlyWhileColliding.get() && !mc.player.horizontalCollision) return;
 
-        if (lastPos != null)
-        {
+        if (lastPos != null) {
             double speedBps = mc.player.getPos().subtract(lastPos).multiply(20, 0, 20).length();
 
             Timer timer = Modules.get().get(Timer.class);
-            if (timer.isActive()) {
-                speedBps *= timer.getMultiplier();
-            }
+            if (timer.isActive()) speedBps *= timer.getMultiplier();
 
-            if (mc.player.isOnGround() && mc.player.isSprinting() && speedBps < speed.get())
-            {
-                if (speedBps > 20 || tunnelBounce.get())
-                {
+            if (mc.player.isOnGround() && mc.player.isSprinting() && speedBps < speed.get()) {
+                if (speedBps > 20 || tunnelBounce.get()) {
                     ((IVec3d) event.movement).meteor$setY(0.0);
                 }
                 mc.player.setVelocity(mc.player.getVelocity().x, 0.0, mc.player.getVelocity().z);
@@ -337,206 +349,151 @@ public class BoostedBounce extends Module {
     }
 
     @Override
-    public void onDeactivate()
-    {
+    public void onDeactivate() {
         if (mc.player == null) return;
 
-        if (bounce.get())
-        {
-            if (BaritoneAPI.getProvider().getPrimaryBaritone().getElytraProcess().currentDestination() == null)
-            {
-                BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoal(null);
-            }
+        if (BaritoneAPI.getProvider().getPrimaryBaritone().getElytraProcess().currentDestination() == null) {
+            BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoal(null);
         }
 
         mc.player.setSprinting(startSprinting);
 
-        if (toggleElytra.get() && !fakeFly.get())
-        {
+        if (toggleElytra.get() && !fakeFly.get()) {
             if (!mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().toString().contains("chestplate")) {
                 Modules.get().get(ChestSwap.class).swap();
             }
         }
     }
 
-    // 5 chunks forwards
-    private final double maxDistance = 16 * 5;
-
-    // a path used when there are no valid blocks in range.
-    // it will instead path to this and then when it gets close it will look for a valid block again
-    private BlockPos tempPath = null;
-
-    private boolean waitingForChunksToLoad;
-
     @EventHandler
-    private void onTick(TickEvent.Pre event)
-    {
+    private void onTick(TickEvent.Pre event) {
         if (mc.player == null || mc.player.getAbilities().allowFlying) return;
 
-        if (toggleElytra.get() && !fakeFly.get() && !elytraToggled)
-        {
-            if (!(mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().equals(Items.ELYTRA)))
-            {
+        if (toggleElytra.get() && !fakeFly.get() && !elytraToggled) {
+            if (!(mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().equals(Items.ELYTRA))) {
                 Modules.get().get(ChestSwap.class).swap();
-            }
-            else
-            {
+            } else {
                 elytraToggled = true;
             }
         }
 
         if (enabled()) mc.player.setSprinting(true);
 
-        if (bounce.get())
-        {
-            if (tempPath != null && mc.player.getBlockPos().getSquaredDistance(tempPath) < 500)
-            {
-                tempPath = null;
-                BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoal(null);
-            }
-            else if (tempPath != null)
-            {
-                BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(tempPath));
-                return;
-            }
-
-            // if still pathing, wait for that to complete
-            if (highwayObstaclePasser.get() && BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().getGoal() != null)
-            {
-                return;
-            }
-
-            if (mc.player.squaredDistanceTo(lastUnstuckPos) < 25)
-            {
-                stuckTimer++;
-            }
-            else
-            {
-                stuckTimer = 0;
-                lastUnstuckPos = mc.player.getPos();
-            }
-
-            if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 && // > 100: queue coords on join
-                (
-                    mc.player.getY() < targetY.get()
-                    || mc.player.getY() > targetY.get() + 2
-                    // Only treat HARD front block as obstacle; side-graze is okay
-                    || (mc.player.horizontalCollision && isFrontBlocked(mc.player))
-                    || (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get())
-                    || waitingForChunksToLoad
-                    || stuckTimer > 50
-                ))
-            {
-                waitingForChunksToLoad = false;
-                paused = true;
-                BlockPos goal = mc.player.getBlockPos();
-                double currDistance = distance.get(); // Keep checking farther distances until a goal is found that has a block beneath it
-
-                if (portalTrap != null) {
-                    currDistance += mc.player.getPos().distanceTo(portalTrap.toCenterPos());
-                    portalTrap = null;
-                    info("Pathing around portal.");
-                }
-
-                do
-                {
-                    if (currDistance > maxDistance)
-                    {
-                        tempPath = goal;
-                        BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(goal));
-                        return;
-                    }
-                    // Use snapped virtual yaw only for pathing
-                    Vec3d unitYawVec = yawToDirection(pathYaw());
-                    Vec3d travelVec = mc.player.getPos().subtract(startPos.get().toCenterPos());
-
-                    double parallelCurrPosDot = travelVec.multiply(new Vec3d(1, 0, 1)).dotProduct(unitYawVec);
-                    Vec3d parallelCurrPosComponent = unitYawVec.multiply(parallelCurrPosDot);
-
-                    Vec3d pos = startPos.get().toCenterPos().add(parallelCurrPosComponent);
-                    pos = positionInDirection(pos, pathYaw(), currDistance);
-
-                    goal = new BlockPos((int)(Math.floor(pos.x)), targetY.get(), (int)Math.floor(pos.z));
-                    currDistance++;
-
-                    // Blocks in unloaded chunks are void air
-                    if (mc.world.getBlockState(goal).getBlock() == Blocks.VOID_AIR)
-                    {
-                        waitingForChunksToLoad = true;
-                        return;
-                    }
-                }
-                // avoid pathing on air; avoid portals; require air for headroom
-                while (!mc.world.getBlockState(goal.down()).isSolidBlock(mc.world, goal.down()) ||
-                    mc.world.getBlockState(goal).getBlock() == Blocks.NETHER_PORTAL ||
-                    !mc.world.getBlockState(goal).isAir());
-                BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(goal));
-            }
-            else
-            {
-                // keep jumping
-                paused = false;
-                if (!enabled()) return;
-
-                if (!fakeFly.get())
-                {
-                    if (mc.player.isOnGround() && (!motionYBoost.get() || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < speed.get()))
-                    {
-                        mc.player.jump();
-                    }
-                }
-
-                // set yaw and pitch
-                if (lockYaw.get())
-                {
-                    mc.player.setYaw(yaw.get().floatValue());
-                }
-                if (lockPitch.get())
-                {
-                    mc.player.setPitch(pitch.get().floatValue());
-                }
-            }
+        // Auto-replace Elytra (non-FakeFly)
+        if (autoReplaceElytra.get() && !fakeFly.get()) {
+            maybeReplaceElytra();
+        }
+        if (reopenTicks > 0) {
+            tryStartFallFlying();
+            reopenTicks--;
         }
 
-        if (enabled())
-        {
-            if (fakeFly.get())
-            {
-                doGrimEflyStuff();
+        // Maintain gold pieces
+        if (autoWearGold.get()) {
+            maintainGoldArmor();
+        }
+
+        // ---- obstacle passer / pathing ----
+        if (tempPath != null && mc.player.getBlockPos().getSquaredDistance(tempPath) < 500) {
+            tempPath = null;
+            BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoal(null);
+        } else if (tempPath != null) {
+            BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(tempPath));
+            return;
+        }
+
+        if (highwayObstaclePasser.get() && BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().getGoal() != null) {
+            return;
+        }
+
+        if (mc.player.squaredDistanceTo(lastUnstuckPos) < 25) stuckTimer++;
+        else { stuckTimer = 0; lastUnstuckPos = mc.player.getPos(); }
+
+        int ty = getTargetY();
+        if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 && (
+            mc.player.getY() < ty || mc.player.getY() > ty + 2 ||
+            (mc.player.horizontalCollision && isFrontBlocked(mc.player)) ||
+            (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get()) ||
+            waitingForChunksToLoad || stuckTimer > 50)) {
+
+            waitingForChunksToLoad = false;
+            paused = true;
+            BlockPos goal = mc.player.getBlockPos();
+            double currDistance = distance.get();
+
+            if (portalTrap != null) {
+                currDistance += mc.player.getPos().distanceTo(portalTrap.toCenterPos());
+                portalTrap = null;
+                info("Pathing around portal.");
             }
-            else
-            {
-                sendStartFlyingPacket();
+
+            do {
+                if (currDistance > maxDistance) {
+                    tempPath = goal;
+                    BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(goal));
+                    return;
+                }
+
+                Vec3d unitYawVec = yawToDirection(pathYaw());
+                Vec3d travelVec = mc.player.getPos().subtract(startPos.get().toCenterPos());
+                double parallelCurrPosDot = travelVec.multiply(new Vec3d(1, 0, 1)).dotProduct(unitYawVec);
+                Vec3d parallelCurrPosComponent = unitYawVec.multiply(parallelCurrPosDot);
+                Vec3d pos = startPos.get().toCenterPos().add(parallelCurrPosComponent);
+                pos = positionInDirection(pos, pathYaw(), currDistance);
+
+                goal = new BlockPos((int) Math.floor(pos.x), ty, (int) Math.floor(pos.z));
+                currDistance++;
+
+                if (mc.world.getBlockState(goal).getBlock() == Blocks.VOID_AIR) {
+                    waitingForChunksToLoad = true;
+                    return;
+                }
             }
+            while (!mc.world.getBlockState(goal.down()).isSolidBlock(mc.world, goal.down()) ||
+                mc.world.getBlockState(goal).getBlock() == Blocks.NETHER_PORTAL ||
+                !mc.world.getBlockState(goal).isAir());
+
+            BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoalAndPath(new GoalBlock(goal));
+        } else {
+            paused = false;
+            if (!enabled()) return;
+
+            if (!fakeFly.get()) {
+                if (mc.player.isOnGround() && (!motionYBoost.get() || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < speed.get())) {
+                    mc.player.jump();
+                }
+            }
+
+            if (lockYaw.get()) mc.player.setYaw(yaw.get().floatValue());
+            if (lockPitch.get()) mc.player.setPitch(pitch.get().floatValue());
+        }
+
+        if (enabled()) {
+            if (fakeFly.get()) doGrimEflyStuff();
+            else sendStartFlyingPacket();
         }
     }
 
-    public boolean enabled()
-    {
+    public boolean enabled() {
         return this.isActive() && !paused && mc.player != null && (fakeFly.get() || mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().equals(Items.ELYTRA));
     }
 
-    private void doGrimEflyStuff()
-    {
+    private void doGrimEflyStuff() {
         FindItemResult itemResult = InvUtils.findInHotbar(Items.ELYTRA);
         if (!itemResult.found()) return;
 
         swapToItem(itemResult.slot());
-
         sendStartFlyingPacket();
 
-        if (bounce.get() && mc.player.isOnGround() && (!motionYBoost.get() || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < speed.get()))
-        {
+        if (mc.player.isOnGround() && (!motionYBoost.get() || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < speed.get())) {
             mc.player.jump();
         }
 
         swapToItem(itemResult.slot());
-
     }
 
     @EventHandler
-    private void onPlaySound(PlaySoundEvent event)
-    {
+    private void onPlaySound(PlaySoundEvent event) {
         List<Identifier> armorEquipSounds = List.of(
             Identifier.of("minecraft:item.armor.equip_generic"),
             Identifier.of("minecraft:item.armor.equip_netherite"),
@@ -549,15 +506,11 @@ public class BoostedBounce extends Module {
             Identifier.of("minecraft:item.elytra.flying")
         );
         for (Identifier identifier : armorEquipSounds) {
-            if (identifier.equals(event.sound.getId())) {
-                event.cancel();
-                break;
-            }
+            if (identifier.equals(event.sound.getId())) { event.cancel(); break; }
         }
     }
 
-    // 38 is the meteor mapping for chestplate
-    // serverside uses default mappings: https://c4k3.github.io/wiki.vg/images/1/13/Inventory-slots.png
+    // hotbar<->chest swap for FakeFly
     private void swapToItem(int slot) {
         ItemStack chestItem = mc.player.getInventory().getStack(38);
         ItemStack hotbarSwapItem = mc.player.getInventory().getStack(slot);
@@ -584,8 +537,8 @@ public class BoostedBounce extends Module {
         mc.player.networkHandler.sendPacket(new ClickSlotC2SPacket(
             syncId,
             stateId,
-            6,                 // chest slot
-            buttonNum,         // hotbar slot to swap with
+            6,
+            buttonNum,
             SlotActionType.SWAP,
             new ItemStack(Items.AIR),
             changedSlots
@@ -593,43 +546,27 @@ public class BoostedBounce extends Module {
     }
 
     @EventHandler
-    private void onChunkData(ChunkDataEvent event)
-    {
+    private void onChunkData(ChunkDataEvent event) {
         if (!avoidPortalTraps.get() || !highwayObstaclePasser.get()) return;
         ChunkPos pos = event.chunk().getPos();
 
-        BlockPos centerPos = pos.getCenterAtY(targetY.get());
+        int ty = getTargetY();
+        BlockPos centerPos = pos.getCenterAtY(ty);
 
-        // Check if chunk is on the players path
-        // Use snapped virtual yaw for portal scan direction
         Vec3d moveDir = yawToDirection(pathYaw());
         double distanceToHighway = distancePointToDirection(Vec3d.of(centerPos), moveDir, mc.player.getPos());
-
         if (distanceToHighway > 21) return;
 
-        for (int x = 0; x < 16; x++)
-        {
-            for (int z = 0; z < 16; z++)
-            {
-                for (int y = targetY.get(); y < targetY.get() + 3; y++)
-                {
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                for (int y = ty; y < ty + 3; y++) {
                     BlockPos position = new BlockPos(pos.x * 16 + x, y, pos.z * 16 + z);
-
                     if (distancePointToDirection(Vec3d.of(position), moveDir, mc.player.getPos()) > portalScanWidth.get()) continue;
 
-                    if (mc.world.getBlockState(position).getBlock().equals(Blocks.NETHER_PORTAL)) // TODO: could be unloaded
-                    {
-                        BlockPos posBehind = new BlockPos((int)Math.floor(position.getX() + moveDir.x), position.getY(), (int) Math.floor(position.getZ() + moveDir.z));
-
-                        // Trap when portal has solid or another portal right behind
-                        if (mc.world.getBlockState(posBehind).isSolidBlock(mc.world, posBehind) ||
-                            mc.world.getBlockState(posBehind).getBlock() == Blocks.NETHER_PORTAL)
-                        {
-                            if (portalTrap == null || (
-                                portalTrap.getSquaredDistance(posBehind) > 100 &&
-                                    mc.player.getBlockPos().getSquaredDistance(posBehind) < mc.player.getBlockPos().getSquaredDistance(portalTrap))
-                            )
-                            {
+                    if (mc.world.getBlockState(position).getBlock().equals(Blocks.NETHER_PORTAL)) {
+                        BlockPos posBehind = new BlockPos((int)Math.floor(position.getX() + moveDir.x), position.getY(), (int)Math.floor(position.getZ() + moveDir.z));
+                        if (mc.world.getBlockState(posBehind).isSolidBlock(mc.world, posBehind) || mc.world.getBlockState(posBehind).getBlock() == Blocks.NETHER_PORTAL) {
+                            if (portalTrap == null || (portalTrap.getSquaredDistance(posBehind) > 100 && mc.player.getBlockPos().getSquaredDistance(posBehind) < mc.player.getBlockPos().getSquaredDistance(portalTrap))) {
                                 portalTrap = posBehind;
                             }
                         }
@@ -639,28 +576,16 @@ public class BoostedBounce extends Module {
         }
     }
 
-    // ---- Inline: front collision (hard block) check ----
     private static boolean isFrontBlocked(net.minecraft.entity.player.PlayerEntity p) {
         if (p == null || p.isRemoved()) return false;
-
         World w = p.getWorld();
         Box bb = p.getBoundingBox();
-
-        float facingdeg = p.getYaw();    
-        double snappedDeg = Math.round(facingdeg / 45.0) * 45.0;
-        double RadianDeg = Math.toRadians(snappedDeg);
-
-        Vec3d fwd = new Vec3d(-Math.sin(RadianDeg), 0, Math.cos(RadianDeg));
-
+        Direction facing = p.getHorizontalFacing();
+        Vec3d fwd = new Vec3d(facing.getOffsetX(), 0, facing.getOffsetZ());
         double probe = 0.62;
         double[] ys = new double[] { bb.minY + 0.2, (bb.minY + bb.maxY) * 0.5, bb.maxY - 0.1 };
-
         for (double y : ys) {
-            BlockPos pos = BlockPos.ofFloored(
-                p.getX() + fwd.x * probe,
-                y,
-                p.getZ() + fwd.z * probe
-            );
+            BlockPos pos = BlockPos.ofFloored(p.getX() + fwd.x * probe, y, p.getZ() + fwd.z * probe);
             if (isHard(w.getBlockState(pos), w, pos)) return true;
         }
         return false;
@@ -672,17 +597,93 @@ public class BoostedBounce extends Module {
         return s.isFullCube(w, pos) && s.isSolidBlock(w, pos);
     }
 
-    // --- snap to nearest 45° ONLY Baritone pathing ---
-
     private static double roundAngle(double angleDeg) {
-        // normalize to [0,360)
         double a = ((angleDeg % 360.0) + 360.0) % 360.0;
         double snapped = Math.round(a / 45.0) * 45.0;
-        // avoid returning 360
         return ((snapped % 360.0) + 360.0) % 360.0;
     }
 
-    private double pathYaw() {
-        return roundAngle(yaw.get());
+    private double pathYaw() { return roundAngle(yaw.get()); }
+
+    // effective Y level (custom start pos forces using its Y)
+    private int getTargetY() { return useCustomStartPos.get() ? startPos.get().getY() : targetY.get(); }
+
+    // ===== Auto-replace Elytra helpers =====
+    private boolean isHealthyElytra(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !stack.isOf(Items.ELYTRA)) return false;
+        int remaining = stack.getMaxDamage() - stack.getDamage();
+        return remaining >= minElytraDurability.get();
     }
+
+    private int findBestElytraSlot() {
+        int bestSlot = -1;
+        int bestRemain = -1;
+        for (int i = 0; i < mc.player.getInventory().size(); i++) {
+            ItemStack s = mc.player.getInventory().getStack(i);
+            if (s.isOf(Items.ELYTRA)) {
+                int remain = s.getMaxDamage() - s.getDamage();
+                if (remain >= minElytraDurability.get() && remain > bestRemain) {
+                    bestRemain = remain;
+                    bestSlot = i;
+                }
+            }
+        }
+        return bestSlot;
+    }
+
+    private void maybeReplaceElytra() {
+        ItemStack chest = mc.player.getInventory().getArmorStack(2);
+        if (isHealthyElytra(chest)) return;
+        int slot = findBestElytraSlot();
+        if (slot == -1) return;
+        InvUtils.move().from(slot).toArmor(2);
+        reopenTicks = 3; // Give a few ticks to re-open gliding
+    }
+
+    private void tryStartFallFlying() { sendStartFlyingPacket(); }
+
+    // ===== Auto-wear Gold armor =====
+    private void maintainGoldArmor() {
+        if (mc.player == null) return;
+        List<Item> targets = goldPieces.get();
+        if (targets == null || targets.isEmpty()) return;
+
+        for (Item it : targets) {
+            int armorIdx = armorSlotIndexFor(it); // toArmor index: 3=head, 2=chest, 1=legs, 0=feet
+            if (armorIdx == -1) continue; // unsupported item (ignore)
+
+            int invArmorSlot = (armorIdx == 3 ? 39 : armorIdx == 2 ? 38 : armorIdx == 1 ? 37 : 36);
+            ItemStack equipped = mc.player.getInventory().getStack(invArmorSlot);
+
+            boolean ok = equipped != null && !equipped.isEmpty() && equipped.isOf(it)
+                && remainingDurability(equipped) >= minGoldDurability.get();
+            if (ok) continue;
+
+            int best = findBestGoldSlot(it);
+            if (best == -1) continue;
+
+            InvUtils.move().from(best).toArmor(armorIdx);
+        }
+    }
+
+    private int armorSlotIndexFor(Item it) {
+        if (it == Items.GOLDEN_HELMET) return 3;
+        if (it == Items.GOLDEN_LEGGINGS) return 1;
+        if (it == Items.GOLDEN_BOOTS) return 0;
+        return -1;
+    }
+
+    private int findBestGoldSlot(Item it) {
+        int best = -1, bestRemain = -1;
+        for (int i = 0; i < mc.player.getInventory().size(); i++) {
+            ItemStack s = mc.player.getInventory().getStack(i);
+            if (s.isOf(it)) {
+                int r = remainingDurability(s);
+                if (r >= minGoldDurability.get() && r > bestRemain) { bestRemain = r; best = i; }
+            }
+        }
+        return best;
+    }
+
+    private int remainingDurability(ItemStack s) { return s.getMaxDamage() - s.getDamage(); }
 }
