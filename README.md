@@ -28,6 +28,13 @@ Meteor Addon For minecraft 1.21.4
   - Orchestrates your Meteor modules—start and stop modules in a defined order or in parallel.
   - Write a short script to schedule routines and optionally loop them.
 
+### Borrowed Magic
+ 
+- BoostedBounce
+  - Ported from Jeff Mod and adapted for Minecraft 1.21.4 with a reworked soft-collision check.
+- Cruise
+  - Ported from Jeff Mod, with Elytra auto-replace added and modules combined.
+
 ### In Progress
 - PullUp
   - Automatically takes off from the ground and climbs to your target altitude.
