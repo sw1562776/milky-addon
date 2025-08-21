@@ -32,9 +32,13 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new RightClickEntity());
         Modules.get().add(new Timeline());
 
-        Modules.get().add(new PullUp());
         Modules.get().add(new Cruise());
         Modules.get().add(new BoostedBounce());
+
+        Modules.get().add(new PullUp());
+        Modules.get().add(new PitStop());
+        Modules.get().add(new Landing());
+        Modules.get().add(new SpiralFlight());
 
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
