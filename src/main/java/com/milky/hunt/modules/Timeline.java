@@ -45,13 +45,13 @@ public class Timeline extends Module {
     );
 
     private static final Set<String> ONLY_UNTIMED = new HashSet<>(Arrays.asList(
-        "chestdeposit", "chestrestock", "quickcommand"
+        "chestdeposit", "chestrestock", "landing", "pitstop", "pullup", "quickcommand"
     ));
     private static final Set<String> ONLY_TIMED = new HashSet<>(Arrays.asList(
-        "rightclickentity", "inhand"
+        "boostedbounce", "cruise", "gotomultipoints", "inhand", "rightclickentity", "spiralflight"
     ));
     private static final Set<String> ALLOWED_PARALLEL = new HashSet<>(Arrays.asList(
-        "rightclickentity", "inhand", "gotomultipoints"
+        "boostedbounce", "cruise", "gotomultipoints", "inhand", "rightclickentity", "spiralflight"
     ));
 
     private final List<Step> steps = new ArrayList<>();
@@ -63,17 +63,17 @@ public class Timeline extends Module {
     private boolean armedWait = false;
     private long loopStartAt = 0L;
 
-public Timeline() {
-    super(
-        Addon.CATEGORY,
-        "Timeline",
-        "Time-based sequencer that runs other modules via a one-line script.\n" +
-        "Use ';' to chain steps in order; within a step, ',' runs modules in parallel and the last token must be a duration (30s/2m/1h).\n" +
-        "A single module with no duration means: start it (if needed) and wait until it deactivates, then continue.\n" +
-        "Parallel steps may include only RightClickEntity, InHand, GotoMultiPoints; RightClickEntity and InHand require a duration; ChestDeposit, ChestRestock, QuickCommand must be untimed; GotoMultiPoints supports both.\n" +
-        "Enable 'loop' to restart from the first step when finished; the HUD shows the current step and 'loop 15h3m1s' elapsed in this round."
-    );
-}
+    public Timeline() {
+        super(
+            Addon.CATEGORY,
+            "Timeline",
+            "Time-based sequencer that runs other modules via a one-line script.\n" +
+            "Use ';' to chain steps in order; within a step, ',' runs modules in parallel and the last token must be a duration (30s/2m/1h).\n" +
+            "A single module with no duration means: start it (if needed) and wait until it deactivates, then continue.\n" +
+            "Parallel steps may include only RightClickEntity, InHand, GotoMultiPoints; RightClickEntity and InHand require a duration; ChestDeposit, ChestRestock, QuickCommand must be untimed; GotoMultiPoints supports both.\n" +
+            "Enable 'loop' to restart from the first step when finished; the HUD shows the current step and 'loop 15h3m1s' elapsed in this round."
+        );
+    }
 
     @Override
     public void onActivate() {
@@ -171,7 +171,7 @@ public Timeline() {
 
         String[] parts = Arrays.stream(text.split(";"))
             .map(String::trim).filter(p -> !p.isEmpty()).toArray(String[]::new);
-        if (parts.length == 0) { parseError = "Empty script"; return false; }
+        if (parts.length == 0) { parseError = "Script is empty."; return false; }
 
         for (String part : parts) {
             String[] tokens = Arrays.stream(part.split(","))
@@ -182,11 +182,11 @@ public Timeline() {
                 String mod = tokens[0];
 
                 if (isOnlyTimed(mod)) {
-                    parseError = "Module requires duration: " + mod;
+                    parseError = "This step contains a module that requires a duration (e.g., add \", 30s\").";
                     return false;
                 }
                 if (strictNames.get() && findModule(mod) == null) {
-                    parseError = "Unknown module: " + mod;
+                    parseError = "The script references an unknown or unloaded module.";
                     return false;
                 }
 
@@ -197,7 +197,7 @@ public Timeline() {
             String last = tokens[tokens.length - 1];
             Long dur = parseDurationMs(last);
             if (dur == null) {
-                parseError = "Comma group must end with a duration: " + part;
+                parseError = "Each comma-separated group must end with a duration token (e.g., 30s/2m/1h).";
                 return false;
             }
 
@@ -206,15 +206,15 @@ public Timeline() {
                 String m = tokens[i];
 
                 if (isOnlyUntimed(m)) {
-                    parseError = "Module cannot be used with duration: " + m;
+                    parseError = "This group contains a module that cannot be used with a duration; put it in its own step without time.";
                     return false;
                 }
                 if (!isParallelAllowed(m)) {
-                    parseError = "Only RightClickEntity, InHand, GotoMultiPoints can be used in parallel: " + m;
+                    parseError = "This group includes a module that is not allowed in parallel steps; keep only parallel-safe modules or split into separate steps.";
                     return false;
                 }
                 if (strictNames.get() && findModule(m) == null) {
-                    parseError = "Unknown module: " + m;
+                    parseError = "The script references an unknown or unloaded module.";
                     return false;
                 }
 
@@ -260,7 +260,7 @@ public Timeline() {
     }
 
     private void failUnknown(String name) {
-        parseError = "Unknown module: " + name;
+        parseError = "The script references an unknown or unloaded module.";
         stopStep(false);
     }
 
