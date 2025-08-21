@@ -20,6 +20,8 @@ Meteor Addon For minecraft 1.21.4
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickEntity
   - Automatically interacts with entities in range.
+- SpiralFlight
+  - Fly an Archimedean spiral.
 - Timeline
   - Orchestrates your Meteor modules—start and stop modules in a defined order or in parallel.
   - Write a short script to schedule routines and optionally loop them.
