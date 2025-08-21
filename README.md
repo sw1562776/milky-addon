@@ -16,6 +16,8 @@ Meteor Addon For minecraft 1.21.4
    - Walks between multiple coordinates using Baritone.
 - InHand
   - Fill your mainhand and offhand with chosen items.
+- Landing
+  - Attempts to land by using chorus fruits until touching the ground.
 - QuickCommand
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickEntity
