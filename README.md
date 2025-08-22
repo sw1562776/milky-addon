@@ -15,7 +15,7 @@ Meteor Addon For minecraft 1.21.4
 - GotoMultiPoints
    - Walks between multiple coordinates using Baritone.
 - InHand
-  - Fill your mainhand and offhand with chosen items.
+  - Fills your mainhand and offhand with chosen items.
 - Landing
   - Attempts to land by using chorus fruits until touching the ground.
 - QuickCommand
@@ -23,10 +23,12 @@ Meteor Addon For minecraft 1.21.4
 - RightClickEntity
   - Automatically interacts with entities in range.
 - SpiralFlight
-  - Fly an Archimedean spiral.
+  - Adjusts your yaw to follow an Archimedean spiral path.
 - Timeline
   - Orchestrates your Meteor modules—start and stop modules in a defined order or in parallel.
   - Write a short script to schedule routines and optionally loop them.
+- WaypointQueue
+  - Adjusts your yaw to sequentially aim at waypoints from XaeroMap.
 
 ### Borrowed Magic
  
