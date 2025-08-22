@@ -33,7 +33,7 @@ Meteor Addon For minecraft 1.21.4
 ### Borrowed Magic
  
 - BoostedBounce
-  - Ported from Jeff Mod and adapted for Minecraft 1.21.4 with a reworked soft-collision check and a build-in elytra/gold wear swap.
+  - Ported from Jeff Mod and adapted for Minecraft 1.21.4 with a reworked soft-collision check and a build-in elytra/gold auto-replace.
 - Cruise
   - Ported from Jeff Mod, with Elytra auto-replace added and modules combined.
 
