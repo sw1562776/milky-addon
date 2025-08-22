@@ -6,24 +6,14 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class SpiralFlight extends Module {
-    // ========= GUI =========
     private final SettingGroup sgGeneral  = settings.getDefaultGroup();
     private final SettingGroup sgControl  = settings.createGroup("Control");
     private final SettingGroup sgAdvanced = settings.createGroup("Advanced");
-
-    // General
-    private final Setting<BlockPos> center = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("center")
-        .description("Spiral center (XZ used, Y ignored)")
-        .defaultValue(new BlockPos(0, 64, 0))
-        .build()
-    );
 
     private final Setting<Double> ringSpacing = sgGeneral.add(new DoubleSetting.Builder()
         .name("ring-spacing-Δr")
@@ -39,7 +29,6 @@ public class SpiralFlight extends Module {
         .build()
     );
 
-    // Control
     private final Setting<Double> chordLen = sgControl.add(new DoubleSetting.Builder()
         .name("chord-length-s")
         .description("Target chord length s between samples (blocks)")
@@ -68,13 +57,6 @@ public class SpiralFlight extends Module {
         .build()
     );
 
-    private final Setting<Double> centerReach = sgControl.add(new DoubleSetting.Builder()
-        .name("center-reach-radius")
-        .description("Distance to center to start spiral (blocks)")
-        .defaultValue(8).min(1.0).sliderMax(64.0)
-        .build()
-    );
-
     private final Setting<Double> leadStepMul = sgControl.add(new DoubleSetting.Builder()
         .name("lead-step-multiplier")
         .description("Lead step multiplier when inside corridor (0 = no lead)")
@@ -82,7 +64,6 @@ public class SpiralFlight extends Module {
         .build()
     );
 
-    // Advanced
     private final Setting<Integer> nearestSamples = sgAdvanced.add(new IntSetting.Builder()
         .name("nearest-samples")
         .description("Samples for nearest-point search")
@@ -125,12 +106,11 @@ public class SpiralFlight extends Module {
         .build()
     );
 
-    // ========= Runtime =========
-    private enum Phase { GO_TO_CENTER, SPIRAL, DONE }
+    private enum Phase { SPIRAL, DONE }
     private Phase phase;
 
-    private double thetaOnPath;   // parameter (radians)
-    private double tauStartRef;   // for potential future use (turns HUD, etc.)
+    private double thetaOnPath;
+    private double centerXrt, centerZrt;
 
     public SpiralFlight() {
         super(Addon.CATEGORY, "SpiralFlight", "Fly an Archimedean spiral.");
@@ -139,41 +119,24 @@ public class SpiralFlight extends Module {
     @Override
     public void onActivate() {
         if (mc.player == null || mc.world == null) { toggle(); return; }
-
+        centerXrt = mc.player.getX();
+        centerZrt = mc.player.getZ();
         thetaOnPath = 0.0;
-        tauStartRef = 0.0;
-
-        double[] c = centerXZ();
-        double qx = mc.player.getX(), qz = mc.player.getZ();
-        if (dist2(qx, qz, c[0], c[1]) > sq(centerReach.get())) {
-            phase = Phase.GO_TO_CENTER;
-        } else {
-            startSpiral();
-            return;
-        }
+        phase = Phase.SPIRAL;
     }
 
     @Override
     public void onDeactivate() {
         phase = Phase.DONE;
+        thetaOnPath = 0.0;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onTick(TickEvent.Pre event) {
         if (mc.player == null || mc.world == null) return;
-
-        double[] c = centerXZ();
-        double qx = mc.player.getX(), qz = mc.player.getZ();
-
-        if (phase == Phase.GO_TO_CENTER) {
-            double yawTargetDeg = Math.toDegrees(Math.atan2(c[1] - qz, c[0] - qx));
-            faceYawSmooth((float) yawTargetDeg, yawRateDegPerTick.get().floatValue());
-            if (dist2(qx, qz, c[0], c[1]) <= sq(centerReach.get())) startSpiral();
-            return;
-        }
         if (phase != Phase.SPIRAL) return;
 
-        // === Spiral follow ===
+        final double qx = mc.player.getX(), qz = mc.player.getZ();
         final double B  = ringSpacing.get() / (2.0 * Math.PI);
         final boolean cwVisual = clockwise.get();
 
@@ -183,53 +146,29 @@ public class SpiralFlight extends Module {
         final double dtMinVal = dtMin.get();
         final double dtMaxVal = dtMax.get();
 
-        // Adaptive |Δθ| at current thetaOnPath
-        double tauHere = cwVisual ? +thetaOnPath : -thetaOnPath; // tau increases along chosen visual direction
+        double tauHere = cwVisual ? +thetaOnPath : -thetaOnPath;
         double rHere = Math.max(0.0, B * tauHere);
         double dthetaMag = s / Math.max(1e-6, Math.sqrt(rHere * rHere + B * B));
         dthetaMag = clampAbs(dthetaMag, dtMinVal, dtMaxVal);
         double dthetaStep = cwVisual ? +dthetaMag : -dthetaMag;
 
-        // Nearest-point projection around thetaOnPath
-        double[] nearest = nearestOnCurve(thetaOnPath, B, c[0], c[1], qx, qz, cwVisual,
-                                          searchWindow.get(), nearestSamples.get(), refineIters.get());
+        double[] nearest = nearestOnCurve(thetaOnPath, B, centerXrt, centerZrt, qx, qz, cwVisual,
+                searchWindow.get(), nearestSamples.get(), refineIters.get());
         double thetaNearest = nearest[0];
         double distNearest  = nearest[1];
 
-        // Monotonic advance toward projection (no reverse): for CCW we decrease theta, for CW we increase theta
         double maxAdvance = maxAdvanceSteps.get() * Math.abs(dthetaStep);
         thetaOnPath = advanceMonotonic(thetaOnPath, thetaNearest, maxAdvance, cwVisual);
 
-        // Base theta for aiming: small lead step when inside corridor
         double thetaBase = thetaOnPath;
         if (distNearest <= w && leadStepMul.get() > 0.0) {
             thetaBase += (cwVisual ? +1.0 : -1.0) * Math.abs(dthetaStep) * leadStepMul.get();
         }
 
-        // Lookahead and steering
         final double thetaLook = integrateLookahead(thetaBase, L, B, cwVisual, s, dtMinVal, dtMaxVal);
-        final double[] pStar = posPolar(thetaLook, B, c[0], c[1], cwVisual);
+        final double[] pStar = posPolar(thetaLook, B, centerXrt, centerZrt, cwVisual);
         final double yawTargetDeg = Math.toDegrees(Math.atan2(pStar[1] - qz, pStar[0] - qx));
         faceYawSmooth((float) yawTargetDeg, yawRateDegPerTick.get().floatValue());
-    }
-
-    // ===== Helpers =====
-    private void startSpiral() {
-        thetaOnPath = 0.0;
-        phase = Phase.SPIRAL;
-    }
-
-    private double[] centerXZ() {
-        BlockPos c = center.get();
-        return new double[] { c.getX() + 0.5, c.getZ() + 0.5 }; // block center
-    }
-
-    private static double sq(double v) { return v * v; }
-
-    // Squared distance on XZ
-    private static double dist2(double x1, double z1, double x2, double z2) {
-        double dx = x1 - x2, dz = z1 - z2;
-        return dx * dx + dz * dz;
     }
 
     private static double clampAbs(double v, double minAbs, double maxAbs) {
@@ -240,7 +179,6 @@ public class SpiralFlight extends Module {
         return s * a;
     }
 
-    // XZ polar with r = B * tau, tau = (cw ? +theta : -theta)
     private static double[] posPolar(double theta, double B, double xc, double zc, boolean cwVisual) {
         double tau = cwVisual ? +theta : -theta;
         double r = Math.max(0.0, B * tau);
@@ -253,7 +191,7 @@ public class SpiralFlight extends Module {
         float yaw = mc.player.getYaw();
         float diff = wrapDeg(yawTargetDeg - yaw);
         if (maxDeltaDeg <= 0f) {
-            mc.player.setYaw(yaw + diff); //LOCK
+            mc.player.setYaw(yaw + diff);
             return;
         }
         float step = MathHelper.clamp(diff, -maxDeltaDeg, maxDeltaDeg);
@@ -267,7 +205,6 @@ public class SpiralFlight extends Module {
         return f;
     }
 
-    // Integrate adaptive Δθ until accumulated ~ L
     private static double integrateLookahead(double theta0, double L, double B, boolean cwVisual,
                                              double s, double dtMinVal, double dtMaxVal) {
         double acc = 0.0;
@@ -285,7 +222,6 @@ public class SpiralFlight extends Module {
         return theta;
     }
 
-    // Nearest point around thetaCenter (sampling + ternary refinements)
     private double[] nearestOnCurve(double thetaCenter, double B,
                                     double xc, double zc, double qx, double qz, boolean cwVisual,
                                     double windowRad, int samples, int refine) {
@@ -318,17 +254,13 @@ public class SpiralFlight extends Module {
         return dx * dx + dz * dz;
     }
 
-    // Advance "current" toward "target" without reversing the chosen visual direction.
-    // visual CW => theta increases; visual CCW => theta decreases.
     private static double advanceMonotonic(double current, double target, double maxStep, boolean cwVisual) {
         if (cwVisual) {
-            // theta must not decrease
             if (target < current) target = current;
             double adv = Math.min(target - current, maxStep);
             if (adv < 0) adv = 0;
             return current + adv;
         } else {
-            // theta must not increase
             if (target > current) target = current;
             double adv = Math.min(current - target, maxStep);
             if (adv < 0) adv = 0;
