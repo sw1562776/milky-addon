@@ -6,7 +6,6 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
-import net.minecraft.client.option.KeyBinding;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
@@ -40,13 +39,6 @@ public class SpiralFlight extends Module {
         .build()
     );
 
-    private final Setting<Boolean> autoHoldW = sgGeneral.add(new BoolSetting.Builder()
-        .name("auto-hold-w")
-        .description("Automatically hold W while flying/walking")
-        .defaultValue(true)
-        .build()
-    );
-
     // Control
     private final Setting<Double> chordLen = sgControl.add(new DoubleSetting.Builder()
         .name("chord-length-s")
@@ -72,14 +64,14 @@ public class SpiralFlight extends Module {
     private final Setting<Double> yawRateDegPerTick = sgControl.add(new DoubleSetting.Builder()
         .name("max-yaw-rate-deg-per-tick")
         .description("Max yaw change per tick (deg/tick)")
-        .defaultValue(10.0).min(0.5).sliderMax(20.0)
+        .defaultValue(10.0).min(0.0).sliderMax(180.0)
         .build()
     );
 
     private final Setting<Double> centerReach = sgControl.add(new DoubleSetting.Builder()
         .name("center-reach-radius")
         .description("Distance to center to start spiral (blocks)")
-        .defaultValue(0.8).min(0.3).sliderMax(8.0)
+        .defaultValue(8).min(1.0).sliderMax(64.0)
         .build()
     );
 
@@ -159,12 +151,10 @@ public class SpiralFlight extends Module {
             startSpiral();
             return;
         }
-        if (autoHoldW.get()) setForward(true);
     }
 
     @Override
     public void onDeactivate() {
-        if (autoHoldW.get()) setForward(false);
         phase = Phase.DONE;
     }
 
@@ -227,12 +217,6 @@ public class SpiralFlight extends Module {
     private void startSpiral() {
         thetaOnPath = 0.0;
         phase = Phase.SPIRAL;
-        if (autoHoldW.get()) setForward(true);
-    }
-
-    private void setForward(boolean pressed) {
-        KeyBinding fwd = mc.options.forwardKey;
-        fwd.setPressed(pressed);
     }
 
     private double[] centerXZ() {
@@ -268,6 +252,10 @@ public class SpiralFlight extends Module {
     private void faceYawSmooth(float yawTargetDeg, float maxDeltaDeg) {
         float yaw = mc.player.getYaw();
         float diff = wrapDeg(yawTargetDeg - yaw);
+        if (maxDeltaDeg <= 0f) {
+            mc.player.setYaw(yaw + diff); //LOCK
+            return;
+        }
         float step = MathHelper.clamp(diff, -maxDeltaDeg, maxDeltaDeg);
         mc.player.setYaw(yaw + step);
     }
