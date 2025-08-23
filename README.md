@@ -1,7 +1,7 @@
 # Milky Mod
 Meteor Addon For minecraft 1.21.4
 
-⚠️ This mod may include copy-pasted code from existing Meteor addons, including Jeff Mod, Meteorist, and others.
+⚠️ This mod may include copy-pasted code from existing Meteor addons, including Jeff Mod, and others.
 
 ### Original Modules
 - AutoGolem
