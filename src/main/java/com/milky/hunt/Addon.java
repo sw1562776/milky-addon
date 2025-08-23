@@ -39,6 +39,7 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new PitStop());
         Modules.get().add(new Landing());
         Modules.get().add(new SpiralFlight());
+        Modules.get().add(new WaypointQueue());
 
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
