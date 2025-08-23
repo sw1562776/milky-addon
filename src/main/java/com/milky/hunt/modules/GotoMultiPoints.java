@@ -38,140 +38,8 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
-    private final Setting<BlockPos> point1 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-1")
-        .description("Coordinate of point 1.")
-        .defaultValue(new BlockPos(8, 64, 8))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 1)
-        .build()
-    );
+        private final List<Setting<BlockPos>> pointSettings = new ArrayList<>();
 
-    private final Setting<BlockPos> point2 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-2")
-        .description("Coordinate of point 2.")
-        .defaultValue(new BlockPos(16, 64, 16))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 2)
-        .build()
-    );
-
-    private final Setting<BlockPos> point3 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-3")
-        .description("Coordinate of point 3.")
-        .defaultValue(new BlockPos(32, 64, 32))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 3)
-        .build()
-    );
-
-    private final Setting<BlockPos> point4 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-4")
-        .description("Coordinate of point 4.")
-        .defaultValue(new BlockPos(64, 64, 64))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 4)
-        .build()
-    );
-
-    private final Setting<BlockPos> point5 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-5")
-        .description("Coordinate of point 5.")
-        .defaultValue(new BlockPos(128, 64, 128))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 5)
-        .build()
-    );
-
-    private final Setting<BlockPos> point6 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-6")
-        .description("Coordinate of point 6.")
-        .defaultValue(new BlockPos(256, 64, 256))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 6)
-        .build()
-    );
-
-    private final Setting<BlockPos> point7 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-7")
-        .description("Coordinate of point 7.")
-        .defaultValue(new BlockPos(512, 64, 512))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 7)
-        .build()
-    );
-
-    private final Setting<BlockPos> point8 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-8")
-        .description("Coordinate of point 8.")
-        .defaultValue(new BlockPos(1024, 64, 1024))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 8)
-        .build()
-    );
-
-    private final Setting<BlockPos> point9 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-9")
-        .description("Coordinate of point 9.")
-        .defaultValue(new BlockPos(2048, 64, 2048))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 9)
-        .build()
-    );
-
-    
-    private final Setting<BlockPos> point10 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-10")
-        .description("Coordinate of point 10.")
-        .defaultValue(new BlockPos(2048, 64, 2048))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 10)
-        .build()
-    );
-
-    
-    private final Setting<BlockPos> point11 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-11")
-        .description("Coordinate of point 11.")
-        .defaultValue(new BlockPos(4096, 64, 4096))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 11)
-        .build()
-    );
-
-    
-    private final Setting<BlockPos> point12 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-12")
-        .description("Coordinate of point 12.")
-        .defaultValue(new BlockPos(8192, 64, 8192))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 12)
-        .build()
-    );
-
-    
-    private final Setting<BlockPos> point13 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-13")
-        .description("Coordinate of point 13.")
-        .defaultValue(new BlockPos(16384, 64, 16384))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 13)
-        .build()
-    );
-
-    
-    private final Setting<BlockPos> point14 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-14")
-        .description("Coordinate of point 14.")
-        .defaultValue(new BlockPos(32768, 64, 32768))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 14)
-        .build()
-    );
-
-    
-    private final Setting<BlockPos> point15 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-15")
-        .description("Coordinate of point 15.")
-        .defaultValue(new BlockPos(65536, 64, 65536))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 15)
-        .build()
-    );
-
-    
-    private final Setting<BlockPos> point16 = sgGeneral.add(new BlockPosSetting.Builder()
-        .name("point-16")
-        .description("Coordinate of point 16.")
-        .defaultValue(new BlockPos(131072, 64, 131072))
-        .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= 16)
-        .build()
-    );
 
     private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
         .name("points")
@@ -215,7 +83,21 @@ public class GotoMultiPoints extends Module {
 
     public GotoMultiPoints() {
         super(Addon.CATEGORY, "GotoMultiPoints", "Walks between multiple coordinates using Baritone.");
-    }
+    
+        // Create compact point settings via loop (defaults unified to 0,64,0)
+        for (int i = 1; i <= 16; i++) {
+            final int idx = i;
+            pointSettings.add(
+                sgGeneral.add(new BlockPosSetting.Builder()
+                    .name("point-" + i)
+                    .description("Coordinate of point " + i + ".")
+                    .defaultValue(new BlockPos(0, 64, 0))
+                    .visible(() -> inputMode.get() == InputMode.Simple && pointsCount.get() >= idx)
+                    .build()
+                )
+            );
+        }
+}
 
     @Override
     public void onActivate() {
@@ -307,22 +189,9 @@ public class GotoMultiPoints extends Module {
                 }
             }
         } else {
-            if (pointsCount.get() >= 1) points.add(point1.get());
-            if (pointsCount.get() >= 2) points.add(point2.get());
-            if (pointsCount.get() >= 3) points.add(point3.get());
-            if (pointsCount.get() >= 4) points.add(point4.get());
-            if (pointsCount.get() >= 5) points.add(point5.get());
-            if (pointsCount.get() >= 6) points.add(point6.get());
-            if (pointsCount.get() >= 7) points.add(point7.get());
-            if (pointsCount.get() >= 8) points.add(point8.get());
-            if (pointsCount.get() >= 9) points.add(point9.get());
-            if (pointsCount.get() >= 10) points.add(point10.get());
-            if (pointsCount.get() >= 11) points.add(point11.get());
-            if (pointsCount.get() >= 12) points.add(point12.get());
-            if (pointsCount.get() >= 13) points.add(point13.get());
-            if (pointsCount.get() >= 14) points.add(point14.get());
-            if (pointsCount.get() >= 15) points.add(point15.get());
-            if (pointsCount.get() >= 16) points.add(point16.get());
+            for (int i = 0; i < Math.min(pointsCount.get(), pointSettings.size()); i++) {
+                points.add(pointSettings.get(i).get());
+            }
         }
     }
 }

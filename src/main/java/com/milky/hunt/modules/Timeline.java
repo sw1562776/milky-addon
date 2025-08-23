@@ -51,7 +51,7 @@ public class Timeline extends Module {
         "boostedbounce", "cruise", "gotomultipoints", "inhand", "rightclickentity", "spiralflight"
     ));
     private static final Set<String> ALLOWED_PARALLEL = new HashSet<>(Arrays.asList(
-        "boostedbounce", "cruise", "gotomultipoints", "inhand", "rightclickentity", "spiralflight"
+        "boostedbounce", "cruise", "gotomultipoints", "inhand", "rightclickentity", "spiralflight", "waypointqueue"
     ));
 
     private final List<Step> steps = new ArrayList<>();
