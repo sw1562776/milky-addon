@@ -118,7 +118,7 @@ public class WaypointQueue extends Module {
         double dx = (t.getX() + 0.5) - pp.x;
         double dz = (t.getZ() + 0.5) - pp.z;
         int dist = (int) Math.round(Math.sqrt(dx * dx + dz * dz));
-        return (currentIndex + 1) + "/" + used + " • " + dist + "m";
+        return (currentIndex + 1) + "/" + used + " | " + dist + "blocks";
     }
 
     @Override
@@ -149,50 +149,54 @@ public class WaypointQueue extends Module {
     }
 
     private void fillTable(GuiTheme theme, WTable table) {
-        table.clear();
+    table.clear();
 
-        int used = Math.max(1, Math.min(count.get(), MAX_POINTS));
-        for (int i = 0; i < used; i++) {
-            final int idx = i;
-            BlockPos p = points[idx].get();
+    int used = Math.max(1, Math.min(count.get(), MAX_POINTS));
+    for (int i = 0; i < used; i++) {
+        final int idx = i;
+        BlockPos p = points[idx].get();
 
-            table.add(theme.label("#" + (idx + 1)));
+        table.add(theme.label("#" + (idx + 1)));
 
-            WButton pick = table.add(theme.button("Pick from Xaero")).widget();
-            pick.action = () -> {
-                if (!isXaeroAvailable()) {
-                    info("Xaero Minimap not loaded.");
-                    return;
-                }
-                mc.setScreen(new WaypointPickerScreen(theme, pos -> {
-                    points[idx].set(pos);
-                    refreshUi();
-                }));
-            };
-
-            WTextBox xBox = table.add(theme.textBox(Integer.toString(p.getX()))).expandX().widget();
-            WTextBox yBox = table.add(theme.textBox(Integer.toString(p.getY()))).expandX().widget();
-            WTextBox zBox = table.add(theme.textBox(Integer.toString(p.getZ()))).expandX().widget();
-
-            Runnable sync = () -> {
-                int x = parseIntOr(xBox.get(), p.getX());
-                int y = parseIntOr(yBox.get(), p.getY());
-                int z = parseIntOr(zBox.get(), p.getZ());
-                points[idx].set(new BlockPos(x, y, z));
-            };
-            xBox.action = sync;
-            yBox.action = sync;
-            zBox.action = sync;
-
-            WMinus clear = table.add(theme.minus()).widget();
-            clear.action = () -> {
-                points[idx].set(new BlockPos(0, 64, 0));
+        WButton pick = table.add(theme.button("Pick from Xaero")).widget();
+        pick.action = () -> {
+            if (!isXaeroAvailable()) {
+                info("Xaero Minimap not loaded.");
+                return;
+            }
+            mc.setScreen(new WaypointPickerScreen(theme, pos -> {
+                points[idx].set(pos);
                 refreshUi();
-            };
+            }));
+        };
 
-            table.row();
-        }
+        // x= [textbox]
+        table.add(theme.label("x="));
+        WTextBox xBox = table.add(theme.textBox(Integer.toString(p.getX()))).expandX().widget();
+
+        // z= [textbox]
+        table.add(theme.label("z="));
+        WTextBox zBox = table.add(theme.textBox(Integer.toString(p.getZ()))).expandX().widget();
+
+        Runnable sync = () -> {
+            int x = parseIntOr(xBox.get(), p.getX());
+            int z = parseIntOr(zBox.get(), p.getZ());
+            int y = points[idx].get().getY();
+            points[idx].set(new BlockPos(x, y, z));
+        };
+        xBox.action = sync;
+        zBox.action = sync;
+
+        WMinus clear = table.add(theme.minus()).widget();
+        clear.action = () -> {
+            points[idx].set(new BlockPos(0, 64, 0));
+            refreshUi();
+        };
+
+        table.row();
     }
+}
+
 
     @EventHandler
     private void onTick(TickEvent.Pre e) {

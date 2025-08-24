@@ -4,6 +4,7 @@ import com.milky.hunt.Addon;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.StringSetting;
 import meteordevelopment.meteorclient.settings.Setting;
+import meteordevelopment.meteorclient.settings.IntSetting;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 
@@ -19,7 +20,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class QuickCommand extends Module {
-    
     private final Setting<String> command = settings.getDefaultGroup().add(new StringSetting.Builder()
         .name("command")
         .description("Send a quick message/command with rich placeholders.")
@@ -27,7 +27,18 @@ public class QuickCommand extends Module {
         .build()
     );
 
+    private final Setting<Integer> delayMs = settings.getDefaultGroup().add(new IntSetting.Builder()
+        .name("delay-ms")
+        .description("Delay before sending, in milliseconds.")
+        .defaultValue(0)
+        .min(0)
+        .max(60_000)
+        .build()
+    );
+
     private boolean hasSent;
+    private int totalDelayMsSnapshot;
+    private long sendAtNanos;
 
     public QuickCommand() {
         super(Addon.CATEGORY, "QuickCommand", "Send a message/command with rich placeholders like {CoordX}, {Health}, etc.");
@@ -36,12 +47,20 @@ public class QuickCommand extends Module {
     @Override
     public void onActivate() {
         hasSent = false;
+        totalDelayMsSnapshot = delayMs.get();
+        sendAtNanos = totalDelayMsSnapshot > 0
+            ? System.nanoTime() + (long) totalDelayMsSnapshot * 1_000_000L
+            : 0L;
     }
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
         if (mc.player == null || mc.world == null || mc.getNetworkHandler() == null) return;
         if (hasSent) return;
+
+        if (totalDelayMsSnapshot > 0 && System.nanoTime() < sendAtNanos) {
+            return;
+        }
 
         String parsed = parseCommand(command.get());
 
@@ -53,6 +72,19 @@ public class QuickCommand extends Module {
 
         hasSent = true;
         toggle();
+    }
+
+    @Override
+    public String getInfoString() {
+        if (hasSent) return null;
+        if (totalDelayMsSnapshot <= 0) return null;
+        if (sendAtNanos == 0L) return "0/" + totalDelayMsSnapshot + "ms";
+
+        long now = System.nanoTime();
+        long remaining = Math.max(0L, sendAtNanos - now);
+        long elapsed = (long) totalDelayMsSnapshot * 1_000_000L - remaining;
+        long elapsedMs = Math.max(0L, Math.min(totalDelayMsSnapshot, elapsed / 1_000_000L));
+        return elapsedMs + "/" + totalDelayMsSnapshot + "ms";
     }
 
     private String parseCommand(String input) {
@@ -100,7 +132,6 @@ public class QuickCommand extends Module {
 
         String nearbyPlayers = String.join(", ", nearbyNames);
 
-
         String result = input
             .replace("{CoordX}", String.format("%.1f", x))
             .replace("{CoordY}", String.format("%.1f", y))
@@ -138,13 +169,14 @@ public class QuickCommand extends Module {
             .replace("{LeggingsRaw}", Registries.ITEM.getId(legs.getItem()).toString())
             .replace("{Boots}", boots.getName().getString())
             .replace("{BootsRaw}", Registries.ITEM.getId(boots.getItem()).toString());
-            for (int i = 0; i < 36; i++) {
-                ItemStack stack = mc.player.getInventory().getStack(i);
-                String name = stack.isEmpty() ? "air" : stack.getName().getString();
-                String raw = stack.isEmpty() ? "minecraft:air" : Registries.ITEM.getId(stack.getItem()).toString();
-                result = result.replace("{Inventory" + i + "}", name);
-                result = result.replace("{Inventory" + i + "Raw}", raw);
-            }
+
+        for (int i = 0; i < 36; i++) {
+            ItemStack stack = mc.player.getInventory().getStack(i);
+            String name = stack.isEmpty() ? "air" : stack.getName().getString();
+            String raw = stack.isEmpty() ? "minecraft:air" : Registries.ITEM.getId(stack.getItem()).toString();
+            result = result.replace("{Inventory" + i + "}", name);
+            result = result.replace("{Inventory" + i + "Raw}", raw);
+        }
 
         return result;
     }

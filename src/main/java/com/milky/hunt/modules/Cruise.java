@@ -291,7 +291,7 @@ public class Cruise extends Module {
                 return;
             }
 
-            if (mc.player.getPitch() == -40) {
+            if (Math.abs(mc.player.getPitch() + 40f) <= 0.2f) {
                 unpowered_goingUp = true;
 
                 if (autoFirework.get()
