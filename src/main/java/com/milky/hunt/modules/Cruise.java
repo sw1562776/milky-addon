@@ -100,7 +100,7 @@ public class Cruise extends Module {
     public final Setting<Double> velocityThreshold = sgGeneral.add(new DoubleSetting.Builder()
         .name("Auto Firework Velocity Threshold")
         .description("Y-velocity must be below this value (while going up) to auto-firework.")
-        .defaultValue(-0.05)
+        .defaultValue(0.1)
         .sliderRange(-0.5, 1)
         .visible(() -> mode.get() == Mode.Unpowered && autoFirework.get())
         .build()
