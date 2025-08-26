@@ -20,6 +20,8 @@ Meteor Addon For minecraft 1.21.4
   - Attempts to land by using chorus fruits until touching the ground.
 - QuickCommand
   - Send your message/command (with rich placeholders) to gamechat with a single click.
+- RightClickBlock
+  - Automatically interacts with blocks in range.
 - RightClickEntity
   - Automatically interacts with entities in range.
 - SpiralFlight
@@ -42,10 +44,6 @@ Meteor Addon For minecraft 1.21.4
   - Automatically takes off from the ground and climbs to your target altitude.
 - PitStop
   - Quick restock before you head back out.
- 
-### Candidate feature
-- RightClickBlock
-  - Automatically interacts with blocks in range.
 
 
 ### About
