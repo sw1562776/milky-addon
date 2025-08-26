@@ -37,10 +37,9 @@ import java.util.function.Consumer;
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class WaypointQueue extends Module {
-    private static final int MAX_POINTS = 32;
+    private static final int MAX_POINTS = 128;
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgControl = settings.createGroup("Control");
 
     private final SettingGroup sgStorage = settings.createGroup("Storage (hidden)");
 
@@ -58,10 +57,24 @@ public class WaypointQueue extends Module {
         .build()
     );
 
+    private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
+        .name("loop")
+        .description("After the last point, continue from the first.")
+        .defaultValue(true)
+        .build()
+    );
+
+    private final Setting<Boolean> clearVisited = sgGeneral.add(new BoolSetting.Builder()
+        .name("clear-visited")
+        .description("Clear a point back to 0 64 0 after it is reached.")
+        .defaultValue(false)
+        .build()
+    );
+
     @SuppressWarnings("unchecked")
     private final Setting<BlockPos>[] points = new Setting[MAX_POINTS];
 
-    private final Setting<Double> arriveDist = sgControl.add(new DoubleSetting.Builder()
+    private final Setting<Double> arriveDist = sgGeneral.add(new DoubleSetting.Builder()
         .name("arrive-distance")
         .description("Horizontal distance threshold to switch to the next point.")
         .defaultValue(5.0)
@@ -71,19 +84,12 @@ public class WaypointQueue extends Module {
         .build()
     );
 
-    private final Setting<Double> maxTurnPerTick = sgControl.add(new DoubleSetting.Builder()
+    private final Setting<Double> maxTurnPerTick = sgGeneral.add(new DoubleSetting.Builder()
         .name("max-turn-deg-per-tick")
         .description("Max degrees to turn per tick. 0 = instant.")
         .defaultValue(0.0)
         .min(0.0)
         .sliderMax(30.0)
-        .build()
-    );
-
-    private final Setting<Boolean> loop = sgControl.add(new BoolSetting.Builder()
-        .name("loop")
-        .description("After the last point, continue from the first.")
-        .defaultValue(true)
         .build()
     );
 
@@ -171,11 +177,11 @@ public class WaypointQueue extends Module {
         };
 
         // x= [textbox]
-        table.add(theme.label("x="));
+        table.add(theme.label("          x = "));
         WTextBox xBox = table.add(theme.textBox(Integer.toString(p.getX()))).expandX().widget();
 
         // z= [textbox]
-        table.add(theme.label("z="));
+        table.add(theme.label("          z =  "));
         WTextBox zBox = table.add(theme.textBox(Integer.toString(p.getZ()))).expandX().widget();
 
         Runnable sync = () -> {
@@ -234,6 +240,12 @@ public class WaypointQueue extends Module {
     }
 
     private void advance(int used) {
+
+        if (clearVisited.get()) {
+             points[currentIndex].set(new BlockPos(0, 64, 0));
+             refreshUi();
+        }
+
         if (currentIndex + 1 < used) currentIndex++;
         else if (loop.get()) currentIndex = 0;
         else {

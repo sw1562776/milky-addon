@@ -38,7 +38,9 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+
 import java.util.List;
+
 import static com.milky.hunt.Utils.*;
 
 public class BoostedBounce extends Module {
@@ -136,7 +138,7 @@ public class BoostedBounce extends Module {
     private final Setting<BlockPos> startPos = sgObstaclePasser.add(new BlockPosSetting.Builder()
         .name("Start Position")
         .description("The start position to use when using a custom start position.")
-        .defaultValue(new BlockPos(0,0,0))
+        .defaultValue(new BlockPos(0, 0, 0))
         .visible(() -> highwayObstaclePasser.get() && useCustomStartPos.get())
         .build()
     );
@@ -245,7 +247,6 @@ public class BoostedBounce extends Module {
     private final Setting<List<Item>> goldPieces = sgGeneral.add(new ItemListSetting.Builder()
         .name("Gold Pieces")
         .description("Choose which gold armor types to maintain: helmet, leggings, boots.")
-        // Restrict the selectable items in the GUI to ONLY these three
         .filter(it -> it == Items.GOLDEN_HELMET || it == Items.GOLDEN_LEGGINGS || it == Items.GOLDEN_BOOTS)
         .defaultValue(List.of(Items.GOLDEN_HELMET, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS))
         .visible(autoWearGold::get)
@@ -267,15 +268,9 @@ public class BoostedBounce extends Module {
 
     private Vec3d lastPos;
 
-    // 5 chunks forwards
     private final double maxDistance = 16 * 5;
-
-    // a path used when there are no valid blocks in range.
     private BlockPos tempPath = null;
-
     private boolean waitingForChunksToLoad;
-
-    // re-send fall-flying a few ticks after swapping Elytra
     private int reopenTicks = 0;
 
     @EventHandler
@@ -359,9 +354,8 @@ public class BoostedBounce extends Module {
         mc.player.setSprinting(startSprinting);
 
         if (toggleElytra.get() && !fakeFly.get()) {
-            if (!mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().toString().contains("chestplate")) {
-                Modules.get().get(ChestSwap.class).swap();
-            }
+            maybeSwapBackChestplate();
+            maybeSwapBackLeggings();
         }
     }
 
@@ -379,7 +373,6 @@ public class BoostedBounce extends Module {
 
         if (enabled()) mc.player.setSprinting(true);
 
-        // Auto-replace Elytra (non-FakeFly)
         if (autoReplaceElytra.get() && !fakeFly.get()) {
             maybeReplaceElytra();
         }
@@ -388,12 +381,10 @@ public class BoostedBounce extends Module {
             reopenTicks--;
         }
 
-        // Maintain gold pieces
         if (autoWearGold.get()) {
             maintainGoldArmor();
         }
 
-        // ---- obstacle passer / pathing ----
         if (tempPath != null && mc.player.getBlockPos().getSquaredDistance(tempPath) < 500) {
             tempPath = null;
             BaritoneAPI.getProvider().getPrimaryBaritone().getCustomGoalProcess().setGoal(null);
@@ -407,14 +398,17 @@ public class BoostedBounce extends Module {
         }
 
         if (mc.player.squaredDistanceTo(lastUnstuckPos) < 25) stuckTimer++;
-        else { stuckTimer = 0; lastUnstuckPos = mc.player.getPos(); }
+        else {
+            stuckTimer = 0;
+            lastUnstuckPos = mc.player.getPos();
+        }
 
         int ty = getTargetY();
         if (highwayObstaclePasser.get() && mc.player.getPos().length() > 100 && (
             mc.player.getY() < ty || mc.player.getY() > ty + 2 ||
-            (mc.player.horizontalCollision && isFrontBlocked(mc.player)) ||
-            (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get()) ||
-            waitingForChunksToLoad || stuckTimer > 50)) {
+                (mc.player.horizontalCollision && isFrontBlocked(mc.player)) ||
+                (portalTrap != null && portalTrap.getSquaredDistance(mc.player.getBlockPos()) < portalAvoidDistance.get() * portalAvoidDistance.get()) ||
+                waitingForChunksToLoad || stuckTimer > 50)) {
 
             waitingForChunksToLoad = false;
             paused = true;
@@ -506,7 +500,10 @@ public class BoostedBounce extends Module {
             Identifier.of("minecraft:item.elytra.flying")
         );
         for (Identifier identifier : armorEquipSounds) {
-            if (identifier.equals(event.sound.getId())) { event.cancel(); break; }
+            if (identifier.equals(event.sound.getId())) {
+                event.cancel();
+                break;
+            }
         }
     }
 
@@ -531,7 +528,7 @@ public class BoostedBounce extends Module {
     }
 
     private void sendSwapPacket(Int2ObjectMap<ItemStack> changedSlots, int buttonNum) {
-        int syncId  = mc.player.currentScreenHandler.syncId;
+        int syncId = mc.player.currentScreenHandler.syncId;
         int stateId = mc.player.currentScreenHandler.getRevision();
 
         mc.player.networkHandler.sendPacket(new ClickSlotC2SPacket(
@@ -564,9 +561,16 @@ public class BoostedBounce extends Module {
                     if (distancePointToDirection(Vec3d.of(position), moveDir, mc.player.getPos()) > portalScanWidth.get()) continue;
 
                     if (mc.world.getBlockState(position).getBlock().equals(Blocks.NETHER_PORTAL)) {
-                        BlockPos posBehind = new BlockPos((int)Math.floor(position.getX() + moveDir.x), position.getY(), (int)Math.floor(position.getZ() + moveDir.z));
-                        if (mc.world.getBlockState(posBehind).isSolidBlock(mc.world, posBehind) || mc.world.getBlockState(posBehind).getBlock() == Blocks.NETHER_PORTAL) {
-                            if (portalTrap == null || (portalTrap.getSquaredDistance(posBehind) > 100 && mc.player.getBlockPos().getSquaredDistance(posBehind) < mc.player.getBlockPos().getSquaredDistance(portalTrap))) {
+                        BlockPos posBehind = new BlockPos(
+                            (int) Math.floor(position.getX() + moveDir.x),
+                            position.getY(),
+                            (int) Math.floor(position.getZ() + moveDir.z)
+                        );
+                        if (mc.world.getBlockState(posBehind).isSolidBlock(mc.world, posBehind) ||
+                            mc.world.getBlockState(posBehind).getBlock() == Blocks.NETHER_PORTAL) {
+                            if (portalTrap == null ||
+                                (portalTrap.getSquaredDistance(posBehind) > 100 &&
+                                    mc.player.getBlockPos().getSquaredDistance(posBehind) < mc.player.getBlockPos().getSquaredDistance(portalTrap))) {
                                 portalTrap = posBehind;
                             }
                         }
@@ -583,7 +587,7 @@ public class BoostedBounce extends Module {
         Direction facing = p.getHorizontalFacing();
         Vec3d fwd = new Vec3d(facing.getOffsetX(), 0, facing.getOffsetZ());
         double probe = 0.62;
-        double[] ys = new double[] { bb.minY + 0.2, (bb.minY + bb.maxY) * 0.5, bb.maxY - 0.1 };
+        double[] ys = new double[]{bb.minY + 0.2, (bb.minY + bb.maxY) * 0.5, bb.maxY - 0.1};
         for (double y : ys) {
             BlockPos pos = BlockPos.ofFloored(p.getX() + fwd.x * probe, y, p.getZ() + fwd.z * probe);
             if (isHard(w.getBlockState(pos), w, pos)) return true;
@@ -603,12 +607,14 @@ public class BoostedBounce extends Module {
         return ((snapped % 360.0) + 360.0) % 360.0;
     }
 
-    private double pathYaw() { return roundAngle(yaw.get()); }
+    private double pathYaw() {
+        return roundAngle(yaw.get());
+    }
 
-    // effective Y level (custom start pos forces using its Y)
-    private int getTargetY() { return useCustomStartPos.get() ? startPos.get().getY() : targetY.get(); }
+    private int getTargetY() {
+        return useCustomStartPos.get() ? startPos.get().getY() : targetY.get();
+    }
 
-    // ===== Auto-replace Elytra helpers =====
     private boolean isHealthyElytra(ItemStack stack) {
         if (stack == null || stack.isEmpty() || !stack.isOf(Items.ELYTRA)) return false;
         int remaining = stack.getMaxDamage() - stack.getDamage();
@@ -640,17 +646,18 @@ public class BoostedBounce extends Module {
         reopenTicks = 3; // Give a few ticks to re-open gliding
     }
 
-    private void tryStartFallFlying() { sendStartFlyingPacket(); }
+    private void tryStartFallFlying() {
+        sendStartFlyingPacket();
+    }
 
-    // ===== Auto-wear Gold armor =====
     private void maintainGoldArmor() {
         if (mc.player == null) return;
         List<Item> targets = goldPieces.get();
         if (targets == null || targets.isEmpty()) return;
 
         for (Item it : targets) {
-            int armorIdx = armorSlotIndexFor(it); // toArmor index: 3=head, 2=chest, 1=legs, 0=feet
-            if (armorIdx == -1) continue; // unsupported item (ignore)
+            int armorIdx = armorSlotIndexFor(it);
+            if (armorIdx == -1) continue;
 
             int invArmorSlot = (armorIdx == 3 ? 39 : armorIdx == 2 ? 38 : armorIdx == 1 ? 37 : 36);
             ItemStack equipped = mc.player.getInventory().getStack(invArmorSlot);
@@ -679,11 +686,86 @@ public class BoostedBounce extends Module {
             ItemStack s = mc.player.getInventory().getStack(i);
             if (s.isOf(it)) {
                 int r = remainingDurability(s);
-                if (r >= minGoldDurability.get() && r > bestRemain) { bestRemain = r; best = i; }
+                if (r >= minGoldDurability.get() && r > bestRemain) {
+                    bestRemain = r;
+                    best = i;
+                }
             }
         }
         return best;
     }
 
-    private int remainingDurability(ItemStack s) { return s.getMaxDamage() - s.getDamage(); }
+    private int remainingDurability(ItemStack s) {
+        return s.getMaxDamage() - s.getDamage();
+    }
+
+    private void maybeSwapBackChestplate() {
+        int best = findBestChestplateSlot();
+        if (best != -1) InvUtils.move().from(best).toArmor(2);
+    }
+
+    private int findBestChestplateSlot() {
+        int best = -1, bestTier = -1, bestRemain = -1;
+        for (int i = 0; i < mc.player.getInventory().size(); i++) {
+            ItemStack s = mc.player.getInventory().getStack(i);
+            if (s.isEmpty()) continue;
+            int tier = chestplateTier(s.getItem());
+            if (tier < 0) continue;
+            int r = remainingDurability(s);
+            if (tier > bestTier || (tier == bestTier && r > bestRemain)) {
+                bestTier = tier;
+                bestRemain = r;
+                best = i;
+            }
+        }
+        return best;
+    }
+
+    private int chestplateTier(Item it) {
+        if (it == Items.NETHERITE_CHESTPLATE) return 5;
+        if (it == Items.DIAMOND_CHESTPLATE) return 4;
+        if (it == Items.IRON_CHESTPLATE) return 3;
+        if (it == Items.CHAINMAIL_CHESTPLATE) return 2;
+        if (it == Items.GOLDEN_CHESTPLATE) return 1;
+        if (it == Items.LEATHER_CHESTPLATE) return 0;
+        return -1;
+    }
+
+    private void maybeSwapBackLeggings() {
+        ItemStack legs = mc.player.getInventory().getArmorStack(1);
+        boolean wearingGoldOrEmpty = legs == null || legs.isEmpty() || legs.isOf(Items.GOLDEN_LEGGINGS);
+        if (!wearingGoldOrEmpty) return;
+        int best = findBestNonGoldLeggingsSlot();
+        if (best != -1) InvUtils.move().from(best).toArmor(1);
+    }
+
+    private int findBestNonGoldLeggingsSlot() {
+        Item[][] tiers = new Item[][]{
+            {Items.NETHERITE_LEGGINGS},
+            {Items.DIAMOND_LEGGINGS},
+            {Items.IRON_LEGGINGS},
+            {Items.CHAINMAIL_LEGGINGS},
+            {Items.LEATHER_LEGGINGS}
+        };
+        for (Item[] tier : tiers) {
+            int best = -1, bestRemain = -1;
+            for (int i = 0; i < mc.player.getInventory().size(); i++) {
+                ItemStack s = mc.player.getInventory().getStack(i);
+                if (s.isEmpty()) continue;
+                if (s.isOf(Items.GOLDEN_LEGGINGS)) continue;
+                for (Item it : tier) {
+                    if (s.isOf(it)) {
+                        int r = remainingDurability(s);
+                        if (r > bestRemain) {
+                            bestRemain = r;
+                            best = i;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (best != -1) return best;
+        }
+        return -1;
+    }
 }

@@ -33,7 +33,7 @@ public class GotoMultiPoints extends Module {
         .description("Number of points to use.")
         .defaultValue(2)
         .min(1)
-        .max(16)
+        .max(128)
         .visible(() -> inputMode.get() == InputMode.Simple)
         .build()
     );
@@ -85,7 +85,7 @@ public class GotoMultiPoints extends Module {
         super(Addon.CATEGORY, "GotoMultiPoints", "Walks between multiple coordinates using Baritone.");
     
         // Create compact point settings via loop (defaults unified to 0,64,0)
-        for (int i = 1; i <= 16; i++) {
+        for (int i = 1; i <= 128; i++) {
             final int idx = i;
             pointSettings.add(
                 sgGeneral.add(new BlockPosSetting.Builder()
