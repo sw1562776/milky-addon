@@ -18,6 +18,8 @@ Meteor Addon For minecraft 1.21.4
   - Fills your mainhand and offhand with chosen items.
 - Landing
   - Attempts to land by using chorus fruits until touching the ground.
+- LeftClickBlock
+  - Automatically interacts with blocks in range.
 - QuickCommand
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickBlock
