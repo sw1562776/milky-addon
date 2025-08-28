@@ -48,10 +48,10 @@ public class Timeline extends Module {
         "chestdeposit", "chestrestock", "landing", "pitstop", "pullup", "quickcommand"
     ));
     private static final Set<String> ONLY_TIMED = new HashSet<>(Arrays.asList(
-        "boostedbounce", "cruise", "gotomultipoints", "inhand", "rightclickentity", "spiralflight"
+        "boostedbounce", "cruise", "gotomultipoints", "inhand", "leftclickblock", "rightclickblock", "rightclickentity", "spiralflight"
     ));
     private static final Set<String> ALLOWED_PARALLEL = new HashSet<>(Arrays.asList(
-        "boostedbounce", "cruise", "gotomultipoints", "inhand", "rightclickentity", "spiralflight", "waypointqueue"
+        "boostedbounce", "cruise", "gotomultipoints", "inhand", "leftclickblock", "rightclickblock", "rightclickentity", "spiralflight", "waypointqueue"
     ));
 
     private final List<Step> steps = new ArrayList<>();

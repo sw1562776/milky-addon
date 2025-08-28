@@ -10,20 +10,24 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
+import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket;
+import net.minecraft.state.property.IntProperty;
+import net.minecraft.state.property.Property;
 import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.Collections;
 
-public class RightClickBlock extends Module {
+public class LeftClickBlock extends Module {
     private static final Direction[] ORDERED_FACES = {
         Direction.UP, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST, Direction.DOWN
     };
-
-    public enum UseHand { Main, Off, Both }
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
@@ -36,48 +40,38 @@ public class RightClickBlock extends Module {
 
     private final Setting<List<Block>> blocks = sgGeneral.add(new BlockListSetting.Builder()
         .name("blocks")
-        .description("Blocks to interact with.")
-        .defaultValue(Blocks.FARMLAND)
+        .description("Blocks to attack (break).")
+        .defaultValue(Blocks.CARROTS)
         .build()
     );
 
     private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
         .name("range")
-        .description("Interact range.")
+        .description("Attack range.")
         .min(0)
         .defaultValue(3.0)
         .sliderMax(6.0)
         .build()
     );
 
-    private final Setting<Boolean> oneTime = sgGeneral.add(new BoolSetting.Builder()
-        .name("one-time")
-        .description("Interact with each face of a block only one time.")
+    private final Setting<Boolean> sendStopSameTick = sgGeneral.add(new BoolSetting.Builder()
+        .name("stop-same-tick")
+        .description("Also send STOP_DESTROY_BLOCK in the same tick (useful for zero-hardness crops).")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<Double> clearInterval = sgGeneral.add(new DoubleSetting.Builder()
-        .name("clear-interval")
-        .description("How often to clear the list of interacted faces (seconds). Set to 0 to never clear.")
-        .defaultValue(10.0)
-        .min(0)
-        .sliderMax(60)
-        .visible(oneTime::get)
-        .build()
-    );
-
-    private final Setting<Boolean> checkSpaceAir = sgGeneral.add(new BoolSetting.Builder()
-        .name("check-space-air")
-        .description("Only interact when the block adjacent to the selected face is air (e.g., farmland top must be air).")
+    private final Setting<Boolean> swingHand = sgGeneral.add(new BoolSetting.Builder()
+        .name("swing-hand")
+        .description("Send a hand swing packet after starting the break.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<UseHand> useHand = sgGeneral.add(new EnumSetting.Builder<UseHand>()
-        .name("use-hand")
-        .description("Which hand to use when interacting.")
-        .defaultValue(UseHand.Main)
+    private final Setting<Boolean> onlyMatureCrops = sgGeneral.add(new BoolSetting.Builder()
+        .name("only-mature-crops")
+        .description("Only break crops when fully grown. Ignored for non-crop blocks.")
+        .defaultValue(false)
         .build()
     );
 
@@ -88,32 +82,14 @@ public class RightClickBlock extends Module {
     private final Setting<Boolean> faceWest  = sgGeneral.add(new BoolSetting.Builder().name("face-west").defaultValue(false).build());
     private final Setting<Boolean> faceDown  = sgGeneral.add(new BoolSetting.Builder().name("face-down").defaultValue(false).build());
 
-    private final Set<FaceKey> usedFaces = new HashSet<>();
-    private long lastClearTime;
-
-    public RightClickBlock() {
-        super(Addon.CATEGORY, "RightClickBlock", "Automatically right-clicks blocks in range (e.g., plant seeds on farmland).");
-    }
-
-    @Override
-    public void onActivate() {
-        usedFaces.clear();
-        lastClearTime = System.currentTimeMillis();
+    public LeftClickBlock() {
+        super(Addon.CATEGORY, "LeftClickBlock",
+            "Automatically left-clicks (breaks) target blocks in range using low-level packets (e.g., harvest carrots/potatoes).");
     }
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
         if (mc.world == null || mc.player == null) return;
-
-        if (oneTime.get()) {
-            double intervalMs = clearInterval.get() * 1000.0;
-            if (intervalMs > 0 && System.currentTimeMillis() - lastClearTime >= intervalMs) {
-                usedFaces.clear();
-                lastClearTime = System.currentTimeMillis();
-            }
-        }
-
-        if (mc.player.getMainHandStack().isEmpty() && mc.player.getOffHandStack().isEmpty()) return;
 
         BlockPos playerPos = mc.player.getBlockPos();
         int r = Math.max(0, (int) Math.floor(range.get()));
@@ -127,18 +103,12 @@ public class RightClickBlock extends Module {
             BlockState state = mc.world.getBlockState(pos);
             if (!targetBlocks.contains(state.getBlock())) continue;
 
+            if (!passesMaturityFilter(state)) continue;
+
             boolean didAnyFaceThisBlock = false;
 
             for (Direction face : ORDERED_FACES) {
                 if (!selectedFaces.contains(face)) continue;
-
-                FaceKey key = new FaceKey(pos, face);
-                if (oneTime.get() && usedFaces.contains(key)) continue;
-
-                if (checkSpaceAir.get()) {
-                    BlockPos neighbor = pos.offset(face);
-                    if (!mc.world.getBlockState(neighbor).isAir()) continue;
-                }
 
                 Vec3d hitPos = faceCenter(pos, face);
                 if (mc.player.getEyePos().distanceTo(hitPos) > range.get()) continue;
@@ -146,21 +116,7 @@ public class RightClickBlock extends Module {
                 didAnyFaceThisBlock = true;
 
                 Rotations.rotate(Rotations.getYaw(hitPos), Rotations.getPitch(hitPos), () -> {
-                    switch (useHand.get()) {
-                        case Main -> {
-                            interactBlock(pos, face, hitPos, Hand.MAIN_HAND);
-                        }
-                        case Off -> {
-                            interactBlock(pos, face, hitPos, Hand.OFF_HAND);
-                        }
-                        case Both -> {
-                            if (!mc.player.getMainHandStack().isEmpty())
-                                interactBlock(pos, face, hitPos, Hand.MAIN_HAND);
-                            if (!mc.player.getOffHandStack().isEmpty())
-                                interactBlock(pos, face, hitPos, Hand.OFF_HAND);
-                        }
-                    }
-                    if (oneTime.get()) usedFaces.add(new FaceKey(pos, face));
+                    attackBlockLowLevel(pos, face);
                 });
             }
 
@@ -192,23 +148,44 @@ public class RightClickBlock extends Module {
         }
     }
 
-    private void interactBlock(BlockPos pos, Direction face, Vec3d hitPos, Hand hand) {
-        if (mc.world == null || mc.interactionManager == null) return;
-        BlockHitResult bhr = new BlockHitResult(hitPos, face, pos, false);
-        mc.interactionManager.interactBlock(mc.player, hand, bhr);
-        mc.getNetworkHandler().sendPacket(new HandSwingC2SPacket(hand));
+    private void attackBlockLowLevel(BlockPos pos, Direction face) {
+        if (mc.world == null || mc.getNetworkHandler() == null) return;
+
+        mc.getNetworkHandler().sendPacket(
+            new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.START_DESTROY_BLOCK, pos, face)
+        );
+
+        if (swingHand.get()) {
+            mc.getNetworkHandler().sendPacket(new HandSwingC2SPacket(Hand.MAIN_HAND));
+        }
+
+        if (sendStopSameTick.get()) {
+            mc.getNetworkHandler().sendPacket(
+                new PlayerActionC2SPacket(PlayerActionC2SPacket.Action.STOP_DESTROY_BLOCK, pos, face)
+            );
+        }
     }
 
-    private static final class FaceKey {
-        private final BlockPos pos;
-        private final Direction face;
-        private FaceKey(BlockPos pos, Direction face) { this.pos = pos; this.face = face; }
-        @Override public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof FaceKey)) return false;
-            FaceKey that = (FaceKey) o;
-            return pos.equals(that.pos) && face == that.face;
+
+    private boolean passesMaturityFilter(BlockState state) {
+        if (!onlyMatureCrops.get()) return true;
+
+        IntProperty ageProp = getAgeProperty(state);
+        if (ageProp == null) {
+            return true;
         }
-        @Override public int hashCode() { return 31 * pos.hashCode() + face.ordinal(); }
+
+        int age = state.get(ageProp);
+        int maxAge = Collections.max(ageProp.getValues());
+        return age >= maxAge;
+    }
+
+    private IntProperty getAgeProperty(BlockState state) {
+        for (Property<?> prop : state.getProperties()) {
+            if (prop instanceof IntProperty intProp && "age".equals(prop.getName())) {
+                return intProp;
+            }
+        }
+        return null;
     }
 }
