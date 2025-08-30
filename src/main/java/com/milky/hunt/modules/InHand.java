@@ -60,7 +60,7 @@ public class InHand extends Module {
 
     private final Setting<Integer> mainHandDurThreshold = sgGeneral.add(new IntSetting.Builder()
         .name("main-hand-durability-%")
-        .description("Threshold as remaining durability percent (0–100).")
+        .description("Threshold as remaining durability percent (0–100). (Above = strictly >, Below = strictly <)")
         .defaultValue(50)
         .min(0)
         .max(100)
@@ -96,7 +96,7 @@ public class InHand extends Module {
 
     private final Setting<Integer> offHandDurThreshold = sgGeneral.add(new IntSetting.Builder()
         .name("off-hand-durability-%")
-        .description("Threshold as remaining durability percent (0–100).")
+        .description("Threshold as remaining durability percent (0–100). (Above = strictly >, Below = strictly <)")
         .defaultValue(50)
         .min(0)
         .max(100)
@@ -122,8 +122,8 @@ public class InHand extends Module {
 
         return switch (filter) {
             case Off   -> true;
-            case Above -> remainingPct >= thresholdPercent;
-            case Below -> remainingPct <= thresholdPercent;
+            case Above -> remainingPct > thresholdPercent;  // strictly greater than
+            case Below -> remainingPct < thresholdPercent;  // strictly less than
         };
     }
 
