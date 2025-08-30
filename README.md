@@ -20,6 +20,8 @@ Meteor Addon For minecraft 1.21.4
   - Attempts to land by using chorus fruits until touching the ground.
 - LeftClickBlock
   - Automatically interacts with blocks in range.
+- Magazine
+  - Automatically switch parameters of your Meteor modules.
 - QuickCommand
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickBlock
