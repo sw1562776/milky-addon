@@ -43,7 +43,7 @@ Meteor Addon For minecraft 1.21.4
 
 ### In Progress
 - AirLanding
-  - Biome aware landing: free-fall, re-equip elytra, landing burn, then airplace platform.
+  - Biome aware landing: free-fall, re-equip elytra, landing burn, then airplace a platform.
 - PullUp
   - Automatically takes off from the ground and climbs to your target altitude.
 - PitStop
