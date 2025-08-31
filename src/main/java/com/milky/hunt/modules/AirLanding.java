@@ -197,7 +197,7 @@ public class AirLanding extends Module {
     private boolean burnUseSent = false;
 
     public AirLanding() {
-        super(Addon.CATEGORY, "AirLanding", "Biome-aware landing: free-fall, re-equip at Y, landing burn, then airplace-based platform placement.");
+        super(Addon.CATEGORY, "AirLanding", "Biome aware landing: free-fall, re-equip elytra, landing burn, then airplace platform.");
     }
 
     @Override
