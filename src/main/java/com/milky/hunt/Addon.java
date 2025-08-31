@@ -1,6 +1,7 @@
 package com.milky.hunt;
 
 import com.milky.hunt.modules.*;
+import com.milky.hunt.hud.*;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import meteordevelopment.meteorclient.settings.Settings;
@@ -22,6 +23,7 @@ public class Addon extends MeteorAddon {
     public void onInitialize() {
         LOG.info("Initializing Milky Mod");
 
+        Modules.get().add(new AirLanding());
         Modules.get().add(new AutoGolem());
         Modules.get().add(new AutoInvertedY());
         Modules.get().add(new ChestDeposit());
@@ -35,12 +37,13 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new BoostedBounce());
         Modules.get().add(new PullUp());
         Modules.get().add(new PitStop());
-        Modules.get().add(new Landing());
         Modules.get().add(new SpiralFlight());
         Modules.get().add(new WaypointQueue());
         Modules.get().add(new RightClickBlock());
         Modules.get().add(new LeftClickBlock());
         Modules.get().add(new Magazine());
+
+        Hud.get().register(YVelocity.INFO);
 
         boolean baritoneLoaded = checkModLoaded("baritone", "baritone-meteor");
         boolean xaeroWorldMapLoaded = checkModLoaded("xaeroworldmap");
