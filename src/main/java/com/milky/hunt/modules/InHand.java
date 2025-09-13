@@ -10,12 +10,19 @@ import meteordevelopment.orbit.EventHandler;
 import meteordevelopment.orbit.EventPriority;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.slot.SlotActionType;
 
 public class InHand extends Module {
-    public enum Mode { MainHand, OffHand, Both }
-    public enum DurabilityFilter { Off, Above, Below }
+    public enum Mode {
+        MainHand,
+        OffHand,
+        Both
+    }
+
+    public enum DurabilityFilter {
+        Off,
+        Above,
+        Below
+    }
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
@@ -108,13 +115,15 @@ public class InHand extends Module {
     private static boolean passesDurability(ItemStack stack, DurabilityFilter filter, int thresholdPercent) {
         int max = stack.getMaxDamage();
         if (max <= 0) return true;
+
         int damage = stack.getDamage();
         int remaining = Math.max(0, max - damage);
         int remainingPct = (int) Math.round(remaining * 100.0 / max);
+
         return switch (filter) {
             case Off   -> true;
-            case Above -> remainingPct > thresholdPercent;
-            case Below -> remainingPct < thresholdPercent;
+            case Above -> remainingPct > thresholdPercent;  // strictly greater than
+            case Below -> remainingPct < thresholdPercent;  // strictly less than
         };
     }
 
@@ -128,13 +137,18 @@ public class InHand extends Module {
 
     private void tryStashMainhandIfFilterNotSatisfied(Item target, DurabilityFilter filter, int threshold) {
         if (filter == DurabilityFilter.Off) return;
+
         ItemStack cur = mc.player.getMainHandStack();
         if (cur.isEmpty() || cur.getItem() != target) return;
+
         int max = cur.getMaxDamage();
         if (max <= 0) return;
+
         if (passesDurability(cur, filter, threshold)) return;
+
         FindItemResult candidate = findWithDurability(target, filter, threshold);
         if (candidate.found()) return;
+
         FindItemResult empty = InvUtils.findEmpty();
         if (empty.found()) {
             InvUtils.move().fromHotbar(mc.player.getInventory().selectedSlot).to(empty.slot());
@@ -143,13 +157,18 @@ public class InHand extends Module {
 
     private void tryStashOffhandIfFilterNotSatisfied(Item target, DurabilityFilter filter, int threshold) {
         if (filter == DurabilityFilter.Off) return;
+
         ItemStack cur = mc.player.getOffHandStack();
         if (cur.isEmpty() || cur.getItem() != target) return;
+
         int max = cur.getMaxDamage();
         if (max <= 0) return;
+
         if (passesDurability(cur, filter, threshold)) return;
+
         FindItemResult candidate = findWithDurability(target, filter, threshold);
         if (candidate.found()) return;
+
         FindItemResult empty = InvUtils.findEmpty();
         if (empty.found()) {
             InvUtils.move().fromOffhand().to(empty.slot());
@@ -176,7 +195,7 @@ public class InHand extends Module {
                 if (!currentOk) {
                     FindItemResult mainItem = findWithDurability(target, filter, threshold);
                     if (mainItem.found()) {
-                        bringToSelectedViaSwap(mainItem);
+                        InvUtils.move().from(mainItem.slot()).toHotbar(mc.player.getInventory().selectedSlot);
                     } else {
                         tryStashMainhandIfFilterNotSatisfied(target, filter, threshold);
                     }
@@ -240,27 +259,5 @@ public class InHand extends Module {
         }
 
         return handInfoBuilder.toString();
-    }
-
-    private boolean bringToSelectedViaSwap(FindItemResult it) {
-        if (!it.found()) return false;
-
-        int selected = mc.player.getInventory().selectedSlot;
-        if (it.isHotbar()) {
-            InvUtils.swap(it.slot(), true);
-            return true;
-        }
-
-        ScreenHandler h = mc.player.playerScreenHandler;
-        int selectedContainerSlot = 36 + selected;
-
-        try {
-            mc.interactionManager.clickSlot(h.syncId, it.slot(), 0, SlotActionType.PICKUP, mc.player);
-            mc.interactionManager.clickSlot(h.syncId, selectedContainerSlot, 0, SlotActionType.PICKUP, mc.player);
-            mc.interactionManager.clickSlot(h.syncId, it.slot(), 0, SlotActionType.PICKUP, mc.player);
-            return true;
-        } catch (Exception ex) {
-            return false;
-        }
     }
 }

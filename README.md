@@ -16,6 +16,8 @@ Meteor Addon For minecraft 1.21.4
    - Walks between multiple coordinates using Baritone.
 - InHand
   - Fills your mainhand and offhand with chosen items.
+- Landing
+  - Attempts to land by using chorus fruits until touching the ground.
 - LeftClickBlock
   - Automatically interacts with blocks in range.
 - Magazine
@@ -42,8 +44,6 @@ Meteor Addon For minecraft 1.21.4
   - Ported from Jeff Mod, with Elytra auto-replace added and modules combined.
 
 ### In Progress
-- AirLanding
-  - Biome aware landing: free-fall, re-equip elytra, landing burn, then airplace a platform.
 - PullUp
   - Automatically takes off from the ground and climbs to your target altitude.
 - PitStop

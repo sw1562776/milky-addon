@@ -16,8 +16,8 @@ public class SpiralFlight extends Module {
     private final SettingGroup sgAdvanced = settings.createGroup("Advanced");
 
     private final Setting<Double> ringSpacing = sgGeneral.add(new DoubleSetting.Builder()
-        .name("ring-spacing-delta r")
-        .description("Radius increment per full turn delta r (blocks)")
+        .name("ring-spacing-Δr")
+        .description("Radius increment per full turn Δr (blocks)")
         .defaultValue(960.0).min(1.0).sliderMax(8192.0)
         .build()
     );
@@ -37,8 +37,8 @@ public class SpiralFlight extends Module {
     );
 
     private final Setting<Double> lookahead = sgControl.add(new DoubleSetting.Builder()
-        .name("lookahead-l")
-        .description("Pure-pursuit lookahead distance l (blocks)")
+        .name("lookahead-ℓ")
+        .description("Pure-pursuit lookahead distance ℓ (blocks)")
         .defaultValue(6.0).min(1.0).sliderMax(32.0)
         .build()
     );
