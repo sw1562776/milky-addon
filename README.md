@@ -22,6 +22,8 @@ Meteor Addon For minecraft 1.21.4
   - Automatically interacts with blocks in range.
 - Magazine
   - Automatically switch parameters of your Meteor modules.
+- PullUp
+  - Automatically takes off from the ground and climbs to your target altitude.
 - QuickCommand
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickBlock
@@ -44,13 +46,16 @@ Meteor Addon For minecraft 1.21.4
   - Ported from Jeff Mod, with Elytra auto-replace added and modules combined.
 
 ### In Progress
-- PullUp
-  - Automatically takes off from the ground and climbs to your target altitude.
+- AirLanding
 - PitStop
-  - Quick restock before you head back out.
+  
+- EventLog
+- PhantomMarker
 
 
 ### About
 This mod isn’t meant to be serious or useful — it’s just 🐮 and friends talking big. (Back on July 30, 🐮 complained about the lack of decent open-source PVP mods for 2b2t.org.) 🐮 has no idea how to code. Realistically, there’s a 99% chance this gets abandoned in three days. But in that glorious 1%, you just might witness 🐮 learn everything from scratch, grinding hard and sprinting full speed toward building a real PVP module. If that sounds fun, stick around — 🐮’s Discord: dandelion_94876.
 
-P.S. Long story short, GPT-5 is hard-carrying. XD
+What’s new (Dec 24): 🐮 is back. The direction of the module is shifting toward automated survival utilities that aim to handle more complex scenarios — at least in theory.
+
+P.S. Long story short, GPT is hard-carrying. XD
