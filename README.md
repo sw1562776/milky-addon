@@ -48,7 +48,9 @@ Meteor Addon For minecraft 1.21.4
 ### In Progress
 - AirLanding
 - PitStop
+  
 - EventLog
+- PhantomMarker
 
 
 ### About
