@@ -22,8 +22,10 @@ Meteor Addon For minecraft 1.21.4
   - Automatically interacts with blocks in range.
 - Magazine
   - Automatically switch parameters of your Meteor modules.
+- PhantomStatistics
+  - Detect phantoms, optionally mark Xaero waypoints, and show Y layer density on HUD.
 - PullUp
-  - Automatically takes off from the ground and climbs to your target altitude.
+  - Automatically takes off from the ground and climbs to your target altitude. 
 - QuickCommand
   - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickBlock
@@ -44,13 +46,12 @@ Meteor Addon For minecraft 1.21.4
   - Ported from Jeff Mod and adapted for Minecraft 1.21.4 with a reworked soft-collision check and a build-in elytra/gold auto-replace.
 - Cruise
   - Ported from Jeff Mod, with Elytra auto-replace added and modules combined.
+- EventLog
+  - Ported from Jeff Mod, with an added Vy option and a more detailed HUD.
 
 ### In Progress
 - AirLanding
 - PitStop
-  
-- EventLog
-- PhantomMarker
 
 
 ### About
