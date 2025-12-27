@@ -41,7 +41,7 @@ public class QuickCommand extends Module {
     private long sendAtNanos;
 
     public QuickCommand() {
-        super(Addon.CATEGORY, "QuickCommand", "Send a message/command with rich placeholders like {CoordX}, {Health}, etc.");
+        super(Addon.MilkyWayCategory, "QuickCommand", "Send a message/command with rich placeholders like {CoordX}, {Health}, etc.");
     }
 
     @Override
