@@ -74,7 +74,7 @@ public class RightClickEntity extends Module {
     private long lastClearTime;
 
     public RightClickEntity() {
-        super(Addon.CATEGORY, "RightClickEntity", "Automatically interacts with entities in range.");
+        super(Addon.MilkyModCategory, "RightClickEntity", "Automatically interacts with entities in range.");
     }
 
     @Override
@@ -99,7 +99,7 @@ public class RightClickEntity extends Module {
         for (Entity entity : mc.world.getEntities()) {
             if (!(entity instanceof LivingEntity)
                 || !(entities.get().contains(entity.getType()))
-                || mc.player.getMainHandStack().isEmpty()
+                //|| mc.player.getMainHandStack().isEmpty()
                 || (oneTime.get() && used.contains(entity))
                 || mc.player.distanceTo(entity) > range.get()
                 || (ignoreBabies.get() && ((LivingEntity) entity).isBaby())) continue;

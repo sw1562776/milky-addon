@@ -93,7 +93,7 @@ public class AutoInvertedY extends Module {
     private int index = 0;
 
     public AutoInvertedY() {
-        super(Addon.CATEGORY, "AutoInvertedY", "Places an inverted Y shape using your favorite block.");
+        super(Addon.MilkyModCategory, "AutoInvertedY", "Places an inverted Y shape using your favorite block.");
     }
 
     @Override

@@ -104,7 +104,7 @@ public class PullUp extends Module {
     private double verticalBaseY;
 
     public PullUp() {
-        super(Addon.CATEGORY, "PullUp",
+        super(Addon.MilkyModCategory, "PullUp",
             "Stage 1&2: vertical climb with two cadences; Stage 3: slope (angled) climb. Keeps Elytra open and uses rockets on a sane cadence.");
     }
 

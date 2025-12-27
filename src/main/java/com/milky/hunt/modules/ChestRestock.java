@@ -79,7 +79,7 @@ public class ChestRestock extends Module {
     private int waitOpenTicks = 0;
 
     public ChestRestock() {
-        super(Addon.CATEGORY, "ChestRestock", "One-shot restock from a chest using low-level packets.");
+        super(Addon.MilkyModCategory, "ChestRestock", "One-shot restock from a chest using low-level packets.");
     }
 
     @Override

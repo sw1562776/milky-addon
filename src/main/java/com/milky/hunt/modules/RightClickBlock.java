@@ -92,7 +92,7 @@ public class RightClickBlock extends Module {
     private long lastClearTime;
 
     public RightClickBlock() {
-        super(Addon.CATEGORY, "RightClickBlock", "Automatically right-clicks blocks in range (e.g., plant seeds on farmland).");
+        super(Addon.MilkyModCategory, "RightClickBlock", "Automatically right-clicks blocks in range (e.g., plant seeds on farmland).");
     }
 
     @Override

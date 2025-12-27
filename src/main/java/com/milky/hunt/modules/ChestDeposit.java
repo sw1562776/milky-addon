@@ -80,7 +80,7 @@ public class ChestDeposit extends Module {
     private int waitOpenTicks = 0;
 
     public ChestDeposit() {
-        super(Addon.CATEGORY, "ChestDeposit", "One-shot deposit into a chest using low-level packets.");
+        super(Addon.MilkyModCategory, "ChestDeposit", "One-shot deposit into a chest using low-level packets.");
     }
 
     @Override

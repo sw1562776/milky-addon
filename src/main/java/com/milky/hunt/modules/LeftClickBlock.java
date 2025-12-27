@@ -83,7 +83,7 @@ public class LeftClickBlock extends Module {
     private final Setting<Boolean> faceDown  = sgGeneral.add(new BoolSetting.Builder().name("face-down").defaultValue(false).build());
 
     public LeftClickBlock() {
-        super(Addon.CATEGORY, "LeftClickBlock",
+        super(Addon.MilkyModCategory, "LeftClickBlock",
             "Automatically left-clicks (breaks) target blocks in range using low-level packets (e.g., harvest carrots/potatoes).");
     }
 

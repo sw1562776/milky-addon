@@ -254,7 +254,7 @@ public class BoostedBounce extends Module {
     );
 
     public BoostedBounce() {
-        super(Addon.CATEGORY, "BoostedBounce", "Elytra fly with some more features.");
+        super(Addon.MilkyModCategory, "BoostedBounce", "Elytra fly with some more features.");
     }
 
     private boolean startSprinting;

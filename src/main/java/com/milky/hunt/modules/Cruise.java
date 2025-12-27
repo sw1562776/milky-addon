@@ -141,7 +141,7 @@ public class Cruise extends Module {
     private int reopenTicks = 0;
 
     public Cruise() {
-        super(Addon.CATEGORY, "Cruise",
+        super(Addon.MilkyModCategory, "Cruise",
             "Hybrid Elytra cruise: Powered (AFKVanillaFly) or Unpowered (Pitch40 helper).");
     }
     

@@ -51,7 +51,7 @@ public class Timeline extends Module {
         "boostedbounce", "cruise", "gotomultipoints", "inhand", "leftclickblock", "rightclickblock", "rightclickentity", "spiralflight"
     ));
     private static final Set<String> ALLOWED_PARALLEL = new HashSet<>(Arrays.asList(
-        "boostedbounce", "cruise", "gotomultipoints", "inhand", "leftclickblock", "rightclickblock", "rightclickentity", "spiralflight", "waypointqueue"
+        "boostedbounce", "cruise", "gotomultipoints", "inhand", "leftclickblock", "rightclickblock", "rightclickentity", "spiralflight", "waypointqueue", "auto-drop"
     ));
 
     private final List<Step> steps = new ArrayList<>();
@@ -65,7 +65,7 @@ public class Timeline extends Module {
 
     public Timeline() {
     super(
-        Addon.CATEGORY,
+        Addon.MilkyWayCategory,
         "Timeline",
         "Time-based sequencer that runs other modules via a one-line script.\n" +
         "Use ';' to chain steps in order; within a step, ',' runs modules in parallel and the last token must be a duration (30s/2m/1h).\n" +

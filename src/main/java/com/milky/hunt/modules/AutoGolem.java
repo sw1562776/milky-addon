@@ -109,7 +109,7 @@ public class AutoGolem extends Module {
     private boolean waitingForSlotSync = false;
 
     public AutoGolem() {
-        super(Addon.CATEGORY, "AutoGolem", "Automatically builds a snow golem, iron golem, or wither.");
+        super(Addon.MilkyModCategory, "AutoGolem", "Automatically builds a snow golem, iron golem, or wither.");
     }
 
     @Override

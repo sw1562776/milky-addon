@@ -64,7 +64,7 @@ public class Magazine extends Module {
     private final Setting<String>[] commands;
 
     public Magazine() {
-        super(Addon.CATEGORY, "Magazine",
+        super(Addon.MilkyWayCategory, "Magazine",
             "A parameter switcher queue. Each activation applies one command slot, advances next-index, and turns itself off.");
 
         @SuppressWarnings("unchecked")

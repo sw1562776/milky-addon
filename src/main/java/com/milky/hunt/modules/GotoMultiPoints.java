@@ -20,7 +20,6 @@ public class GotoMultiPoints extends Module {
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
 
-
     private final Setting<InputMode> inputMode = sgGeneral.add(new EnumSetting.Builder<InputMode>()
         .name("input-mode")
         .description("Choose coordinate input mode.")
@@ -38,8 +37,7 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
-        private final List<Setting<BlockPos>> pointSettings = new ArrayList<>();
-
+    private final List<Setting<BlockPos>> pointSettings = new ArrayList<>();
 
     private final Setting<String> pointsString = sgGeneral.add(new StringSetting.Builder()
         .name("points")
@@ -57,7 +55,7 @@ public class GotoMultiPoints extends Module {
         .sliderMax(5.0)
         .build()
     );
-    
+
     private final Setting<Boolean> loop = sgGeneral.add(new BoolSetting.Builder()
         .name("loop")
         .description("Loop through points or stop after the last one.")
@@ -75,16 +73,25 @@ public class GotoMultiPoints extends Module {
         .build()
     );
 
+    // 1-based index of the next point to go; persisted like a setting, editable in GUI
+    private final Setting<Integer> nextPoint = sgGeneral.add(new IntSetting.Builder()
+        .name("next-point")
+        .description("1-based index of the next point to go. Updates automatically after each point is reached.")
+        .defaultValue(1)
+        .min(1)
+        .max(128)
+        .build()
+    );
+
     private final List<BlockPos> points = new ArrayList<>();
-    private int currentIndex = 0;
+    private int currentIndex = 0;   // 0-based runtime index
     private boolean waiting = false;
     private boolean loopWait = false;
     private long lastArriveTime = 0;
 
     public GotoMultiPoints() {
-        super(Addon.CATEGORY, "GotoMultiPoints", "Walks between multiple coordinates using Baritone.");
-    
-        // Create compact point settings via loop (defaults unified to 0,64,0)
+        super(Addon.MilkyModCategory, "GotoMultiPoints", "Walks between multiple coordinates using Baritone.");
+
         for (int i = 1; i <= 128; i++) {
             final int idx = i;
             pointSettings.add(
@@ -97,7 +104,7 @@ public class GotoMultiPoints extends Module {
                 )
             );
         }
-}
+    }
 
     @Override
     public void onActivate() {
@@ -107,7 +114,10 @@ public class GotoMultiPoints extends Module {
             toggle();
             return;
         }
-        currentIndex = 0;
+
+        int np = clamp(nextPoint.get(), 1, points.size());
+        currentIndex = np - 1;
+
         waiting = false;
         loopWait = false;
         goTo(points.get(currentIndex));
@@ -115,7 +125,6 @@ public class GotoMultiPoints extends Module {
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
-        
         if (mc.player == null || points.isEmpty()) return;
 
         BlockPos target = points.get(currentIndex);
@@ -132,11 +141,15 @@ public class GotoMultiPoints extends Module {
                     if (currentIndex == lastIndex) {
                         if (loop.get()) {
                             currentIndex = 0;
+                            setNextPointPersisted(1);
                             waiting = false;
                             loopWait = true;
                             goTo(points.get(currentIndex));
                         } else {
                             info("Finished all points. Stopping.");
+                            // Keep next-point at the current (last) point so a manual resume starts here,
+                            // or user can manually set it in GUI.
+                            setNextPointPersisted(currentIndex + 1);
                             toggle();
                         }
                     }
@@ -145,9 +158,11 @@ public class GotoMultiPoints extends Module {
                             loopWait = false;
                             if (points.size() > 1) {
                                 currentIndex = 1;
+                                setNextPointPersisted(2);
                                 waiting = false;
                                 goTo(points.get(currentIndex));
                             } else {
+                                setNextPointPersisted(1);
                                 waiting = false;
                                 goTo(points.get(0));
                             }
@@ -155,6 +170,7 @@ public class GotoMultiPoints extends Module {
                     }
                     else {
                         currentIndex++;
+                        setNextPointPersisted(currentIndex + 1);
                         waiting = false;
                         goTo(points.get(currentIndex));
                     }
@@ -193,5 +209,19 @@ public class GotoMultiPoints extends Module {
                 points.add(pointSettings.get(i).get());
             }
         }
+
+        if (!points.isEmpty()) {
+            int clamped = clamp(nextPoint.get(), 1, points.size());
+            if (clamped != nextPoint.get()) nextPoint.set(clamped);
+        }
+    }
+
+    private void setNextPointPersisted(int value1Based) {
+        int clamped = clamp(value1Based, 1, Math.max(1, points.size()));
+        if (nextPoint.get() != clamped) nextPoint.set(clamped);
+    }
+
+    private static int clamp(int v, int lo, int hi) {
+        return Math.max(lo, Math.min(hi, v));
     }
 }
