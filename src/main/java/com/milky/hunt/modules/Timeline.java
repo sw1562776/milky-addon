@@ -26,7 +26,7 @@ public class Timeline extends Module {
     private final Setting<String> script = sgGeneral.add(new StringSetting.Builder()
         .name("timeline-script")
         .description("Example: ChestRestock ; GotoMultiPoints, RightClickEntity, 30 mins")
-        .defaultValue("ChestRestock ; GotoMultiPoints, RightClickEntity, 30 mins")
+        .defaultValue("ChestRestock; GotoMultiPoints, RightClickEntity, 30 mins")
         .build()
     );
 
