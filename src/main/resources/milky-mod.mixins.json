@@ -5,9 +5,11 @@
   "client": [
     "LivingEntityMixin",
     "EntityMixin",
-    "KeyBindingMixin"
+    "KeyBindingMixin",
+    "ScreenInitMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   }
 }
+
