@@ -1,9 +1,10 @@
 # Milky Mod
 Meteor Addon For minecraft 1.21.4
 
-⚠️ This mod may include copy-pasted code from existing Meteor addons, including Jeff Mod, and others.
+⚠️ This mod may include copy-pasted code from Meteor, Hybridious, Jeff Mod, Trouser Streak, Zenith Proxy and others.
 
 ### Original Modules
+
 - AutoGolem
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
 - AutoInvertedY
@@ -48,8 +49,15 @@ Meteor Addon For minecraft 1.21.4
   - Ported from Jeff Mod, with Elytra auto-replace added and modules combined.
 - EventLog
   - Ported from Jeff Mod, with an added Vy option and a more detailed HUD.
+- RotationLock
+  - Ported from Meteor, with a stricter angle lock.
+- ValuableESP
+  - Ported from Trouser Streak.
+- WavPlayer
+  - Ported from Hybridious. Plays WAV files, with a default dancing Polish 🐮.
 
 ### In Progress
+
 - AirLanding
 - PitStop
 
