@@ -43,6 +43,9 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new LeftClickBlock());
         Modules.get().add(new Magazine());
         Modules.get().add(new Trade());
+        Modules.get().add(new WavPlayer());
+        Modules.get().add(new ValuableESP());
+        Modules.get().add(new RotationLock());
 
         Hud.get().register(YVelocity.INFO);
 
