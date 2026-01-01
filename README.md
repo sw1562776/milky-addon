@@ -59,7 +59,7 @@ Meteor Addon For minecraft 1.21.4
 ### In Progress
 
 - AirLanding
-- PitStop
+- PitStop: I would like to extend special thanks to xiaohe66 for sharing the early-stage code of a similar module.
 
 
 ### About
