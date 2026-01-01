@@ -48,7 +48,7 @@ Meteor Addon For minecraft 1.21.4
 - Cruise
   - Ported from Jeff Mod, with Elytra auto-replace added and modules combined.
 - EventLog
-  - Ported from Jeff Mod, with an added Vy option and a more detailed HUD.
+  - Ported from Meteor and Jeff Mod, with additional triggers (including a Vy test), a more detailed HUD, and screenshot options.
 - RotationLock
   - Ported from Meteor, with a stricter angle lock.
 - ValuableESP
