@@ -46,6 +46,7 @@ public class Addon extends MeteorAddon {
         Modules.get().add(new WavPlayer());
         Modules.get().add(new ValuableESP());
         Modules.get().add(new RotationLock());
+        Modules.get().add(new QuickCommand);
 
         Hud.get().register(YVelocity.INFO);
 
