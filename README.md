@@ -8,7 +8,7 @@ I would like to extend special thanks to xiaohe66 for sharing the early-stage co
 ### MilkyMod Modules
 
 - AirLanding
- - Biome-aware landing: free-fall, re-equip elytra, perform a landing burn, then air-place a platform.
+  - Biome-aware landing: free-fall, re-equip elytra, perform a landing burn, then air-place a platform.
 - AutoGolem
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
 - AutoInvertedY
