@@ -1,10 +1,14 @@
 # Milky Mod
 Meteor Addon For minecraft 1.21.4
 
-⚠️ This mod may include copy-pasted code from Meteor, Hybridious, Jeff Mod, Trouser Streak, Zenith Proxy and others.
+This mod may include copy-pasted code from Meteor, Hybridious, Jeff Mod, Trouser Streak, Zenith Proxy and others.
 
-### Original Modules
+I would like to extend special thanks to xiaohe66 for sharing the early-stage code of a module similar to PitStop.
 
+### MilkyMod Modules
+
+- AirLanding
+ - Biome-aware landing: free-fall, re-equip elytra, perform a landing burn, then air-place a platform.
 - AutoGolem
   - Do you want to build a snowman? ♪♪ Maybe an iron one... or even a dark one.
 - AutoInvertedY
@@ -17,32 +21,37 @@ Meteor Addon For minecraft 1.21.4
    - Walks between multiple coordinates using Baritone.
 - InHand
   - Fills your mainhand and offhand with chosen items.
-- Landing
-  - Attempts to land by using chorus fruits until touching the ground.
 - LeftClickBlock
   - Automatically interacts with blocks in range.
-- Magazine
-  - Automatically switch parameters of your Meteor modules.
 - PhantomStatistics
   - Detect phantoms, optionally mark Xaero waypoints, and show Y layer density on HUD.
+- PitStop
+  - Restock elytras and two other item types from an ender chest.
 - PullUp
   - Automatically takes off from the ground and climbs to your target altitude. 
-- QuickCommand
-  - Send your message/command (with rich placeholders) to gamechat with a single click.
 - RightClickBlock
   - Automatically interacts with blocks in range.
 - RightClickEntity
   - Automatically interacts with entities in range.
 - SpiralFlight
   - Adjusts your yaw to follow an Archimedean spiral path.
-- Timeline
-  - Orchestrates your Meteor modules—start and stop modules in a defined order or in parallel.
-  - Write a short script to schedule routines and optionally loop them.
+- Trade
+  - Auto trades with villagers.
 - WaypointQueue
   - Adjusts your yaw to sequentially aim at waypoints from XaeroMap.
 
+### MilkyWay Modules
+
+- Magazine
+  - Automatically switch parameters of your Meteor modules.
+- QuickCommand
+  - Send your message/command (with rich placeholders) to gamechat with a single click.
+- Timeline
+  - Orchestrates your Meteor modules—start and stop modules in a defined order or in parallel.
+  - Write a short script to schedule routines and optionally loop them.
+
 ### Borrowed Magic
- 
+
 - BoostedBounce
   - Ported from Jeff Mod and adapted for Minecraft 1.21.4 with a reworked soft-collision check and a build-in elytra/gold auto-replace.
 - Cruise
@@ -55,11 +64,6 @@ Meteor Addon For minecraft 1.21.4
   - Ported from Trouser Streak.
 - WavPlayer
   - Ported from Hybridious. Plays WAV files, with a default dancing Polish 🐮.
-
-### In Progress
-
-- AirLanding
-- PitStop: I would like to extend special thanks to xiaohe66 for sharing the early-stage code of a similar module.
 
 
 ### About
