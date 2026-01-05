@@ -18,7 +18,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -31,13 +30,15 @@ import java.util.Random;
  *   where <.minecraft> = MinecraftClient.getInstance().runDirectory
  *
  * Pack-in sample:
- * - Put file at: milky-addon-main/src/main/resources/assets/PolishCow.wav
- * - Resource path in jar: assets/PolishCow.wav
- * - Extracted to: <folder>/PolishCow.wav
+ * - Put file at: milky-addon-main/src/main/resources/assets/FlaxenHair.wav
+ * - Resource path in jar: assets/FlaxenHair.wav
+ * - Extracted to: <folder>/FlaxenHair.wav
  *
  * IMPORTANT behavior:
- * - If folder exists: do NOT check PolishCow.wav.
- * - If folder missing: create it AND extract PolishCow.wav into it.
+ * - Ensure folder exists.
+ * - If FlaxenHair.wav is missing, extract it into the folder.
+ * - Do NOT overwrite FlaxenHair.wav if it already exists.
+ * - Do NOT touch other files in the folder.
  *
  * Startup safety:
  * - Do NOT touch filesystem or start playback in onActivate().
@@ -47,8 +48,8 @@ public class WavPlayer extends Module {
     // ======================
     // Pack-in WAV info
     // ======================
-    private static final String POLISH_COW_FILE = "PolishCow.wav";
-    private static final String POLISH_COW_RESOURCE = "assets/PolishCow.wav";
+    private static final String MUSIC_FILE = "FlaxenHair.wav";
+    private static final String MUSIC_RESOURCE = "assets/FlaxenHair.wav";
 
     // Audio state (multi-thread)
     private volatile Clip audioClip = null;
@@ -79,7 +80,7 @@ public class WavPlayer extends Module {
     private final Setting<String> soundFile = sgGeneral.add(new StringSetting.Builder()
         .name("sound-file")
         .description("Name of the WAV file to play. Ignored if random-sound is enabled.")
-        .defaultValue(POLISH_COW_FILE)
+        .defaultValue(MUSIC_FILE)
         .visible(() -> !randomSound.get())
         .build()
     );
@@ -106,9 +107,9 @@ public class WavPlayer extends Module {
 
         WButton open = list.add(theme.button("Open WAV Folder")).expandX().widget();
         open.action = () -> {
-            // Per requirement: Open button also checks folder existence;
-            // if missing -> create + extract PolishCow.wav.
-            ensureFolderExistsOrCreateAndExtract();
+            // Open button also checks folder existence;
+            // ensure folder exists; if FlaxenHair.wav missing -> extract it (no overwrite).
+            ensureFolderExistsAndEnsureDefaultWav();
 
             try {
                 Util.getOperatingSystem().open(getSoundDir().toFile());
@@ -141,7 +142,7 @@ public class WavPlayer extends Module {
 
         if (pendingInit) {
             pendingInit = false;
-            ensureFolderExistsOrCreateAndExtract();
+            ensureFolderExistsAndEnsureDefaultWav();
         }
 
         if (pendingStart) {
@@ -226,24 +227,29 @@ public class WavPlayer extends Module {
     }
 
     /**
-     * Per requirement:
-     * - If folder exists: do NOT check PolishCow.wav (return immediately).
-     * - If folder missing: create it AND extract PolishCow.wav into it.
+     * Behavior:
+     * - Ensure folder exists (create if missing).
+     * - If FlaxenHair.wav is missing, extract it.
+     * - Do NOT overwrite if it exists.
+     * - Do NOT touch other files.
      */
-    private void ensureFolderExistsOrCreateAndExtract() {
+    private void ensureFolderExistsAndEnsureDefaultWav() {
         try {
             Path dir = getSoundDir();
-            if (Files.exists(dir)) return;
-
             Files.createDirectories(dir);
-            extractPolishCow(dir.resolve(POLISH_COW_FILE));
+
+            Path target = dir.resolve(MUSIC_FILE);
+            if (!Files.exists(target)) {
+                extractMusicIfMissing(target);
+            }
         } catch (Exception ignored) {}
     }
 
-    private void extractPolishCow(Path targetFile) {
-        try (InputStream in = WavPlayer.class.getClassLoader().getResourceAsStream(POLISH_COW_RESOURCE)) {
+    private void extractMusicIfMissing(Path targetFile) {
+        // Only called when targetFile does not exist.
+        try (InputStream in = WavPlayer.class.getClassLoader().getResourceAsStream(MUSIC_RESOURCE)) {
             if (in == null) return; // resource not packaged correctly
-            Files.copy(in, targetFile, StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(in, targetFile); // no overwrite
         } catch (Exception ignored) {}
     }
 
@@ -252,7 +258,7 @@ public class WavPlayer extends Module {
     private void startPlayback() {
         stopPlayback();
 
-        // No folder checks here. Folder init happens only in:
+        // Folder init happens only in:
         // - first activation tick
         // - Open WAV Folder button
 

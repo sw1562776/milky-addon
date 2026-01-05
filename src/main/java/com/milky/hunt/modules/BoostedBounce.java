@@ -26,7 +26,8 @@ import net.minecraft.entity.MovementType;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.*;
+import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket;
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket;
 import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
 import com.milky.hunt.Addon;
@@ -47,6 +48,17 @@ public class BoostedBounce extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgObstaclePasser = settings.createGroup("Obstacle Passer");
 
+    // -----------------------------------------------------------------------------------------
+    // Hard-disabled feature toggles (keep code, disable by constants)
+    // -----------------------------------------------------------------------------------------
+    private static final boolean MOTION_Y_BOOST = false;        // Motion Y Boost (always off)
+    private static final boolean ONLY_WHILE_COLLIDING = true;   // kept for the preserved code path
+    private static final boolean TUNNEL_BOUNCE = false;         // kept for the preserved code path
+    private static final double TARGET_SPEED_BPS = 100.0;       // kept for the preserved code path
+
+    private static final boolean FAKE_FLY = false;              // Chestplate/FakeFly (always off)
+
+    /*
     // bounce option removed — always on while module is active
 
     private final Setting<Boolean> motionYBoost = sgGeneral.add(new BoolSetting.Builder()
@@ -103,6 +115,14 @@ public class BoostedBounce extends Module {
         .defaultValue(false)
         .build()
     );
+
+    private final Setting<Boolean> fakeFly = sgGeneral.add(new BoolSetting.Builder()
+        .name("Chestplate / Fakefly")
+        .description("Lets you fly using a chestplate to use almost 0 elytra durability. Must have elytra in hotbar.")
+        .defaultValue(false)
+        .build()
+    );
+    */
 
     private final Setting<Boolean> useCustomYaw = sgGeneral.add(new BoolSetting.Builder()
         .name("Use Custom Yaw")
@@ -195,18 +215,11 @@ public class BoostedBounce extends Module {
         .build()
     );
 
-    private final Setting<Boolean> fakeFly = sgGeneral.add(new BoolSetting.Builder()
-        .name("Chestplate / Fakefly")
-        .description("Lets you fly using a chestplate to use almost 0 elytra durability. Must have elytra in hotbar.")
-        .defaultValue(false)
-        .build()
-    );
-
     private final Setting<Boolean> toggleElytra = sgGeneral.add(new BoolSetting.Builder()
         .name("Toggle Elytra")
         .description("Equips an elytra on activate, and a chestplate on deactivate.")
         .defaultValue(false)
-        .visible(() -> !fakeFly.get())
+        .visible(() -> !FAKE_FLY)
         .build()
     );
 
@@ -322,9 +335,9 @@ public class BoostedBounce extends Module {
 
     @EventHandler
     private void onPlayerMove(PlayerMoveEvent event) {
-        if (mc.player == null || event.type != MovementType.SELF || !enabled() || !motionYBoost.get()) return;
+        if (mc.player == null || event.type != MovementType.SELF || !enabled() || !MOTION_Y_BOOST) return;
 
-        if (onlyWhileColliding.get() && !mc.player.horizontalCollision) return;
+        if (ONLY_WHILE_COLLIDING && !mc.player.horizontalCollision) return;
 
         if (lastPos != null) {
             double speedBps = mc.player.getPos().subtract(lastPos).multiply(20, 0, 20).length();
@@ -332,8 +345,8 @@ public class BoostedBounce extends Module {
             Timer timer = Modules.get().get(Timer.class);
             if (timer.isActive()) speedBps *= timer.getMultiplier();
 
-            if (mc.player.isOnGround() && mc.player.isSprinting() && speedBps < speed.get()) {
-                if (speedBps > 20 || tunnelBounce.get()) {
+            if (mc.player.isOnGround() && mc.player.isSprinting() && speedBps < TARGET_SPEED_BPS) {
+                if (speedBps > 20 || TUNNEL_BOUNCE) {
                     ((IVec3d) event.movement).meteor$setY(0.0);
                 }
                 mc.player.setVelocity(mc.player.getVelocity().x, 0.0, mc.player.getVelocity().z);
@@ -353,7 +366,7 @@ public class BoostedBounce extends Module {
 
         mc.player.setSprinting(startSprinting);
 
-        if (toggleElytra.get() && !fakeFly.get()) {
+        if (toggleElytra.get() && !FAKE_FLY) {
             maybeSwapBackChestplate();
             maybeSwapBackLeggings();
         }
@@ -363,7 +376,7 @@ public class BoostedBounce extends Module {
     private void onTick(TickEvent.Pre event) {
         if (mc.player == null || mc.player.getAbilities().allowFlying) return;
 
-        if (toggleElytra.get() && !fakeFly.get() && !elytraToggled) {
+        if (toggleElytra.get() && !FAKE_FLY && !elytraToggled) {
             if (!(mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().equals(Items.ELYTRA))) {
                 Modules.get().get(ChestSwap.class).swap();
             } else {
@@ -373,7 +386,7 @@ public class BoostedBounce extends Module {
 
         if (enabled()) mc.player.setSprinting(true);
 
-        if (autoReplaceElytra.get() && !fakeFly.get()) {
+        if (autoReplaceElytra.get() && !FAKE_FLY) {
             maybeReplaceElytra();
         }
         if (reopenTicks > 0) {
@@ -452,24 +465,25 @@ public class BoostedBounce extends Module {
             paused = false;
             if (!enabled()) return;
 
-            if (!fakeFly.get()) {
-                if (mc.player.isOnGround() && (!motionYBoost.get() || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < speed.get())) {
+            if (!FAKE_FLY) {
+                if (mc.player.isOnGround() && (!MOTION_Y_BOOST || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < TARGET_SPEED_BPS)) {
                     mc.player.jump();
                 }
             }
 
-            if (lockYaw.get()) mc.player.setYaw(yaw.get().floatValue());
-            if (lockPitch.get()) mc.player.setPitch(pitch.get().floatValue());
+            // lock pitch/yaw feature removed (settings removed, do not force rotations)
+            // if (lockYaw.get()) mc.player.setYaw(yaw.get().floatValue());
+            // if (lockPitch.get()) mc.player.setPitch(pitch.get().floatValue());
         }
 
         if (enabled()) {
-            if (fakeFly.get()) doGrimEflyStuff();
+            if (FAKE_FLY) doGrimEflyStuff();
             else sendStartFlyingPacket();
         }
     }
 
     public boolean enabled() {
-        return this.isActive() && !paused && mc.player != null && (fakeFly.get() || mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().equals(Items.ELYTRA));
+        return this.isActive() && !paused && mc.player != null && (FAKE_FLY || mc.player.getEquippedStack(EquipmentSlot.CHEST).getItem().equals(Items.ELYTRA));
     }
 
     private void doGrimEflyStuff() {
@@ -479,7 +493,7 @@ public class BoostedBounce extends Module {
         swapToItem(itemResult.slot());
         sendStartFlyingPacket();
 
-        if (mc.player.isOnGround() && (!motionYBoost.get() || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < speed.get())) {
+        if (mc.player.isOnGround() && (!MOTION_Y_BOOST || Utils.getPlayerSpeed().multiply(1, 0, 1).length() < TARGET_SPEED_BPS)) {
             mc.player.jump();
         }
 
@@ -507,7 +521,7 @@ public class BoostedBounce extends Module {
         }
     }
 
-    // hotbar<->chest swap for FakeFly
+    // hotbar<->chest swap for FakeFly (preserved; FAKE_FLY is hard-disabled above)
     private void swapToItem(int slot) {
         ItemStack chestItem = mc.player.getInventory().getStack(38);
         ItemStack hotbarSwapItem = mc.player.getInventory().getStack(slot);

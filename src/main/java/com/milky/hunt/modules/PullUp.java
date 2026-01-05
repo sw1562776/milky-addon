@@ -28,7 +28,7 @@ public class PullUp extends Module {
 
     private final Setting<Double> stage3Pitch = sg.add(new DoubleSetting.Builder()
         .name("stage3-pitch").description("Pitch for Stage 3 (slope / angled climb).")
-        .defaultValue(-60.0).min(-90).max(0).sliderRange(-90, 90).build());
+        .defaultValue(-90.0).min(-90).max(0).sliderRange(-90, 90).build());
 
     private final Setting<Double> stage3StartY = sg.add(new DoubleSetting.Builder()
         .name("stage3-start-y").description("When reaching this Y, switch from Stage 2 to Stage 3 (slope).")
@@ -59,7 +59,7 @@ public class PullUp extends Module {
         .name("stage3-interval-ticks").description("Rocket interval (ticks) during Stage 3 (slope).")
         .defaultValue(20).min(3).max(500).sliderRange(6, 20).build());
 
-    // -------- Glide reacquire (only when falling) --------
+    // -------- Glide reacquire (only when falling normally; watchdog adds an early-window assist) --------
     private final Setting<Integer> reacquireEveryTicks = sg.add(new IntSetting.Builder()
         .name("reacquire-every-ticks").description("When airborne & NOT gliding & falling, try START_FALL_FLYING every N ticks.")
         .defaultValue(2).min(1).max(20).sliderRange(1, 10).build());
@@ -77,7 +77,7 @@ public class PullUp extends Module {
 
     private final Setting<Double> rotateStep = sg.add(new DoubleSetting.Builder()
         .name("rotate-step").description("Max pitch step per tick when smoothing.")
-        .defaultValue(3).min(0.5).max(20).sliderRange(1, 10).visible(smoothRotate::get).build());
+        .defaultValue(20).min(0.5).max(20).sliderRange(1, 10).visible(smoothRotate::get).build());
 
     private final Setting<Boolean> keepMainhandRocket = sg.add(new BoolSetting.Builder()
         .name("always-mainhand-rocket").description("Ensure rockets stay in MAIN hand.")
@@ -87,7 +87,32 @@ public class PullUp extends Module {
         .name("nuke-right-click-delay").description("Force client right-click delay to 0 before firing.")
         .defaultValue(false).build());
 
-    
+    // -------- Takeoff watchdog (new) --------
+    private final Setting<Integer> takeoffTimeoutTicks = sg.add(new IntSetting.Builder()
+        .name("takeoff-timeout-ticks")
+        .description("If still not \"really flying\" after this many ticks in VERTICAL, restart takeoff procedure.")
+        .defaultValue(28).min(8).max(120).sliderRange(10, 60).build());
+
+    private final Setting<Integer> takeoffMinAirTicks = sg.add(new IntSetting.Builder()
+        .name("takeoff-min-air-ticks")
+        .description("Within watchdog window, require at least this many airborne ticks to treat takeoff as successful (combined with min rise).")
+        .defaultValue(6).min(1).max(40).sliderRange(1, 20).build());
+
+    private final Setting<Double> takeoffMinRise = sg.add(new DoubleSetting.Builder()
+        .name("takeoff-min-rise")
+        .description("Within watchdog window, require rising at least this many blocks (combined with min airborne ticks) to treat takeoff as successful.")
+        .defaultValue(3.0).min(0.5).max(30).sliderRange(0.5, 10).build());
+
+    private final Setting<Integer> takeoffAssistTicks = sg.add(new IntSetting.Builder()
+        .name("takeoff-assist-ticks")
+        .description("During first N ticks of VERTICAL, try START_FALL_FLYING even if not yet falling (rate-limited). Helps against \"tiny hop then land\".")
+        .defaultValue(10).min(0).max(40).sliderRange(0, 20).build());
+
+    private final Setting<Integer> maxTakeoffRetries = sg.add(new IntSetting.Builder()
+        .name("max-takeoff-retries")
+        .description("Maximum times to restart takeoff procedure when watchdog detects failure.")
+        .defaultValue(20).min(0).max(100).sliderRange(0, 20).build());
+
     private enum Phase { INIT, EQUIP, ALIGN, PRE_SPAM, JUMP, VERTICAL, SLOPE, DONE }
     private Phase phase;
     private int ticksInPhase;
@@ -103,6 +128,10 @@ public class PullUp extends Module {
     // mark Y when entering Stage 1 (VERTICAL)
     private double verticalBaseY;
 
+    // watchdog runtime state (new)
+    private int takeoffAirTicksAcc;
+    private int takeoffRetries;
+
     public PullUp() {
         super(Addon.MilkyModCategory, "PullUp",
             "Stage 1&2: vertical climb with two cadences; Stage 3: slope (angled) climb. Keeps Elytra open and uses rockets on a sane cadence.");
@@ -117,6 +146,11 @@ public class PullUp extends Module {
         reacquireCd = 0;
         gliding = glidingPrev = false;
         verticalBaseY = Double.NaN;
+
+        // watchdog reset
+        takeoffAirTicksAcc = 0;
+        takeoffRetries = 0;
+
         if (mc.player != null) savedSlot = mc.player.getInventory().selectedSlot;
     }
 
@@ -128,6 +162,10 @@ public class PullUp extends Module {
         reacquireCd = 0;
         gliding = glidingPrev = false;
         verticalBaseY = Double.NaN;
+
+        takeoffAirTicksAcc = 0;
+        takeoffRetries = 0;
+
         if (mc.player != null && !keepMainhandRocket.get() && savedSlot >= 0 && savedSlot < 9) {
             mc.player.getInventory().selectedSlot = savedSlot;
         }
@@ -184,7 +222,11 @@ public class PullUp extends Module {
                 verticalCd = 0;
                 reacquireCd = 0;
                 gliding = glidingPrev = false;
-                verticalBaseY = mc.player.getY(); // begin Stage 1
+
+                // begin Stage 1 + watchdog baseline
+                verticalBaseY = mc.player.getY();
+                takeoffAirTicksAcc = 0;
+
                 phase = Phase.VERTICAL; ticksInPhase = 0;
             }
 
@@ -197,17 +239,36 @@ public class PullUp extends Module {
                 double vy = mc.player.getVelocity().y;
                 boolean falling = vy < -0.02;
 
-                if (airborne && !gliding && falling && reacquireCd == 0) {
+                // accumulate airborne ticks for watchdog
+                if (airborne) takeoffAirTicksAcc++;
+
+                // ---- improved reacquire ----
+                // normal behavior: only when falling
+                // add: early takeoff assist window, even if not falling yet (rate-limited)
+                boolean inAssistWindow = takeoffAssistTicks.get() > 0 && ticksInPhase <= takeoffAssistTicks.get();
+                if (airborne && !gliding && (falling || inAssistWindow) && reacquireCd == 0) {
                     sendStartFallFlying();
                     reacquireCd = Math.max(1, reacquireEveryTicks.get());
                 }
 
+                // ---- rocket cadence ----
                 if (!glidingPrev && gliding) {
                     fireIfReady();
                     verticalCd = verticalCadence(); // Stage 1 or 2
                 } else if (gliding && verticalCd == 0) {
                     fireIfReady();
                     verticalCd = verticalCadence(); // Stage 1 or 2
+                }
+
+                // ---- takeoff watchdog (new) ----
+                // success condition:
+                //   - either gliding has started (strong signal)
+                //   - OR (enough airborne ticks AND enough rise), to cover cases where gliding state lags but motion is real
+                // failure condition:
+                //   - within a reasonable window, we saw "tiny hop then landed" or just never got real lift
+                if (shouldRetryTakeoff()) {
+                    retryTakeoff("[PullUp] Takeoff failed (tiny hop / no glide). Restarting takeoff.");
+                    break;
                 }
 
                 if (mc.player.getY() >= stage3StartY.get()) {
@@ -382,6 +443,56 @@ public class PullUp extends Module {
         return 0; // not in climb yet / done
     }
 
+    // --- takeoff watchdog helpers (new) ---
+
+    private boolean takeoffLooksSuccessful() {
+        if (gliding) return true; // strongest signal
+        if (Double.isNaN(verticalBaseY)) return false;
+
+        double rise = mc.player.getY() - verticalBaseY;
+        // treat as success if motion indicates real takeoff, even if gliding flag lags
+        return takeoffAirTicksAcc >= takeoffMinAirTicks.get() && rise >= takeoffMinRise.get();
+    }
+
+    private boolean shouldRetryTakeoff() {
+        if (phase != Phase.VERTICAL) return false;
+        if (maxTakeoffRetries.get() <= 0) return false;
+        if (takeoffRetries >= maxTakeoffRetries.get()) return false;
+
+        // Give a few ticks grace
+        if (ticksInPhase < 8) return false;
+
+        if (takeoffLooksSuccessful()) return false;
+
+        // Failure patterns:
+        // 1) landed back on ground after a small hop (common)
+        // 2) timeout without "real lift"
+        boolean landedBack = mc.player.isOnGround();
+        boolean timeout = ticksInPhase >= takeoffTimeoutTicks.get();
+
+        // If we already landed back and still not successful, it's pretty safe to retry earlier.
+        return landedBack || timeout;
+    }
+
+    private void retryTakeoff(String msg) {
+        takeoffRetries++;
+        info(msg + " (" + takeoffRetries + "/" + maxTakeoffRetries.get() + ")");
+
+        // reset phase machine to the very beginning of takeoff procedure
+        // (INIT will re-check elytra/rockets and then re-equip/align/pre-spam/jump)
+        phase = Phase.INIT;
+        ticksInPhase = 0;
+
+        verticalCd = 0;
+        slopeCd = 0;
+        reacquireCd = 0;
+
+        gliding = glidingPrev = false;
+        verticalBaseY = Double.NaN;
+
+        takeoffAirTicksAcc = 0;
+    }
+
     @Override
     public String getInfoString() {
         if (mc.player == null) return null;
@@ -389,6 +500,8 @@ public class PullUp extends Module {
         String s = String.format("Y=%.1f/%.0f", mc.player.getY(), stage3TargetY.get());
         if (st == 1 || st == 2) s += " | S" + st + " int=" + verticalCadence();
         if (st == 3) s += " | S3 int=" + stage3Interval.get();
+        if (phase == Phase.VERTICAL && !takeoffLooksSuccessful()) s += " | takeoff?";
+        if (takeoffRetries > 0) s += " | retry=" + takeoffRetries;
         return s;
     }
 }

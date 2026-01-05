@@ -24,29 +24,32 @@ public class Addon extends MeteorAddon {
     public void onInitialize() {
         LOG.info("Initializing Milky Mod");
 
+        Modules.get().add(new AirLanding());
         Modules.get().add(new AutoGolem());
         Modules.get().add(new AutoInvertedY());
+        Modules.get().add(new BoostedBounce());
         Modules.get().add(new ChestDeposit());
         Modules.get().add(new ChestRestock());
+        Modules.get().add(new Cruise());
         Modules.get().add(new EventLog());
         Modules.get().add(new GotoMultiPoints());
         Modules.get().add(new InHand());
-        Modules.get().add(new RightClickEntity());
-        Modules.get().add(new Timeline());
-        Modules.get().add(new Cruise());
-        Modules.get().add(new BoostedBounce());
-        Modules.get().add(new PhantomStatistics());
-        Modules.get().add(new PullUp());
-        Modules.get().add(new SpiralFlight());
-        Modules.get().add(new WaypointQueue());
-        Modules.get().add(new RightClickBlock());
         Modules.get().add(new LeftClickBlock());
-        Modules.get().add(new Magazine());
-        Modules.get().add(new Trade());
-        Modules.get().add(new WavPlayer());
-        Modules.get().add(new ValuableESP());
+        Modules.get().add(new PhantomStatistics());
+        Modules.get().add(new PitStop());
+        Modules.get().add(new PullUp());
+        Modules.get().add(new RightClickBlock());
+        Modules.get().add(new RightClickEntity());
         Modules.get().add(new RotationLock());
-        Modules.get().add(new QuickCommand);
+        Modules.get().add(new SpiralFlight());
+        Modules.get().add(new Trade());
+        Modules.get().add(new ValuableESP());
+        Modules.get().add(new WavPlayer());
+        Modules.get().add(new WaypointQueue());
+
+        Modules.get().add(new Magazine());
+        Modules.get().add(new QuickCommand());
+        Modules.get().add(new Timeline());
 
         Hud.get().register(YVelocity.INFO);
 
